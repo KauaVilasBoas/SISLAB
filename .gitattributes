@@ -1,0 +1,11 @@
+# Normaliza finais de linha: checkout Windows (CRLF), commit LF
+* text=auto eol=lf
+
+# Força binários como binário
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.dll binary
+*.exe binary
