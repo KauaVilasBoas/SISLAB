@@ -53,6 +53,21 @@ secrets.json
 # Claude Code (local/pessoal)
 .claude/settings.local.json
 
+# ===== Terraform =====
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars.local
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+# .terraform.lock.hcl é intencionalmente versionado (lock de versões de provider)
+
 # SO
 .DS_Store
 Thumbs.db
