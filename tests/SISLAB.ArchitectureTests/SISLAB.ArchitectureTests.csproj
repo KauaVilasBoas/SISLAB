@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit" Version="2.5.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+    <PackageReference Include="TngTech.ArchUnitNET" Version="0.13.3" />
+    <PackageReference Include="TngTech.ArchUnitNET.xUnit" Version="0.13.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Referências a todos os assemblies testados — necessário para ArchUnitNET carregar os tipos -->
+    <ProjectReference Include="..\..\src\Shared\SISLAB.SharedKernel\SISLAB.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\SISLAB.Modules.Identity.Domain\SISLAB.Modules.Identity.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\SISLAB.Modules.Identity.Application\SISLAB.Modules.Identity.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\SISLAB.Modules.Identity.Contracts\SISLAB.Modules.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Inventory\SISLAB.Modules.Inventory.Domain\SISLAB.Modules.Inventory.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Inventory\SISLAB.Modules.Inventory.Application\SISLAB.Modules.Inventory.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Inventory\SISLAB.Modules.Inventory.Contracts\SISLAB.Modules.Inventory.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>
