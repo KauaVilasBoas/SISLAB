@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Application: orquestra casos de uso. Depende de Domain + SharedKernel + Infrastructure (para IModule). -->
+  <ItemGroup>
+    <ProjectReference Include="..\SISLAB.Modules.Identity.Domain\SISLAB.Modules.Identity.Domain.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
