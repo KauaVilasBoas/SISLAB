@@ -1,0 +1,6 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Contracts: interface pública do módulo. Sem referência ao Domain interno. Sem EF/Dapper. -->
+  <!-- Outros módulos referenciam APENAS este projeto, nunca o Domain. -->
+
+</Project>

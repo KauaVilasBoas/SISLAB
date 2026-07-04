@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Application: orquestra casos de uso. Depende de Domain + Infrastructure (para IModule). -->
+  <ItemGroup>
+    <ProjectReference Include="..\SISLAB.Modules.Inventory.Domain\SISLAB.Modules.Inventory.Domain.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
