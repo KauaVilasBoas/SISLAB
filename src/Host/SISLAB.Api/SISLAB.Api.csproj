@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <!-- Infrastructure compartilhada (IModule, Mediator, etc.) -->
+    <ProjectReference Include="..\..\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
+
+    <!--
+      Host referencia apenas o ponto de entrada de cada módulo (Application).
+      NUNCA referencia Domain ou Infrastructure interna dos módulos.
+    -->
+    <ProjectReference Include="..\..\Modules\Identity\SISLAB.Modules.Identity.Application\SISLAB.Modules.Identity.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Inventory\SISLAB.Modules.Inventory.Application\SISLAB.Modules.Inventory.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.2" />
+  </ItemGroup>
+
+</Project>
