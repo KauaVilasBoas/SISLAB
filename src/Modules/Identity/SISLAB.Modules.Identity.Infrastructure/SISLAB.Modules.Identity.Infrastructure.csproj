@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Infrastructure do módulo: acesso a banco, EF, implementações concretas. -->
+  <ItemGroup>
+    <ProjectReference Include="..\SISLAB.Modules.Identity.Application\SISLAB.Modules.Identity.Application.csproj" />
+    <ProjectReference Include="..\SISLAB.Modules.Identity.Contracts\SISLAB.Modules.Identity.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>
