@@ -1,0 +1,58 @@
+# ===== SISLAB =====
+
+# Documentação-base com dados sensíveis (NÃO versionar)
+doc.md
+
+# Arquivos-fonte sensíveis (planilhas, áudios, exports do laboratório)
+*.xlsx
+*.xls
+*.csv
+uploads/
+dados-sensiveis/
+*.ptt
+WhatsApp*.txt
+
+# ===== .NET / Rider =====
+bin/
+obj/
+out/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.userprefs
+*.dll
+*.pdb
+*.cache
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+.idea.*/
+
+# Visual Studio
+.vs/
+*.vspscc
+
+# Build / packages
+project.lock.json
+artifacts/
+[Pp]ackages/
+*.nupkg
+
+# Ambiente / segredos
+.env
+.env.*
+appsettings.*.Local.json
+secrets.json
+
+# Claude Code (local/pessoal)
+.claude/settings.local.json
+
+# SO
+.DS_Store
+Thumbs.db
