@@ -80,6 +80,25 @@ public static class IdentityModuleServiceExtensions
             options.Provider = DatabaseProvider.PostgreSQL;
         });
 
+        // 3.1 Override do typed client HaveIBeenPwned (defeito no pacote Lumen.Identity 1.0.0).
+        //     A Lumen registra AddHttpClient<IPwnedPasswordsClient, PwnedPasswordsClient> (com
+        //     BaseAddress vindo de Hibp:ApiBaseUrl) e, em seguida, o SOBRESCREVE com
+        //     AddScoped<IPwnedPasswordsClient, PwnedPasswordsClient> — anulando o BaseAddress e
+        //     causando 500 ("An invalid request URI...") em register/change-password. Como a Lumen
+        //     é lib externa black-box, sobrepomos com nosso typed client corretamente configurado.
+        //     Ver SislabPwnedPasswordsClient. BaseAddress/UserAgent vêm de LumenIdentity:Hibp.
+        IConfiguration hibpConfiguration = lumenConfiguration.GetSection("Hibp");
+        string hibpBaseUrl = hibpConfiguration["ApiBaseUrl"] ?? "https://api.pwnedpasswords.com";
+        string hibpUserAgent = hibpConfiguration["UserAgent"] ?? "SISLAB-Identity";
+
+        services.AddHttpClient<Lumen.Identity.Domain.Security.IPwnedPasswordsClient, Security.SislabPwnedPasswordsClient>(
+            client =>
+            {
+                client.BaseAddress = new Uri(hibpBaseUrl.TrimEnd('/') + "/");
+                client.Timeout = TimeSpan.FromSeconds(2);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd(hibpUserAgent);
+            });
+
         // 4. Lumen Identity — hosted service de migrations Postgres
         services.AddLumenIdentityPostgresMigrations();
 
