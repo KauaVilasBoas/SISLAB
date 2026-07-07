@@ -7,8 +7,9 @@ namespace SISLAB.Modules.Identity.Infrastructure.Persistence;
 
 /// <summary>
 /// DbContext do módulo Identity.
-/// Gerencia exclusivamente entidades do bounded context de identidade do SISLAB:
-/// Company e CompanyMembership (schema "identity").
+/// Gerencia exclusivamente entidades do bounded context de multi-tenancy do SISLAB:
+/// Company e CompanyMembership (schema "tenancy"). O schema "identity" é reservado à
+/// Lumen Identity (usuários, tokens) — este contexto nunca o utiliza.
 ///
 /// As tabelas da Lumen (usuários, tokens, perfis, permissões) são gerenciadas pelos
 /// DbContexts internos da Lumen via hosted service de migrations — este contexto

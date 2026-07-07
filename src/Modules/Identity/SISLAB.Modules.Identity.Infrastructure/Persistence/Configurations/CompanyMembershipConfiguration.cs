@@ -14,7 +14,7 @@ internal sealed class CompanyMembershipConfiguration : IEntityTypeConfiguration<
 {
     public void Configure(EntityTypeBuilder<CompanyMembership> builder)
     {
-        builder.ToTable("company_memberships", schema: "identity");
+        builder.ToTable("company_memberships", schema: "tenancy");
 
         builder.HasKey(m => m.Id);
 

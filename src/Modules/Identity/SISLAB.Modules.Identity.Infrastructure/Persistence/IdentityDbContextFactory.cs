@@ -18,7 +18,7 @@ internal sealed class IdentityDbContextFactory : IDesignTimeDbContextFactory<Ide
                     "Host=localhost;Database=sislab_design;Username=postgres;Password=postgres",
                     npgsql =>
                     {
-                        npgsql.MigrationsHistoryTable("__ef_migrations_history", schema: "identity");
+                        npgsql.MigrationsHistoryTable("__ef_migrations_history", schema: "tenancy");
                         npgsql.MigrationsAssembly(
                             typeof(IdentityDbContextFactory).Assembly.GetName().Name);
                     });

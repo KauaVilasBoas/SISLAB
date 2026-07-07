@@ -54,7 +54,7 @@ namespace SISLAB.Modules.Identity.Infrastructure.Persistence.Migrations
                     b.HasIndex("Name")
                         .HasDatabaseName("ix_companies_name");
 
-                    b.ToTable("companies", "identity");
+                    b.ToTable("companies", "tenancy");
                 });
 
             modelBuilder.Entity("SISLAB.Modules.Identity.Domain.Companies.CompanyMembership", b =>
@@ -86,7 +86,7 @@ namespace SISLAB.Modules.Identity.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_company_memberships_company_user");
 
-                    b.ToTable("company_memberships", "identity");
+                    b.ToTable("company_memberships", "tenancy");
                 });
 
             modelBuilder.Entity("SISLAB.Modules.Identity.Domain.Companies.CompanyMembership", b =>
