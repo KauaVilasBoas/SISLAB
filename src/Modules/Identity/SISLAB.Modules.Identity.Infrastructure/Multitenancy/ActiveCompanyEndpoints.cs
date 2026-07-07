@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using SISLAB.Modules.Identity.Contracts.ActiveCompany;
 using SISLAB.Modules.Identity.Domain.Companies;
+using SISLAB.SharedKernel.Multitenancy;
 
 namespace SISLAB.Modules.Identity.Infrastructure.Multitenancy;
 
@@ -36,7 +37,29 @@ public static class ActiveCompanyEndpoints
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
 
+        // Retorna a company ativa resolvida pelo TenantResolutionMiddleware para a requisição
+        // atual (a partir do cookie httpOnly, revalidado contra company_user). O SPA usa para
+        // saber qual empresa está ativa; 404 quando não há tenant resolvido (sem cookie válido).
+        group.MapGet("/active", GetActiveCompanyAsync)
+            .Produces<ActiveCompanyDto>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         return endpoints;
+    }
+
+    private static IResult GetActiveCompanyAsync(ITenantContext tenantContext)
+    {
+        if (tenantContext.CompanyId == Guid.Empty)
+        {
+            // Autenticado, porém sem company ativa válida (sem cookie ou cookie rejeitado).
+            return Results.Problem(
+                title: "Nenhuma company ativa",
+                detail: "Selecione uma empresa ativa via POST /api/companies/{companyId}/activate.",
+                statusCode: StatusCodes.Status404NotFound);
+        }
+
+        return Results.Ok(new ActiveCompanyDto(tenantContext.CompanyId));
     }
 
     private static async Task<IResult> GetMyCompaniesAsync(
