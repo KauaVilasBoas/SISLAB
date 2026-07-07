@@ -53,6 +53,10 @@ secrets.json
 # Claude Code (local/pessoal)
 .claude/settings.local.json
 
+# Projetos temporários de inspeção de pacotes (não versionados)
+_lumen_inspect/
+inspect_lumen.csx
+
 # ===== Terraform =====
 **/.terraform/*
 *.tfstate
