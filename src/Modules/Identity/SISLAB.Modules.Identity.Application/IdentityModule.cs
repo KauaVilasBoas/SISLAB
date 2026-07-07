@@ -1,16 +1,19 @@
+using Lumen.Identity.AspNetCore;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SISLAB.Infrastructure.Modules;
+using SISLAB.Modules.Identity.Infrastructure.DependencyInjection;
 
 namespace SISLAB.Modules.Identity.Application;
 
 /// <summary>
 /// Ponto de entrada do módulo Identity no Composition Root.
 /// O Host referencia este assembly para descoberta automática via reflection;
-/// nunca referencia o projeto Domain diretamente.
+/// nunca referencia o projeto Domain ou Infrastructure internos diretamente.
 ///
-/// Stub do E0: sem serviços nem endpoints reais — implementação completa no E1.
+/// Delega o registro de serviços para <see cref="IdentityModuleServiceExtensions"/>
+/// (Infrastructure), mantendo o Application como ponto de entrada limpo.
 /// </summary>
 public sealed class IdentityModule : IModule
 {
@@ -20,12 +23,15 @@ public sealed class IdentityModule : IModule
     /// <inheritdoc />
     public void RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
-        // E1: registrar DbContext do módulo, repositórios, handlers, ITenantContext.
+        services.AddIdentityModule(configuration);
     }
 
     /// <inheritdoc />
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
-        // E1: mapear endpoints de autenticação (login, refresh, register).
+        // Mapeia endpoints de autenticação da Lumen: login, refresh, register,
+        // confirm-email, forgot-password, reset-password, logout, me.
+        // Prefixo "/api/auth" segue a convenção do SISLAB.
+        endpoints.MapLumenIdentityEndpoints(prefix: "/api/auth");
     }
 }
