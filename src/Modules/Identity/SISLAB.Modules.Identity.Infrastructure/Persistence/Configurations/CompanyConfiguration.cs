@@ -6,13 +6,14 @@ namespace SISLAB.Modules.Identity.Infrastructure.Persistence.Configurations;
 
 /// <summary>
 /// Configuração EF Core do agregado <see cref="Company"/>.
-/// Schema: "identity" — isolado das tabelas do módulo Inventory e das tabelas da Lumen.
+/// Schema: "tenancy" — bounded context de multi-tenancy do SISLAB, isolado do schema
+/// "identity" (exclusivo da Lumen Identity: usuários/tokens) e das tabelas do Inventory.
 /// </summary>
 internal sealed class CompanyConfiguration : IEntityTypeConfiguration<Company>
 {
     public void Configure(EntityTypeBuilder<Company> builder)
     {
-        builder.ToTable("companies", schema: "identity");
+        builder.ToTable("companies", schema: "tenancy");
 
         builder.HasKey(c => c.Id);
 

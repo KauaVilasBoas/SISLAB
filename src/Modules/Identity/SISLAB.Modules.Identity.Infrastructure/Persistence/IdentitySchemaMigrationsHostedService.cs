@@ -7,7 +7,7 @@ namespace SISLAB.Modules.Identity.Infrastructure.Persistence;
 
 /// <summary>
 /// Hosted service que aplica as migrations do <see cref="IdentityDbContext"/> do SISLAB
-/// (tabelas <c>companies</c> e <c>company_user</c> no schema <c>identity</c>) no startup.
+/// (tabelas <c>companies</c> e <c>company_memberships</c> no schema <c>tenancy</c>) no startup.
 ///
 /// Espelha o padrão dos hosted services de migrations da Lumen (Identity/Authorization):
 /// cada DbContext aplica seu próprio schema no boot. As tabelas da Lumen continuam

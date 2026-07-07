@@ -6,17 +6,17 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SISLAB.Modules.Identity.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialIdentitySchema : Migration
+    public partial class InitialTenancySchema : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.EnsureSchema(
-                name: "identity");
+                name: "tenancy");
 
             migrationBuilder.CreateTable(
                 name: "companies",
-                schema: "identity",
+                schema: "tenancy",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -32,7 +32,7 @@ namespace SISLAB.Modules.Identity.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "company_memberships",
-                schema: "identity",
+                schema: "tenancy",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -46,7 +46,7 @@ namespace SISLAB.Modules.Identity.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "fk_company_memberships_companies_company_id",
                         column: x => x.company_id,
-                        principalSchema: "identity",
+                        principalSchema: "tenancy",
                         principalTable: "companies",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
@@ -54,20 +54,20 @@ namespace SISLAB.Modules.Identity.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "ix_companies_name",
-                schema: "identity",
+                schema: "tenancy",
                 table: "companies",
                 column: "name");
 
             migrationBuilder.CreateIndex(
                 name: "ix_company_memberships_company_user",
-                schema: "identity",
+                schema: "tenancy",
                 table: "company_memberships",
                 columns: new[] { "company_id", "lumen_user_id" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "ix_company_memberships_lumen_user_id",
-                schema: "identity",
+                schema: "tenancy",
                 table: "company_memberships",
                 column: "lumen_user_id");
         }
@@ -77,11 +77,11 @@ namespace SISLAB.Modules.Identity.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "company_memberships",
-                schema: "identity");
+                schema: "tenancy");
 
             migrationBuilder.DropTable(
                 name: "companies",
-                schema: "identity");
+                schema: "tenancy");
         }
     }
 }

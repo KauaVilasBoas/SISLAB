@@ -46,11 +46,14 @@ public static class IdentityModuleServiceExtensions
                 "Connection string 'SislabDb' não configurada. " +
                 "Defina em appsettings.json ou User Secrets.");
 
-        // 1. DbContext EF do módulo (Company / CompanyMembership — schema "identity")
+        // 1. DbContext EF do módulo (Company / CompanyMembership — schema "tenancy").
+        //    O schema "identity" é EXCLUSIVO da Lumen Identity (usuários/tokens); a
+        //    multi-tenancy do SISLAB vive em "tenancy" para não colidir com dois DbContexts,
+        //    dois históricos de migration e convenções de casing distintas no mesmo schema.
         services.AddDbContext<IdentityDbContext>(options =>
             options.UseNpgsql(connectionString, npgsql =>
             {
-                npgsql.MigrationsHistoryTable("__ef_migrations_history", schema: "identity");
+                npgsql.MigrationsHistoryTable("__ef_migrations_history", schema: "tenancy");
                 npgsql.MigrationsAssembly(
                     typeof(IdentityModuleServiceExtensions).Assembly.GetName().Name);
             }));
