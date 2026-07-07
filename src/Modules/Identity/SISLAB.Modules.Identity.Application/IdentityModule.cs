@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SISLAB.Infrastructure.Modules;
 using SISLAB.Modules.Identity.Infrastructure.DependencyInjection;
+using SISLAB.Modules.Identity.Infrastructure.Multitenancy;
 
 namespace SISLAB.Modules.Identity.Application;
 
@@ -33,5 +34,8 @@ public sealed class IdentityModule : IModule
         // confirm-email, forgot-password, reset-password, logout, me.
         // Prefixo "/api/auth" segue a convenção do SISLAB.
         endpoints.MapLumenIdentityEndpoints(prefix: "/api/auth");
+
+        // Endpoints do SISLAB para seleção/troca da company ativa (pós-login, cookie httpOnly).
+        endpoints.MapActiveCompanyEndpoints();
     }
 }

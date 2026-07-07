@@ -28,6 +28,19 @@ internal sealed class CompanyRepository : ICompanyRepository
             .OrderBy(c => c.Name)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<Company>> ListForMemberAsync(Guid lumenUserId, CancellationToken ct = default)
+        => await _dbContext.Companies
+            .Include(c => c.Memberships)
+            .Where(c => c.IsActive && c.Memberships.Any(m => m.LumenUserId == lumenUserId))
+            .OrderBy(c => c.Name)
+            .ToListAsync(ct);
+
+    public Task<bool> IsActiveMemberAsync(Guid companyId, Guid lumenUserId, CancellationToken ct = default)
+        => _dbContext.Companies
+            .Where(c => c.Id == companyId && c.IsActive)
+            .SelectMany(c => c.Memberships)
+            .AnyAsync(m => m.LumenUserId == lumenUserId, ct);
+
     public async Task AddAsync(Company company, CancellationToken ct = default)
         => await _dbContext.Companies.AddAsync(company, ct);
 

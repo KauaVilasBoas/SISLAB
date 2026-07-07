@@ -6,6 +6,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Expõe tipos internos (TenantContext, TenantResolutionMiddleware) aos testes do módulo. -->
+    <InternalsVisibleTo Include="SISLAB.Modules.Identity.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Infrastructure depende de Domain + Contracts (nunca de Application, evita ciclo) -->
     <ProjectReference Include="..\SISLAB.Modules.Identity.Domain\SISLAB.Modules.Identity.Domain.csproj" />
     <ProjectReference Include="..\SISLAB.Modules.Identity.Contracts\SISLAB.Modules.Identity.Contracts.csproj" />
