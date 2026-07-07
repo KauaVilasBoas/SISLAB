@@ -2,10 +2,29 @@
 
   <!-- Infrastructure do módulo: acesso a banco, EF, implementações concretas. -->
   <ItemGroup>
-    <ProjectReference Include="..\SISLAB.Modules.Identity.Application\SISLAB.Modules.Identity.Application.csproj" />
-    <ProjectReference Include="..\SISLAB.Modules.Identity.Contracts\SISLAB.Modules.Identity.Contracts.csproj" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
+
   <ItemGroup>
+    <!-- Infrastructure depende de Domain + Contracts (nunca de Application, evita ciclo) -->
+    <ProjectReference Include="..\SISLAB.Modules.Identity.Domain\SISLAB.Modules.Identity.Domain.csproj" />
+    <ProjectReference Include="..\SISLAB.Modules.Identity.Contracts\SISLAB.Modules.Identity.Contracts.csproj" />
+    <!-- Shared infra: SislabDbContextBase, IUnitOfWork -->
+    <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- EF Core + Npgsql para o DbContext do módulo -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.15" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.15">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
+    <!-- Override EF Core SqlServer trazido pela Lumen para resolver conflito de versão -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.15" />
+
+    <!-- Lumen Identity: AuthN, endpoints, migrations Postgres -->
     <PackageReference Include="Lumen.Authorization" Version="1.1.0" />
     <PackageReference Include="Lumen.Authorization.AspNetCore" Version="1.1.0" />
     <PackageReference Include="Lumen.Authorization.Migrations.PostgreSQL" Version="1.1.0" />
