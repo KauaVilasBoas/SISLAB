@@ -7,7 +7,7 @@ namespace SISLAB.SharedKernel.Domain;
 /// despachados e então limpos com <see cref="ClearDomainEvents"/>.
 /// </summary>
 /// <typeparam name="TId">Tipo do identificador do agregado.</typeparam>
-public abstract class AggregateRoot<TId> : Entity<TId>
+public abstract class AggregateRoot<TId> : Entity<TId>, IHasDomainEvents
     where TId : notnull
 {
     private readonly List<IDomainEvent> _domainEvents = [];
