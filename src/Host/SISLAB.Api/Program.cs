@@ -100,8 +100,18 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("SislabCorsPolicy");
 
-// Health check endpoint — não requer autenticação
-app.MapHealthChecks("/health");
+// AuthN/AuthZ da Lumen (JWT Bearer) — registrados via AddLumenIdentity no módulo Identity.
+// UseAuthentication resolve o principal a partir do JWT; UseAuthorization aplica policies
+// (a Lumen registra um FallbackPolicy que exige usuário autenticado em endpoints sem AllowAnonymous).
+app.UseAuthentication();
+app.UseAuthorization();
+
+// Resolução de tenant (company ativa via cookie httpOnly) — DEPOIS da AuthN/AuthZ,
+// pois valida a company contra company_user usando o usuário já autenticado.
+app.UseSislabTenantResolution();
+
+// Health check endpoint — público (AllowAnonymous escapa o FallbackPolicy da Lumen).
+app.MapHealthChecks("/health").AllowAnonymous();
 
 // Módulos mapeiam seus próprios endpoints
 ModuleLoader.MapModuleEndpoints(app);
