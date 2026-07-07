@@ -5,5 +5,13 @@
     <ProjectReference Include="..\SISLAB.Modules.Identity.Application\SISLAB.Modules.Identity.Application.csproj" />
     <ProjectReference Include="..\SISLAB.Modules.Identity.Contracts\SISLAB.Modules.Identity.Contracts.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Lumen.Authorization" Version="1.1.0" />
+    <PackageReference Include="Lumen.Authorization.AspNetCore" Version="1.1.0" />
+    <PackageReference Include="Lumen.Authorization.Migrations.PostgreSQL" Version="1.1.0" />
+    <PackageReference Include="Lumen.Identity" Version="1.0.0" />
+    <PackageReference Include="Lumen.Identity.AspNetCore" Version="1.0.0" />
+    <PackageReference Include="Lumen.Identity.Migrations.PostgreSQL" Version="1.0.0" />
+  </ItemGroup>
 
 </Project>
