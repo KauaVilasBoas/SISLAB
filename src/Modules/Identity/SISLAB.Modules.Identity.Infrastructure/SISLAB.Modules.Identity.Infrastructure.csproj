@@ -32,10 +32,10 @@
     <!-- Lumen Identity: AuthN, endpoints, migrations Postgres -->
     <PackageReference Include="Lumen.Authorization" Version="1.1.0" />
     <PackageReference Include="Lumen.Authorization.AspNetCore" Version="1.1.0" />
-    <PackageReference Include="Lumen.Authorization.Migrations.PostgreSQL" Version="1.1.0" />
+    <PackageReference Include="Lumen.Authorization.Migrations.PostgreSQL" Version="1.1.1" />
     <PackageReference Include="Lumen.Identity" Version="1.0.0" />
     <PackageReference Include="Lumen.Identity.AspNetCore" Version="1.0.0" />
-    <PackageReference Include="Lumen.Identity.Migrations.PostgreSQL" Version="1.0.0" />
+    <PackageReference Include="Lumen.Identity.Migrations.PostgreSQL" Version="1.0.1" />
   </ItemGroup>
 
 </Project>
