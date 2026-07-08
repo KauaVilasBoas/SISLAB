@@ -171,6 +171,27 @@ public static class IdentityModuleServiceExtensions
         //     O SISLAB ainda não consome eventos da Lumen — registro sem assemblies de handler.
         services.AddEventBus();
 
+        // 11. Seed de desenvolvimento (empresa demo LAFTE + admin), atrás da flag "Seed:Enabled".
+        //     Registrado por ÚLTIMO: o DevSeedHostedService roda depois de todos os hosted services
+        //     de migrations (SISLAB + Lumen), garantindo que schemas e o seed de sistema da Lumen
+        //     (profiles Administrator/User) já existam quando o seed do SISLAB executar.
+        AddDevSeed(services, configuration);
+
         return services;
+    }
+
+    /// <summary>
+    /// Registra as opções, o seeder e o hosted service do seed de desenvolvimento LAFTE.
+    /// O seeder só executa efetivamente quando <c>Seed:Enabled=true</c> (opt-in por ambiente).
+    /// </summary>
+    private static void AddDevSeed(IServiceCollection services, IConfiguration configuration)
+    {
+        Seeding.DevSeedOptions seedOptions = new();
+        configuration.GetSection(Seeding.DevSeedOptions.SectionName).Bind(seedOptions);
+
+        // Options como singleton concreto: consumido pelo hosted service e pelo seeder.
+        services.AddSingleton(seedOptions);
+        services.AddScoped<Seeding.LafteDevSeeder>();
+        services.AddHostedService<Seeding.DevSeedHostedService>();
     }
 }
