@@ -91,6 +91,54 @@ No boot, hosted services aplicam migrations por schema:
 6. `GET  /api/companies/active` (Bearer + cookie) → company ativa resolvida (`ITenantContext`);
    404 quando não há tenant válido (sem cookie ou cookie de company que o usuário não pertence).
 
+### Autorização tenant-scoped via Lumen (`[RequirePermission]`) — #12
+
+A autorização granular é da **Lumen.Authorization**, e o escopo é a **company ativa** do SISLAB.
+
+**Convenção de permission code (imposta pela Lumen 1.1.0):** o code é **sempre**
+`<Controller>.<Action>` (nome do controller sem o sufixo `Controller` + nome do método, em
+PascalCase). O `Permission.Create` da Lumen **recomputa** o code de controller+action e **ignora**
+qualquer string passada ao atributo — passar code explícito (`[RequirePermission("companies.read")]`)
+faz o *enforcement* comparar o code do atributo contra o `Controller.Action` gravado e **negar
+sempre (403)**. Por isso decoramos com **`[RequirePermission]` sem code**: discovery grava
+`Controller.Action` e o handler deriva o mesmo. Os codes ficam tipados em
+`Contracts/Authorization/IdentityPermissions.cs`.
+
+**Endpoints protegidos (MVC controller — discovery só enxerga `ControllerActionDescriptor`,
+não Minimal API):** `CompanyMembersController` em `/api/admin/companies/active/members`:
+- `GET /` → permissão `CompanyMembers.ListMembers` (leitura).
+- `GET /{userId}/removal-eligibility` → permissão `CompanyMembers.CheckRemovalEligibility` (gestão).
+
+**Como o profile Administrator recebe as permissões:** no boot, o hosted service da Lumen
+(`PermissionDiscoveryAndReconciliationHostedService`) varre os controllers decorados
+(`Discovered 2 action(s)…`), materializa cada code como `Permission` (`SyncDiscoveredAsync`) e
+**reconcilia todas as permissões no profile Administrator** (`ReconcileAdministratorAsync` →
+`granted 2 new permission(s)`). Idempotente: no 2º boot loga *"Administrator profile already holds
+all 2 permission(s)"*. Nada de seed manual de permissões.
+
+**Ordem de pipeline (crítica):** `UseSislabTenantResolution` roda **entre** `UseAuthentication` e
+`UseAuthorization` — o `PermissionAuthorizationHandler` lê o scope (company ativa) via
+`ITenantScopeAccessor` durante `UseAuthorization`; se a resolução de tenant rodasse depois, o scope
+estaria vazio e toda permissão tenant-scoped seria negada mesmo na company correta.
+
+**Prova real (SISLAB_LOCALHOST):** o admin `admin@lafte.dev` tem o profile Administrator
+tenant-scoped **à LAFTE**; é membro da **ACME** *sem* o profile (semeado por `LafteDevSeeder`).
+```
+# LAFTE ativa (allow)
+POST /api/companies/{LAFTE}/activate                         -> 204
+GET  /api/admin/companies/active/members                     -> 200  [ {membershipId, userId} ]
+GET  /api/admin/companies/active/members/{id}/removal-...    -> 200
+# ACME ativa (deny) — mesmo user, mesmo token, sem o profile na ACME
+POST /api/companies/{ACME}/activate                          -> 204
+GET  /api/admin/companies/active/members                     -> 403
+GET  /api/admin/companies/active/members/{id}/removal-...    -> 403
+```
+
+> ⚠️ Rode **uma única instância** da API por vez em dev. Instâncias antigas (builds anteriores)
+> deixadas vivas re-executam a discovery no mesmo schema `Lumen` e podem sobrescrever/duplicar
+> permissões (visto: colisão em `ix_lumen_permission_code_unique`). Encerre processos `dotnet`
+> órfãos antes de subir de novo.
+
 ### CORS / SameSite (dev)
 
 Sem SPA ainda. Default de dev: **SameSite=Lax**, `Secure` = HTTPS da request. Quando o SPA React
@@ -168,6 +216,9 @@ O SISLAB provê um **seed de desenvolvimento idempotente** (`LafteDevSeeder` +
 4. **Profile `Administrator`** (semeado pela Lumen, Id fixo
    `20000000-0000-0000-0000-000000000001`) atribuído ao admin **tenant-scoped à LAFTE**
    (`Lumen."UserProfile"."ScopeId" = companyId`).
+5. **Company `ACME`** (Id determinístico `10000000-0000-0000-0000-00000000000b`) com o admin
+   como **membro, porém SEM o profile Administrator** — existe para provar o enforcement
+   tenant-scoped do #12 (com ACME ativa, os endpoints `[RequirePermission]` retornam 403).
 
 Reexecução não duplica (cada passo checa existência antes de criar). Falha do seed é
 logada e **não** derruba o boot. Basta ter os User Secrets `Seed:*` (seção 1) e subir a API.
