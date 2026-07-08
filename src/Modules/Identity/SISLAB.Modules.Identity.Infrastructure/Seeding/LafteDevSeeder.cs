@@ -168,7 +168,17 @@ public sealed class LafteDevSeeder
         }
 
         lafte.AddMember(adminUserId);
-        await _companyRepository.UpdateAsync(lafte, ct);
+
+        // Força o novo CompanyMembership para o estado Added explicitamente.
+        //
+        // A PK do membership é um Guid definido no cliente (CompanyMembership.Create). Pela
+        // convenção do EF, chaves Guid são ValueGeneratedOnAdd; quando o filho é alcançado pela
+        // navegação de um principal JÁ RASTREADO e já traz PK preenchida, o EF o interpreta como
+        // Modified e emite UPDATE (0 linhas → DbUpdateConcurrencyException). Marcar como Added
+        // deixa o INSERT explícito e mantém o seed idempotente/robusto.
+        CompanyMembership newMembership = lafte.Memberships.First(m => m.LumenUserId == adminUserId);
+        _sislabDbContext.Entry(newMembership).State = EntityState.Added;
+
         await _sislabDbContext.SaveChangesAsync(ct);
 
         _logger.LogInformation("Vínculo admin ↔ LAFTE criado.");
