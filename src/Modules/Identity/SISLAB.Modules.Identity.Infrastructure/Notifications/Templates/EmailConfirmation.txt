@@ -1,0 +1,13 @@
+SISLAB — Confirme seu e-mail
+
+Olá, {{UserName}}.
+
+Recebemos uma solicitação de cadastro no SISLAB com este endereço de e-mail.
+Para ativar sua conta, confirme seu e-mail acessando o link abaixo:
+
+{{ConfirmationUrl}}
+
+Se você não solicitou este cadastro, ignore este e-mail com segurança.
+
+SISLAB — Sistema de Gestão de Laboratório.
+Este é um e-mail automático, não responda.
