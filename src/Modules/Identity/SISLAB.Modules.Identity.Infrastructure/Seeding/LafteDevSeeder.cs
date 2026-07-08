@@ -11,16 +11,19 @@ using SISLAB.Modules.Identity.Infrastructure.Persistence;
 namespace SISLAB.Modules.Identity.Infrastructure.Seeding;
 
 /// <summary>
-/// Seeder idempotente do ambiente demo do SISLAB: empresa <c>LAFTE</c> + usuário administrador.
+/// Seeder idempotente do ambiente demo do SISLAB: empresas demo + usuário administrador.
 ///
-/// Garante, de forma idempotente (reexecução não duplica), o estado mínimo para operar o E1:
+/// Garante, de forma idempotente (reexecução não duplica), o estado mínimo para operar o E1
+/// <b>e provar o enforcement tenant-scoped do #12</b>:
 /// <list type="number">
-///   <item>Company <c>LAFTE</c> (agregado do SISLAB) com Id determinístico.</item>
 ///   <item>Usuário admin na Lumen Identity, criado <b>já ativo</b> (<c>ConfirmEmail</c> —
 ///         sem depender de confirmação por e-mail, quebrada no pacote 1.0.0).</item>
-///   <item>Vínculo admin ↔ LAFTE em <c>company_memberships</c> (CompanyMembership).</item>
-///   <item>Profile <c>Administrator</c> (semeado pela Lumen) atribuído ao admin,
-///         <b>tenant-scoped à LAFTE</b> (<c>ScopeId = companyId</c>).</item>
+///   <item>Company <c>LAFTE</c> (agregado do SISLAB, Id determinístico) — <b>allow</b>:
+///         admin é membro E recebe o profile <c>Administrator</c> <b>tenant-scoped à LAFTE</b>
+///         (<c>ScopeId = companyId</c>).</item>
+///   <item>Company <c>ACME</c> (agregado do SISLAB, Id determinístico) — <b>deny</b>:
+///         admin é membro, porém <b>sem</b> o profile Administrator. Com ACME ativa, os
+///         endpoints protegidos por <c>[RequirePermission]</c> retornam 403.</item>
 /// </list>
 ///
 /// <para>
@@ -38,8 +41,19 @@ public sealed class LafteDevSeeder
     /// </summary>
     public static readonly Guid LafteCompanyId = new("10000000-0000-0000-0000-00000000000a");
 
+    /// <summary>
+    /// Id determinístico de uma <b>segunda</b> empresa demo (ACME) na qual o admin é membro
+    /// <b>sem</b> o profile Administrator. Existe exclusivamente para provar o enforcement
+    /// tenant-scoped do #12: com ACME ativa, o admin recebe <b>403</b> nos endpoints protegidos,
+    /// porque sua permissão Administrator está escopada apenas à LAFTE.
+    /// </summary>
+    public static readonly Guid AcmeCompanyId = new("10000000-0000-0000-0000-00000000000b");
+
     private const string LafteCompanyName = "LAFTE";
     private const string LafteTaxId = "00000000000191";
+
+    private const string AcmeCompanyName = "ACME";
+    private const string AcmeTaxId = "00000000000272";
 
     // DbContexts internos da Lumen, resolvidos por tipo (não há interface pública para eles).
     private static readonly Type LumenIdentityDbContextType =
@@ -91,32 +105,39 @@ public sealed class LafteDevSeeder
 
         _logger.LogInformation("Iniciando seed idempotente LAFTE + admin...");
 
-        Company lafte = await EnsureLafteCompanyAsync(ct);
         Guid adminUserId = await EnsureAdminUserAsync(ct);
+
+        // Company COM permissão (allow): admin é membro E recebe o profile Administrator (scope LAFTE).
+        Company lafte = await EnsureCompanyAsync(LafteCompanyId, LafteCompanyName, LafteTaxId, ct);
         await EnsureMembershipAsync(lafte, adminUserId, ct);
         await EnsureAdministratorProfileAsync(adminUserId, lafte.Id, ct);
 
+        // Company SEM permissão (deny): admin é membro, mas NÃO recebe o profile Administrator.
+        // Prova o enforcement tenant-scoped: com ACME ativa, endpoints protegidos retornam 403.
+        Company acme = await EnsureCompanyAsync(AcmeCompanyId, AcmeCompanyName, AcmeTaxId, ct);
+        await EnsureMembershipAsync(acme, adminUserId, ct);
+
         _logger.LogInformation(
-            "Seed LAFTE concluído. CompanyId={CompanyId}, AdminUserId={AdminUserId}.",
-            lafte.Id, adminUserId);
+            "Seed concluído. LAFTE(allow)={LafteId}, ACME(deny)={AcmeId}, AdminUserId={AdminUserId}.",
+            lafte.Id, acme.Id, adminUserId);
     }
 
-    /// <summary>Garante a empresa LAFTE (Id determinístico). Idempotente por Id.</summary>
-    private async Task<Company> EnsureLafteCompanyAsync(CancellationToken ct)
+    /// <summary>Garante uma empresa demo com Id determinístico. Idempotente por Id.</summary>
+    private async Task<Company> EnsureCompanyAsync(Guid companyId, string name, string taxId, CancellationToken ct)
     {
-        Company? existing = await _companyRepository.FindByIdAsync(LafteCompanyId, ct);
+        Company? existing = await _companyRepository.FindByIdAsync(companyId, ct);
         if (existing is not null)
         {
-            _logger.LogInformation("Company LAFTE já existe (Id={CompanyId}).", existing.Id);
+            _logger.LogInformation("Company {Name} já existe (Id={CompanyId}).", name, existing.Id);
             return existing;
         }
 
-        Company lafte = Company.Seed(LafteCompanyId, LafteCompanyName, LafteTaxId);
-        await _companyRepository.AddAsync(lafte, ct);
+        Company company = Company.Seed(companyId, name, taxId);
+        await _companyRepository.AddAsync(company, ct);
         await _sislabDbContext.SaveChangesAsync(ct);
 
-        _logger.LogInformation("Company LAFTE criada (Id={CompanyId}).", lafte.Id);
-        return lafte;
+        _logger.LogInformation("Company {Name} criada (Id={CompanyId}).", name, company.Id);
+        return company;
     }
 
     /// <summary>
@@ -157,17 +178,17 @@ public sealed class LafteDevSeeder
         return admin.Id;
     }
 
-    /// <summary>Garante o vínculo admin ↔ LAFTE em company_memberships. Idempotente.</summary>
-    private async Task EnsureMembershipAsync(Company lafte, Guid adminUserId, CancellationToken ct)
+    /// <summary>Garante o vínculo admin ↔ company em company_memberships. Idempotente.</summary>
+    private async Task EnsureMembershipAsync(Company company, Guid adminUserId, CancellationToken ct)
     {
-        bool alreadyMember = lafte.Memberships.Any(m => m.LumenUserId == adminUserId);
+        bool alreadyMember = company.Memberships.Any(m => m.LumenUserId == adminUserId);
         if (alreadyMember)
         {
-            _logger.LogInformation("Admin já é membro da LAFTE.");
+            _logger.LogInformation("Admin já é membro da {Name}.", company.Name);
             return;
         }
 
-        lafte.AddMember(adminUserId);
+        company.AddMember(adminUserId);
 
         // Força o novo CompanyMembership para o estado Added explicitamente.
         //
@@ -176,12 +197,12 @@ public sealed class LafteDevSeeder
         // navegação de um principal JÁ RASTREADO e já traz PK preenchida, o EF o interpreta como
         // Modified e emite UPDATE (0 linhas → DbUpdateConcurrencyException). Marcar como Added
         // deixa o INSERT explícito e mantém o seed idempotente/robusto.
-        CompanyMembership newMembership = lafte.Memberships.First(m => m.LumenUserId == adminUserId);
+        CompanyMembership newMembership = company.Memberships.First(m => m.LumenUserId == adminUserId);
         _sislabDbContext.Entry(newMembership).State = EntityState.Added;
 
         await _sislabDbContext.SaveChangesAsync(ct);
 
-        _logger.LogInformation("Vínculo admin ↔ LAFTE criado.");
+        _logger.LogInformation("Vínculo admin ↔ {Name} criado.", company.Name);
     }
 
     /// <summary>
