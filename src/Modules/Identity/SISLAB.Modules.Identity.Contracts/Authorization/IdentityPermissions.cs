@@ -2,28 +2,34 @@ namespace SISLAB.Modules.Identity.Contracts.Authorization;
 
 /// <summary>
 /// Catálogo de <b>permission codes</b> do bounded context Identity, consumidos pela
-/// autorização granular da Lumen (<c>[RequirePermission(code)]</c>).
+/// autorização granular da Lumen (<c>[RequirePermission]</c> nos controllers admin).
 ///
-/// <para><b>Convenção de code (SISLAB):</b> <c>&lt;recurso-no-plural&gt;.&lt;ação&gt;</c>,
-/// tudo em <i>lowercase</i> e separado por ponto. O recurso é o agregado/módulo alvo
-/// (ex.: <c>companies</c>, <c>items</c>, <c>movements</c>); a ação é o verbo de negócio
-/// (<c>read</c>, <c>manage</c>, <c>create</c>, <c>delete</c>, ...). Prefira <c>manage</c>
-/// para a operação de escrita ampla quando não houver necessidade de granularidade fina.</para>
+/// <para><b>Convenção de code (imposta pela Lumen 1.1.0):</b> o code é sempre
+/// <c>&lt;Controller&gt;.&lt;Action&gt;</c>, onde <c>Controller</c> é o nome da classe do controller
+/// sem o sufixo <c>Controller</c> e <c>Action</c> é o nome do método da ação (ambos em PascalCase,
+/// exatamente como no C#). Isso <b>não é uma escolha do SISLAB</b>: o <c>Permission.Create</c> da
+/// Lumen recomputa o code a partir de controller+action e ignora qualquer string passada ao
+/// atributo. Por isso decoramos com <c>[RequirePermission]</c> <i>sem</i> code explícito — a
+/// discovery grava <c>Controller.Action</c> e o enforcement deriva o mesmo, mantendo-os em sincronia.</para>
 ///
-/// <para>Esses codes são <b>descobertos no boot</b> pela discovery da Lumen (que varre os
-/// controllers MVC decorados com <c>[RequirePermission]</c>), materializados como
-/// <c>Permission</c> e reconciliados no profile <c>Administrator</c>. Manter os codes aqui,
-/// centralizados e tipados, evita <i>magic strings</i> espalhadas e permite reuso em testes.</para>
+/// <para>Manter os codes aqui, centralizados e tipados, evita <i>magic strings</i> nos testes e
+/// consumidores. Se um método for renomeado, seu code muda — atualize a constante correspondente.</para>
 /// </summary>
 public static class IdentityPermissions
 {
-    /// <summary>Recurso de gestão de empresas (tenants) e sua composição de membros.</summary>
-    public static class Companies
+    /// <summary>
+    /// Permissões do controller de administração de membros da company ativa
+    /// (<c>CompanyMembersController</c> → prefixo <c>CompanyMembers</c>).
+    /// </summary>
+    public static class CompanyMembers
     {
-        /// <summary>Leitura de dados da company ativa (ex.: listar membros). Escopo: company ativa.</summary>
-        public const string Read = "companies.read";
+        /// <summary>Listar membros da company ativa (ação <c>ListMembers</c>). Escopo: company ativa.</summary>
+        public const string ListMembers = "CompanyMembers.ListMembers";
 
-        /// <summary>Gestão da company ativa e de seus membros (escrita). Escopo: company ativa.</summary>
-        public const string Manage = "companies.manage";
+        /// <summary>
+        /// Verificar elegibilidade de remoção de membro (ação <c>CheckRemovalEligibility</c>) —
+        /// representa a permissão de gestão/escrita. Escopo: company ativa.
+        /// </summary>
+        public const string CheckRemovalEligibility = "CompanyMembers.CheckRemovalEligibility";
     }
 }

@@ -31,7 +31,7 @@ public sealed class TenantScopedPermissionEnforcementTests
     {
         AuthorizationHandlerContext context = await EvaluateAsync(
             activeCompanyId: LafteCompanyId,
-            permissionCode: IdentityPermissions.Companies.Read);
+            permissionCode: IdentityPermissions.CompanyMembers.ListMembers);
 
         Assert.True(context.HasSucceeded);
         Assert.False(context.HasFailed);
@@ -42,7 +42,7 @@ public sealed class TenantScopedPermissionEnforcementTests
     {
         AuthorizationHandlerContext context = await EvaluateAsync(
             activeCompanyId: AcmeCompanyId,
-            permissionCode: IdentityPermissions.Companies.Read);
+            permissionCode: IdentityPermissions.CompanyMembers.ListMembers);
 
         // Mesmo usuário, mesma permissão — porém a permissão Administrator está escopada à LAFTE.
         // Com ACME ativa, o requisito não é satisfeito → o pipeline resultaria em 403.
@@ -50,12 +50,12 @@ public sealed class TenantScopedPermissionEnforcementTests
     }
 
     [Fact]
-    public async Task Enforcement_PermissaoManage_SegueOMesmoEscopo()
+    public async Task Enforcement_PermissaoDeGestao_SegueOMesmoEscopo()
     {
         AuthorizationHandlerContext allow = await EvaluateAsync(
-            LafteCompanyId, IdentityPermissions.Companies.Manage);
+            LafteCompanyId, IdentityPermissions.CompanyMembers.CheckRemovalEligibility);
         AuthorizationHandlerContext deny = await EvaluateAsync(
-            AcmeCompanyId, IdentityPermissions.Companies.Manage);
+            AcmeCompanyId, IdentityPermissions.CompanyMembers.CheckRemovalEligibility);
 
         Assert.True(allow.HasSucceeded);
         Assert.False(deny.HasSucceeded);
@@ -118,7 +118,7 @@ public sealed class TenantScopedPermissionEnforcementTests
             Guid userId, Guid? scopeId = null, CancellationToken cancellationToken = default)
         {
             HashSet<string> permissions = userId == _userId && scopeId == _grantedScopeId
-                ? [IdentityPermissions.Companies.Read, IdentityPermissions.Companies.Manage]
+                ? [IdentityPermissions.CompanyMembers.ListMembers, IdentityPermissions.CompanyMembers.CheckRemovalEligibility]
                 : [];
             return Task.FromResult(permissions);
         }

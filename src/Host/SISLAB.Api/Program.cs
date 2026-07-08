@@ -104,11 +104,16 @@ app.UseCors("SislabCorsPolicy");
 // UseAuthentication resolve o principal a partir do JWT; UseAuthorization aplica policies
 // (a Lumen registra um FallbackPolicy que exige usuário autenticado em endpoints sem AllowAnonymous).
 app.UseAuthentication();
-app.UseAuthorization();
 
-// Resolução de tenant (company ativa via cookie httpOnly) — DEPOIS da AuthN/AuthZ,
-// pois valida a company contra company_user usando o usuário já autenticado.
+// Resolução de tenant (company ativa via cookie httpOnly) — ENTRE AuthN e AuthZ.
+// Ordem crítica: precisa do usuário já autenticado (UseAuthentication) para validar a
+// pertença contra company_user, e precisa rodar ANTES de UseAuthorization para que a
+// company ativa esteja disponível como scope quando o PermissionAuthorizationHandler da
+// Lumen ([RequirePermission]) consultar ITenantScopeAccessor. Se rodasse depois, o scope
+// estaria vazio e toda permissão tenant-scoped seria negada (403), inclusive na company certa.
 app.UseSislabTenantResolution();
+
+app.UseAuthorization();
 
 // Health check endpoint — público (AllowAnonymous escapa o FallbackPolicy da Lumen).
 app.MapHealthChecks("/health").AllowAnonymous();
