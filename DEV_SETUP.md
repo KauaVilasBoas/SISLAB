@@ -23,6 +23,15 @@ dotnet user-secrets set "ConnectionStrings:SislabDb" "Host=localhost;Port=5432;D
 dotnet user-secrets set "LumenIdentity:Jwt:Secret"   "<aleatorio-min-32-chars>"
 dotnet user-secrets set "LumenIdentity:Jwt:Issuer"   "sislab-local"
 dotnet user-secrets set "LumenIdentity:Jwt:Audience" "sislab-local"
+
+# Seed de desenvolvimento (empresa demo LAFTE + admin). Opt-in via flag.
+# As credenciais do admin NUNCA são hardcoded — só existem no seu User Secret/env.
+# A senha deve respeitar a política da Lumen (mín. 12 chars: maiúscula, minúscula,
+# dígito, caractere especial; distinta de email/username).
+dotnet user-secrets set "Seed:Enabled"         "true"
+dotnet user-secrets set "Seed:Admin:Email"     "admin@lafte.dev"
+dotnet user-secrets set "Seed:Admin:Username"  "lafte-admin"
+dotnet user-secrets set "Seed:Admin:Password"  "<senha-forte-min-12-chars>"
 ```
 
 Conferir: `dotnet user-secrets list`.
@@ -144,24 +153,44 @@ pacote** (lib externa black-box — não corrigimos o pacote):
 3. **`ValidationException` retornada como 500** (em vez de 400) pelos endpoints da Lumen — apenas
    DX; sem impacto funcional.
 
-### Ativação/seed de usuário em dev (enquanto (2) não é corrigido na Lumen)
+### Ativação/seed de usuário em dev (automatizado)
 
-Após `register`, ative o usuário direto no banco (equivale ao que o bootstrap/admin faria):
+O SISLAB provê um **seed de desenvolvimento idempotente** (`LafteDevSeeder` +
+`DevSeedHostedService`, no módulo Identity) que roda no boot atrás da flag
+`Seed:Enabled=true` e garante, sem depender de `register`/confirmação por e-mail:
 
-```sql
-UPDATE identity."Users" SET "IsActive" = true, "EmailConfirmedAt" = now()
-WHERE "Email" = 'operador@lafte.test';
+1. **Company `LAFTE`** (agregado SISLAB) com Id determinístico
+   `10000000-0000-0000-0000-00000000000a`.
+2. **Usuário admin** na Lumen Identity criado **já ativo**
+   (`User.Create` + `ConfirmEmail()` — contorna o defeito (2) do pacote). Credenciais
+   de `Seed:Admin:*` (User Secret/env).
+3. **Vínculo** admin ↔ LAFTE em `tenancy.company_memberships`.
+4. **Profile `Administrator`** (semeado pela Lumen, Id fixo
+   `20000000-0000-0000-0000-000000000001`) atribuído ao admin **tenant-scoped à LAFTE**
+   (`Lumen."UserProfile"."ScopeId" = companyId`).
+
+Reexecução não duplica (cada passo checa existência antes de criar). Falha do seed é
+logada e **não** derruba o boot. Basta ter os User Secrets `Seed:*` (seção 1) e subir a API.
+
+Validação rápida (com a API no ar):
+
+```bash
+# login com as credenciais do seed → accessToken
+curl -s -X POST http://localhost:5121/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"identifier":"admin@lafte.dev","password":"<senha>"}'
+
+# companies do admin → deve listar LAFTE
+curl -s http://localhost:5121/api/companies/mine -H "Authorization: Bearer <token>"
+
+# ativar LAFTE → 204 + Set-Cookie sislab_active_company (httponly, samesite=lax)
+curl -i -X POST http://localhost:5121/api/companies/10000000-0000-0000-0000-00000000000a/activate \
+  -H "Authorization: Bearer <token>"
 ```
 
-Seed mínimo de company + vínculo (o `<user-id>` é o `sub` do JWT / `Id` em `identity."Users"`):
-
-```sql
-INSERT INTO tenancy.companies (id, name, tax_id, is_active, created_at)
-VALUES ('11111111-1111-1111-1111-111111111111', 'LAFTE', '00000000000191', true, now());
-
-INSERT INTO tenancy.company_memberships (id, company_id, lumen_user_id, joined_at)
-VALUES (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', '<user-id>', now());
-```
+> **Seed manual (fallback):** se preferir semear via SQL, ative o usuário com
+> `UPDATE identity."Users" SET "IsActive"=true, "EmailConfirmedAt"=now() WHERE "Email"=...`
+> e insira company + membership manualmente. O seeder automatizado torna isso desnecessário.
 
 > **Campos dos endpoints da Lumen:** `register` = `{ email, username, password }`;
 > `login` = `{ identifier, password }` (o campo é `identifier`, não `email`). Regras de senha:
