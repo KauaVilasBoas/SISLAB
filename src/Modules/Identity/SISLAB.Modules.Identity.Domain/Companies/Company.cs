@@ -56,6 +56,26 @@ public sealed class Company : AggregateRoot<Guid>
     }
 
     /// <summary>
+    /// Cria uma empresa com um identificador determinístico informado.
+    ///
+    /// Reservado para cenários de seed/bootstrap idempotente, onde a mesma empresa
+    /// precisa ter sempre o mesmo <see cref="Guid"/> entre execuções (permitindo checar
+    /// existência por Id antes de recriar). Mantém as mesmas invariantes de <see cref="Create"/>.
+    /// </summary>
+    /// <param name="id">Identificador fixo da empresa (não pode ser vazio).</param>
+    /// <param name="name">Nome da empresa (não pode ser vazio).</param>
+    /// <param name="taxId">Identificador fiscal (opcional).</param>
+    public static Company Seed(Guid id, string name, string? taxId = null)
+    {
+        if (id == Guid.Empty)
+            throw new ArgumentException("O Id de seed da empresa não pode ser vazio.", nameof(id));
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("O nome da empresa não pode ser vazio.", nameof(name));
+
+        return new Company(id, name.Trim(), taxId?.Trim(), DateTime.UtcNow);
+    }
+
+    /// <summary>
     /// Atualiza o nome da empresa.
     /// </summary>
     public void Rename(string newName)
