@@ -99,6 +99,29 @@ public static class IdentityModuleServiceExtensions
                 client.DefaultRequestHeaders.UserAgent.ParseAdd(hibpUserAgent);
             });
 
+        // 3.2 Override do renderer de templates de e-mail (defeito no pacote Lumen.Identity 1.0.0).
+        //     O EmailTemplateRenderer da Lumen resolve os templates como recursos embedados NO
+        //     assembly dela (prefixo "Lumen.Identity.Infrastructure.Notifications.Templates.Email."),
+        //     que NÃO existem no pacote publicado — todo fluxo que dispara e-mail (register envia a
+        //     confirmação) estoura 500 ("Email template '...' was not found..."). Decisão SISLAB:
+        //     o e-mail é nosso — registramos o renderer do SISLAB com templates de marca própria,
+        //     DEPOIS de AddLumenIdentity, vencendo o registro defeituoso. Ver SislabEmailTemplateRenderer.
+        services.AddScoped<Lumen.Identity.Domain.Notifications.IEmailTemplateRenderer,
+            Notifications.SislabEmailTemplateRenderer>();
+
+        // 3.3 Serviço de envio de e-mail em DEV: no-op/log quando não há SMTP configurado.
+        //     A Lumen registra MailKitEmailService (SMTP real via LumenIdentity:Smtp). Sem servidor
+        //     SMTP em desenvolvimento, a entrega falharia. Se "LumenIdentity:Smtp:Host" não estiver
+        //     definido, sobrepomos com um serviço que só loga — mantendo o fluxo (register etc.)
+        //     verde. Em produção (Host preenchido) preservamos o MailKitEmailService da Lumen.
+        bool smtpConfigured = !string.IsNullOrWhiteSpace(
+            lumenConfiguration.GetSection("Smtp")["Host"]);
+        if (!smtpConfigured)
+        {
+            services.AddScoped<Lumen.Identity.Domain.Notifications.IEmailService,
+                Notifications.SislabLoggingEmailService>();
+        }
+
         // 4. Lumen Identity — hosted service de migrations Postgres
         services.AddLumenIdentityPostgresMigrations();
 

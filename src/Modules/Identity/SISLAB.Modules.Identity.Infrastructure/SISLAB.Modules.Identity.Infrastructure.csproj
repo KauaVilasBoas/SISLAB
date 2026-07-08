@@ -11,6 +11,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Templates de e-mail SISLAB (renderizados pelo SislabEmailTemplateRenderer via
+         GetManifestResourceStream). O logical name segue o namespace de pasta. -->
+    <EmbeddedResource Include="Notifications\Templates\*.html" />
+    <EmbeddedResource Include="Notifications\Templates\*.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Infrastructure depende de Domain + Contracts (nunca de Application, evita ciclo) -->
     <ProjectReference Include="..\SISLAB.Modules.Identity.Domain\SISLAB.Modules.Identity.Domain.csproj" />
     <ProjectReference Include="..\SISLAB.Modules.Identity.Contracts\SISLAB.Modules.Identity.Contracts.csproj" />
