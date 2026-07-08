@@ -113,8 +113,13 @@ app.UseSislabTenantResolution();
 // Health check endpoint — público (AllowAnonymous escapa o FallbackPolicy da Lumen).
 app.MapHealthChecks("/health").AllowAnonymous();
 
-// Módulos mapeiam seus próprios endpoints
+// Módulos mapeiam seus próprios endpoints (Minimal API)
 ModuleLoader.MapModuleEndpoints(app);
+
+// Controllers MVC dos módulos (ex.: endpoints administrativos decorados com [RequirePermission]).
+// Os módulos registram seus ApplicationParts em RegisterServices (AddControllers().AddApplicationPart).
+// O FallbackPolicy da Lumen exige autenticação; [Authorize]/[RequirePermission] refinam por ação.
+app.MapControllers();
 
 app.Run();
 

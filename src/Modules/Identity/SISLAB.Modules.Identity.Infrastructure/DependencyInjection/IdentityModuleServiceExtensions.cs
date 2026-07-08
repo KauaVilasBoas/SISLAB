@@ -61,6 +61,17 @@ public static class IdentityModuleServiceExtensions
         // 2. Repositórios do domínio SISLAB
         services.AddScoped<ICompanyRepository, CompanyRepository>();
 
+        // 2.0 Controllers MVC do módulo (Administration/*Controller).
+        //     Necessário para a DISCOVERY de permissões da Lumen: o PermissionDiscoveryScanner
+        //     varre IActionDescriptorCollectionProvider, que só enxerga ControllerActionDescriptor
+        //     (endpoints MVC) — Minimal API é invisível a ela. Registrar este assembly como
+        //     ApplicationPart faz os controllers decorados com [RequirePermission] serem
+        //     descobertos no boot e reconciliados no profile Administrator. AddControllers é
+        //     idempotente; o Host também o chama para compor o pipeline (UseRouting/MapControllers).
+        services
+            .AddControllers()
+            .AddApplicationPart(typeof(IdentityModuleServiceExtensions).Assembly);
+
         // 2.1 Aplica as migrations do schema "identity" do SISLAB no boot
         //      (espelha o padrão de hosted service da Lumen para os schemas dela).
         services.AddHostedService<Persistence.IdentitySchemaMigrationsHostedService>();
