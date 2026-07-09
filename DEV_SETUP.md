@@ -1,65 +1,65 @@
-# SISLAB — Setup de desenvolvimento local
+# SISLAB — Local Development Setup
 
-Guia para subir a API do SISLAB contra o Postgres local. Nenhum segredo fica no repositório —
-tudo sensível vai em **User Secrets** do projeto Host.
+Guide to running the SISLAB API against a local PostgreSQL instance. No secrets are stored in the
+repository — everything sensitive goes in **User Secrets** of the host project.
 
-## Pré-requisitos
+## Prerequisites
 
 - .NET 8 SDK
-- PostgreSQL local em `localhost:5432` com um banco `SISLAB_LOCALHOST` (user `postgres`).
+- PostgreSQL running locally on `localhost:5432` with a database named `SISLAB_LOCALHOST` (user `postgres`)
 
-## 1. User Secrets (projeto `src/Host/SISLAB.Api`)
+## 1. User Secrets (`src/Host/SISLAB.Api`)
 
-Os segredos já estão configurados no ambiente de dev. Para reconstituir do zero:
+Secrets are already configured in the dev environment. To reconstitute from scratch:
 
 ```bash
 cd src/Host/SISLAB.Api
-dotnet user-secrets init   # se ainda não houver UserSecretsId
+dotnet user-secrets init   # only if UserSecretsId is not yet set
 
-# Connection string (write-side EF + Dapper + Lumen — TODOS usam a MESMA chave "SislabDb")
-dotnet user-secrets set "ConnectionStrings:SislabDb" "Host=localhost;Port=5432;Database=SISLAB_LOCALHOST;Username=postgres;Password=<sua-senha>"
+# Connection string (write-side EF + Dapper + Lumen — all use the same "SislabDb" key)
+dotnet user-secrets set "ConnectionStrings:SislabDb" "Host=localhost;Port=5432;Database=SISLAB_LOCALHOST;Username=postgres;Password=<your-password>"
 
-# JWT da Lumen Identity (dev). Secret com no mínimo 32 chars.
-dotnet user-secrets set "LumenIdentity:Jwt:Secret"   "<aleatorio-min-32-chars>"
+# Lumen Identity JWT (dev). Secret must be at least 32 characters.
+dotnet user-secrets set "LumenIdentity:Jwt:Secret"   "<random-min-32-chars>"
 dotnet user-secrets set "LumenIdentity:Jwt:Issuer"   "sislab-local"
 dotnet user-secrets set "LumenIdentity:Jwt:Audience" "sislab-local"
 
-# Seed de desenvolvimento (empresa demo LAFTE + admin). Opt-in via flag.
-# As credenciais do admin NUNCA são hardcoded — só existem no seu User Secret/env.
-# A senha deve respeitar a política da Lumen (mín. 12 chars: maiúscula, minúscula,
-# dígito, caractere especial; distinta de email/username).
+# Dev seed — creates the LAFTE demo company + admin user already activated (bypasses email confirmation).
+# Admin credentials are NEVER hardcoded — only in User Secrets / env vars.
+# Password must satisfy Lumen's policy (min. 12 chars: uppercase, lowercase, digit, special char;
+# different from email/username).
 dotnet user-secrets set "Seed:Enabled"         "true"
 dotnet user-secrets set "Seed:Admin:Email"     "admin@lafte.dev"
 dotnet user-secrets set "Seed:Admin:Username"  "lafte-admin"
-dotnet user-secrets set "Seed:Admin:Password"  "<senha-forte-min-12-chars>"
+dotnet user-secrets set "Seed:Admin:Password"  "<strong-password-min-12>"
 ```
 
-Conferir: `dotnet user-secrets list`.
+Verify with: `dotnet user-secrets list`.
 
-### Qual chave de connection string a Lumen lê?
+### Which connection string key does Lumen read?
 
-A Lumen (Identity e Authorization) **NÃO** reaproveita `SislabDb` automaticamente: os overloads
-sem string leem `ConnectionStrings:DefaultConnection`. Para evitar duplicar segredo, o SISLAB
-resolve `SislabDb` no DI e passa a **string explicitamente** para `AddLumenIdentity(connectionString, ...)`
-e para o core `AddLumenAuthorization(connectionString, ...)`. Ou seja: **uma única chave `SislabDb`
-serve os três** (EF do SISLAB, Lumen Identity, Lumen Authorization). Não é preciso setar
-`DefaultConnection`.
+Lumen (Identity and Authorization) does **NOT** automatically reuse `SislabDb`: the overloads without
+an explicit connection string read `ConnectionStrings:DefaultConnection`. To avoid duplicating secrets,
+SISLAB resolves `SislabDb` in DI and passes the **string explicitly** to `AddLumenIdentity(connectionString, ...)`
+and to the authorization core. That means: **a single `SislabDb` key serves all three** (SISLAB EF,
+Lumen Identity, Lumen Authorization). No need to set `DefaultConnection`.
 
-### Config de options da Lumen (Jwt/App/Smtp/Hibp)
+### Lumen options configuration (Jwt/App/Smtp/Hibp)
 
-A Lumen Identity faz bind das seções `Jwt`, `App`, `Smtp`, `Hibp` a partir da **raiz** do
-`IConfiguration`, com `ValidateOnStart` (todas têm campos `[Required]`). Para preservar o namespace
-`LumenIdentity:*` (e não poluir a raiz), o DI rebaseia a seção: passa
-`configuration.GetSection("LumenIdentity")` como `IConfiguration` raiz da Lumen. Assim:
+Lumen Identity binds its option sections (`Jwt`, `App`, `Smtp`, `Hibp`) from the **root** of
+`IConfiguration` with `ValidateOnStart` (all sections have `[Required]` fields). To keep the
+`LumenIdentity:*` namespace (secrets and appsettings) without polluting the root, the SISLAB DI
+re-bases the section: `configuration.GetSection("LumenIdentity")` is passed as Lumen's root
+`IConfiguration`. This means:
 
-- `LumenIdentity:Jwt`   → seção `Jwt`   da Lumen (Secret via User Secrets)
-- `LumenIdentity:App`   → seção `App`   (BaseUrl, lockout) — em `appsettings.json`
-- `LumenIdentity:Smtp`  → seção `Smtp`  (placeholders em `appsettings.json`)
-- `LumenIdentity:Hibp`  → seção `Hibp`  (HaveIBeenPwned) — em `appsettings.json`
+- `LumenIdentity:Jwt`   → resolves as section `Jwt`   (Secret via User Secrets)
+- `LumenIdentity:App`   → resolves as section `App`   (BaseUrl, lockout) — in `appsettings.json`
+- `LumenIdentity:Smtp`  → resolves as section `Smtp`  (placeholders in `appsettings.json`)
+- `LumenIdentity:Hibp`  → resolves as section `Hibp`  (HaveIBeenPwned) — in `appsettings.json`
 
-> `appsettings.json` só contém placeholders/valores não sensíveis. Segredos, apenas em User Secrets.
+> `appsettings.json` only contains placeholders/non-sensitive values. Secrets live only in User Secrets.
 
-## 2. Subir a API
+## 2. Running the API
 
 ```bash
 dotnet build
@@ -67,183 +67,181 @@ cd src/Host/SISLAB.Api
 dotnet run
 ```
 
-- Swagger (dev): `https://localhost:<porta>/swagger`
-- Health (público): `GET /health`
+- Swagger (dev): `https://localhost:<port>/swagger`
+- Health (public): `GET /health`
 
-No boot, hosted services aplicam migrations por schema:
+On startup, hosted services apply migrations per schema:
 
-- **SISLAB Identity** (`IdentitySchemaMigrationsHostedService`) → schema `identity`:
+- **SISLAB Identity** (`IdentitySchemaMigrationsHostedService`) → schema `tenancy`:
   `companies`, `company_memberships` (+ `__ef_migrations_history`).
-- **Lumen Identity** e **Lumen Authorization** → schemas próprios (via hosted services da Lumen).
+- **Lumen Identity** and **Lumen Authorization** → their own schemas via Lumen's hosted services.
 
-## 3. Fluxo de autenticação + tenant (E1)
+## 3. Authentication + tenant flow (E1)
 
-1. `POST /api/auth/register` `{ email, username, password }` → cria usuário na Lumen.
-2. `POST /api/auth/login` `{ identifier, password }` → retorna
-   `{ accessToken, refreshToken, expiresIn, tokenType }` (JWT HS256). O campo de identidade é
-   `identifier` (email ou username), **não** `email`.
-3. `GET  /api/companies/mine` (Bearer) → companies do usuário (via `company_memberships`).
-4. `POST /api/companies/{companyId}/activate` (Bearer) → valida pertença (403 se não-membro),
-   grava cookie **httpOnly + SameSite=Lax** `sislab_active_company`. Serve para 1ª seleção **e** troca.
-5. Requests seguintes: `TenantResolutionMiddleware` lê o cookie, revalida contra
-   `company_memberships` a cada request e popula `ITenantContext.CompanyId`. Company ativa fica
-   **FORA do JWT** (Opção A); trocar de company **não exige novo login**.
-6. `GET  /api/companies/active` (Bearer + cookie) → company ativa resolvida (`ITenantContext`);
-   404 quando não há tenant válido (sem cookie ou cookie de company que o usuário não pertence).
+1. `POST /api/auth/register` `{ email, username, password }` → creates the user in Lumen.
+2. `POST /api/auth/login` `{ identifier, password }` → returns
+   `{ accessToken, refreshToken, expiresIn, tokenType }` (JWT HS256). The identity field is
+   `identifier` (email or username), **not** `email`.
+3. `GET  /api/companies/mine` (Bearer) → the user's companies (via `company_memberships`).
+4. `POST /api/companies/{companyId}/activate` (Bearer) → validates membership (403 if not a member),
+   writes an httpOnly + SameSite=Lax cookie `sislab_active_company`. Used for first selection **and** switching.
+5. Subsequent requests: `TenantResolutionMiddleware` reads the cookie, re-validates against
+   `company_memberships` on every request and populates `ITenantContext.CompanyId`. Active company stays
+   **OUTSIDE the JWT** (Option A); switching company **does not require re-login**.
+6. `GET  /api/companies/active` (Bearer + cookie) → active company resolved via `ITenantContext`;
+   404 when no valid tenant is set (no cookie or cookie for a company the user does not belong to).
 
-### Autorização tenant-scoped via Lumen (`[RequirePermission]`) — #12
+### Tenant-scoped authorization via Lumen (`[RequirePermission]`) — #12
 
-A autorização granular é da **Lumen.Authorization**, e o escopo é a **company ativa** do SISLAB.
+Granular authorization is provided by **Lumen.Authorization**; the scope is the SISLAB active company.
 
-**Convenção de permission code (imposta pela Lumen 1.1.0):** o code é **sempre**
-`<Controller>.<Action>` (nome do controller sem o sufixo `Controller` + nome do método, em
-PascalCase). O `Permission.Create` da Lumen **recomputa** o code de controller+action e **ignora**
-qualquer string passada ao atributo — passar code explícito (`[RequirePermission("companies.read")]`)
-faz o *enforcement* comparar o code do atributo contra o `Controller.Action` gravado e **negar
-sempre (403)**. Por isso decoramos com **`[RequirePermission]` sem code**: discovery grava
-`Controller.Action` e o handler deriva o mesmo. Os codes ficam tipados em
-`Contracts/Authorization/IdentityPermissions.cs`.
+**Permission code convention (enforced by Lumen 1.1.0):** the code is always
+`<Controller>.<Action>` (controller class name without the `Controller` suffix + action method name,
+both in PascalCase as in C#). Lumen's `Permission.Create` **recomputes** the code from controller +
+action and **ignores** any explicit string passed to the attribute — passing an explicit code
+(`[RequirePermission("companies.read")]`) causes enforcement to compare the attribute code against the
+stored `Controller.Action` and **always deny (403)**. Therefore decorating with **`[RequirePermission]`
+without a code** is mandatory; discovery writes `Controller.Action` and the handler derives the same.
+Codes are typed as constants in `Contracts/Authorization/IdentityPermissions.cs`.
 
-**Endpoints protegidos (MVC controller — discovery só enxerga `ControllerActionDescriptor`,
-não Minimal API):** `CompanyMembersController` em `/api/admin/companies/active/members`:
-- `GET /` → permissão `CompanyMembers.ListMembers` (leitura).
-- `GET /{userId}/removal-eligibility` → permissão `CompanyMembers.CheckRemovalEligibility` (gestão).
+**Protected endpoints (MVC controller — discovery only sees `ControllerActionDescriptor`,
+not Minimal API):** `CompanyMembersController` at `/api/admin/companies/active/members`:
+- `GET /` → permission `CompanyMembers.ListMembers` (read).
+- `GET /{userId}/removal-eligibility` → permission `CompanyMembers.CheckRemovalEligibility` (management).
 
-**Como o profile Administrator recebe as permissões:** no boot, o hosted service da Lumen
-(`PermissionDiscoveryAndReconciliationHostedService`) varre os controllers decorados
-(`Discovered 2 action(s)…`), materializa cada code como `Permission` (`SyncDiscoveredAsync`) e
-**reconcilia todas as permissões no profile Administrator** (`ReconcileAdministratorAsync` →
-`granted 2 new permission(s)`). Idempotente: no 2º boot loga *"Administrator profile already holds
-all 2 permission(s)"*. Nada de seed manual de permissões.
+**How the Administrator profile receives the permissions:** on boot, Lumen's hosted service
+(`PermissionDiscoveryAndReconciliationHostedService`) scans the decorated controllers
+(`Discovered 2 action(s)...`), materializes each code as a `Permission` (`SyncDiscoveredAsync`) and
+**reconciles all permissions into the Administrator profile** (`ReconcileAdministratorAsync` →
+`granted 2 new permission(s)`). Idempotent: on the 2nd boot it logs *"Administrator profile already holds
+all 2 permission(s)"*. No manual permission seeding needed.
 
-**Ordem de pipeline (crítica):** `UseSislabTenantResolution` roda **entre** `UseAuthentication` e
-`UseAuthorization` — o `PermissionAuthorizationHandler` lê o scope (company ativa) via
-`ITenantScopeAccessor` durante `UseAuthorization`; se a resolução de tenant rodasse depois, o scope
-estaria vazio e toda permissão tenant-scoped seria negada mesmo na company correta.
+**Pipeline ordering (critical):** `UseSislabTenantResolution` runs **between** `UseAuthentication` and
+`UseAuthorization` — the `PermissionAuthorizationHandler` reads the scope (active company) via
+`ITenantScopeAccessor` during `UseAuthorization`; if tenant resolution ran after, the scope would be
+empty and every tenant-scoped permission would be denied even on the correct company.
 
-**Prova real (SISLAB_LOCALHOST):** o admin `admin@lafte.dev` tem o profile Administrator
-tenant-scoped **à LAFTE**; é membro da **ACME** *sem* o profile (semeado por `LafteDevSeeder`).
+**Proof (SISLAB_LOCALHOST):** admin `admin@lafte.dev` has the Administrator profile
+tenant-scoped **to LAFTE**; is a member of **ACME** *without* the profile (seeded by `LafteDevSeeder`).
 ```
-# LAFTE ativa (allow)
-POST /api/companies/{LAFTE}/activate                         -> 204
-GET  /api/admin/companies/active/members                     -> 200  [ {membershipId, userId} ]
-GET  /api/admin/companies/active/members/{id}/removal-...    -> 200
-# ACME ativa (deny) — mesmo user, mesmo token, sem o profile na ACME
-POST /api/companies/{ACME}/activate                          -> 204
-GET  /api/admin/companies/active/members                     -> 403
-GET  /api/admin/companies/active/members/{id}/removal-...    -> 403
+# LAFTE active (allow)
+POST /api/companies/{LAFTE}/activate                      -> 204
+GET  /api/admin/companies/active/members                  -> 200  [ {membershipId, userId} ]
+GET  /api/admin/companies/active/members/{id}/removal-... -> 200
+# ACME active (deny) — same user, same token, no profile in ACME
+POST /api/companies/{ACME}/activate                       -> 204
+GET  /api/admin/companies/active/members                  -> 403
+GET  /api/admin/companies/active/members/{id}/removal-... -> 403
 ```
 
-> ⚠️ Rode **uma única instância** da API por vez em dev. Instâncias antigas (builds anteriores)
-> deixadas vivas re-executam a discovery no mesmo schema `Lumen` e podem sobrescrever/duplicar
-> permissões (visto: colisão em `ix_lumen_permission_code_unique`). Encerre processos `dotnet`
-> órfãos antes de subir de novo.
+> ⚠️ Run **only one API instance** at a time in dev. Stale processes (previous builds) left running
+> re-execute discovery against the same `Lumen` schema and may overwrite/duplicate permissions
+> (observed: collision on `ix_lumen_permission_code_unique`). Kill orphaned `dotnet` processes before
+> starting a new one.
 
 ### CORS / SameSite (dev)
 
-Sem SPA ainda. Default de dev: **SameSite=Lax**, `Secure` = HTTPS da request. Quando o SPA React
-subir em origem distinta (E7), endurecer para `SameSite=None; Secure` e configurar CORS com
-`AllowCredentials` + origem explícita (não `AllowAnyOrigin`).
+No SPA yet. Dev default: **SameSite=Lax**, `Secure` follows the request (HTTPS). When the React SPA
+runs on a different origin (E7), tighten to `SameSite=None; Secure` and configure CORS with
+`AllowCredentials` + explicit origin (not `AllowAnyOrigin`).
 
-## 4. Schemas do banco e migrations no boot
+## 4. Database schemas and migrations on startup
 
-No startup, hosted services aplicam as migrations por DbContext. Estado esperado após o boot
-contra um banco limpo (validado no SISLAB_LOCALHOST):
+On startup, hosted services apply migrations per DbContext. Expected state after booting against a
+clean database (validated on SISLAB_LOCALHOST):
 
-| Schema | Owner | Tabelas | History table |
-|--------|-------|---------|---------------|
+| Schema | Owner | Tables | History table |
+|--------|-------|--------|---------------|
 | `tenancy`  | SISLAB (IdentityDbContext) | `companies`, `company_memberships` | `tenancy.__ef_migrations_history` |
 | `identity` | Lumen Identity | `Users`, `RefreshTokens`, `EmailConfirmationTokens`, `PasswordResetTokens` | `public."__EFMigrationsHistory"` |
-| `Lumen`    | Lumen Authorization | `Permission`, `PermissionGroup`, `Profile`, `PermissionProfile`, `UserProfile` (+ seed Administrator/User) | `public."__EFMigrationsHistory"` |
+| `Lumen`    | Lumen Authorization | `Permission`, `PermissionGroup`, `Profile`, `PermissionProfile`, `UserProfile` (+ Administrator/User seed) | `public."__EFMigrationsHistory"` |
 
-### Colisão de schema `identity` — como foi resolvida
+### Schema `identity` collision — how it was resolved
 
-As versões 1.0.0/1.1.0 das migrations Postgres da Lumen estavam defeituosas (faltava o atributo
-`[Migration]`), o que impedia a criação dos schemas da Lumen no boot. **Corrigido** nos pacotes
-`Lumen.Identity.Migrations.PostgreSQL 1.0.1` e `Lumen.Authorization.Migrations.PostgreSQL 1.1.1`
-(migrations iniciais completas com `[Migration]`).
+Lumen.Identity.Migrations.PostgreSQL versions 1.0.0/1.1.0 were broken (missing the `[Migration]`
+attribute), which prevented Lumen's schemas from being created on boot. **Fixed** in packages
+`Lumen.Identity.Migrations.PostgreSQL 1.0.1` and `Lumen.Authorization.Migrations.PostgreSQL 1.1.1`
+(complete initial migrations with `[Migration]`).
 
-Com a Lumen Identity passando a criar tabelas no schema `identity`, o SISLAB — que originalmente
-colocava `companies`/`company_memberships` **também** em `identity` — foi movido para um schema
-próprio **`tenancy`**. As tabelas em si não colidiam (Lumen usa PascalCase com aspas; SISLAB usa
-snake_case) e as history tables também diferem, mas dois DbContexts + dois históricos + casings
-distintos no mesmo schema é frágil e confuso. `tenancy` reflete corretamente que a multi-tenancy
-do SISLAB é um bounded context distinto da identity de usuários da Lumen. `identity` fica 100%
-da Lumen.
+With Lumen Identity now creating tables in schema `identity`, SISLAB — which originally also put
+`companies`/`company_memberships` in `identity` — was moved to a dedicated **`tenancy`** schema.
+The tables themselves did not clash (Lumen uses PascalCase with double-quotes; SISLAB uses snake_case),
+and the history tables also differ, but two DbContexts + two history tables + different casings in the
+same schema is fragile and confusing. `tenancy` correctly reflects that SISLAB's multi-tenancy is a
+distinct bounded context from Lumen's user identity. `identity` is 100% Lumen's.
 
-### Estado limpo do banco de dev
+### Resetting the dev database
 
-Para recriar o ambiente do zero (sem dados reais), dropar os schemas e deixar o boot remigrar:
+To start from a clean state (no real data), drop the schemas and let startup re-migrate:
 
 ```sql
 DROP SCHEMA IF EXISTS identity CASCADE;
 DROP SCHEMA IF EXISTS tenancy CASCADE;
 DROP SCHEMA IF EXISTS "Lumen" CASCADE;
--- opcional, se houver history residual da Lumen no public:
+-- optional, if there is residual Lumen history in public:
 DROP TABLE IF EXISTS public."__EFMigrationsHistory";
 ```
 
-## 5. Defeitos conhecidos do pacote Lumen 1.0.0 (contornados/documentados)
+## 5. Known Lumen 1.0.0 package defects (worked around / documented)
 
-O `register` e o `login` da Lumen funcionam contra o banco, mas há três defeitos **dentro do
-pacote** (lib externa black-box — não corrigimos o pacote):
+`register` and `login` work against the database, but there are three defects **inside the package**
+(external black-box library — we do not patch the package):
 
-1. **HIBP typed client sem BaseAddress (contornado no SISLAB).** `AddLumenIdentity` registra
-   `AddHttpClient<IPwnedPasswordsClient, PwnedPasswordsClient>` e, em seguida, o sobrescreve com
-   `AddScoped<...>`, anulando o `BaseAddress` → `register` retornava 500. O SISLAB fornece
-   `SislabPwnedPasswordsClient` (typed client próprio, `BaseAddress`/`UserAgent` de
-   `LumenIdentity:Hibp`) registrado após `AddLumenIdentity`, sobrepondo o registro defeituoso.
-   Fail-open: indisponibilidade do HIBP não bloqueia o cadastro.
-2. **Template de e-mail de confirmação ausente.** O `register` cria o usuário com sucesso, mas
-   lança 500 ao renderizar `EmailConfirmation.html` (recurso embutido inexistente no pacote). O
-   usuário fica persistido com `IsActive=false` / e-mail não confirmado. O `login` exige
-   `IsActive=true` → a confirmação por e-mail está inoperante no pacote.
-3. **`ValidationException` retornada como 500** (em vez de 400) pelos endpoints da Lumen — apenas
-   DX; sem impacto funcional.
+1. **HIBP typed client with no BaseAddress (worked around in SISLAB).** `AddLumenIdentity` registers
+   `AddHttpClient<IPwnedPasswordsClient, PwnedPasswordsClient>` then immediately overrides it with
+   `AddScoped<...>`, erasing the `BaseAddress` → `register` was returning 500. SISLAB provides
+   `SislabPwnedPasswordsClient` (its own typed client with correct `BaseAddress`/`UserAgent` from
+   `LumenIdentity:Hibp`) registered after `AddLumenIdentity`, overriding the broken registration.
+   Fail-open: HIBP unavailability does not block registration.
+2. **Missing email confirmation template.** `register` creates the user successfully but throws 500
+   when rendering `EmailConfirmation.html` (embedded resource missing from the package). The user is
+   persisted with `IsActive=false` / email unconfirmed. `login` requires `IsActive=true` → email
+   confirmation is non-functional in the package.
+3. **`ValidationException` returned as 500** (instead of 400) by Lumen endpoints — DX only; no
+   functional impact.
 
-### Ativação/seed de usuário em dev (automatizado)
+### User activation / seed in dev (automated)
 
-O SISLAB provê um **seed de desenvolvimento idempotente** (`LafteDevSeeder` +
-`DevSeedHostedService`, no módulo Identity) que roda no boot atrás da flag
-`Seed:Enabled=true` e garante, sem depender de `register`/confirmação por e-mail:
+SISLAB provides an **idempotent dev seed** (`LafteDevSeeder` + `DevSeedHostedService`, in the Identity
+module) that runs on boot behind the flag `Seed:Enabled=true` and ensures — without depending on
+`register`/email confirmation:
 
-1. **Company `LAFTE`** (agregado SISLAB) com Id determinístico
+1. **Company `LAFTE`** (SISLAB aggregate) with deterministic id
    `10000000-0000-0000-0000-00000000000a`.
-2. **Usuário admin** na Lumen Identity criado **já ativo**
-   (`User.Create` + `ConfirmEmail()` — contorna o defeito (2) do pacote). Credenciais
-   de `Seed:Admin:*` (User Secret/env).
-3. **Vínculo** admin ↔ LAFTE em `tenancy.company_memberships`.
-4. **Profile `Administrator`** (semeado pela Lumen, Id fixo
-   `20000000-0000-0000-0000-000000000001`) atribuído ao admin **tenant-scoped à LAFTE**
+2. **Admin user** in Lumen Identity created **already active**
+   (`User.Create` + `ConfirmEmail()` — bypasses defect (2) above). Credentials from `Seed:Admin:*`.
+3. **Membership** admin ↔ LAFTE in `tenancy.company_memberships`.
+4. **Profile `Administrator`** (seeded by Lumen, fixed id
+   `20000000-0000-0000-0000-000000000001`) assigned to admin **tenant-scoped to LAFTE**
    (`Lumen."UserProfile"."ScopeId" = companyId`).
-5. **Company `ACME`** (Id determinístico `10000000-0000-0000-0000-00000000000b`) com o admin
-   como **membro, porém SEM o profile Administrator** — existe para provar o enforcement
-   tenant-scoped do #12 (com ACME ativa, os endpoints `[RequirePermission]` retornam 403).
+5. **Company `ACME`** (id `10000000-0000-0000-0000-00000000000b`) with admin as **member but WITHOUT
+   the Administrator profile** — exists to prove tenant-scoped enforcement of #12 (with ACME active,
+   `[RequirePermission]`-decorated endpoints return 403).
 
-Reexecução não duplica (cada passo checa existência antes de criar). Falha do seed é
-logada e **não** derruba o boot. Basta ter os User Secrets `Seed:*` (seção 1) e subir a API.
+Re-runs do not duplicate (each step checks existence before creating). Seed failures are logged and
+**do not** crash the application. Just set the `Seed:*` User Secrets (section 1) and start the API.
 
-Validação rápida (com a API no ar):
+Quick validation (with the API running):
 
 ```bash
-# login com as credenciais do seed → accessToken
+# login with seed credentials → accessToken
 curl -s -X POST http://localhost:5121/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"identifier":"admin@lafte.dev","password":"<senha>"}'
+  -d '{"identifier":"admin@lafte.dev","password":"<password>"}'
 
-# companies do admin → deve listar LAFTE
+# user's companies → should list LAFTE
 curl -s http://localhost:5121/api/companies/mine -H "Authorization: Bearer <token>"
 
-# ativar LAFTE → 204 + Set-Cookie sislab_active_company (httponly, samesite=lax)
+# activate LAFTE → 204 + Set-Cookie sislab_active_company (httpOnly, SameSite=Lax)
 curl -i -X POST http://localhost:5121/api/companies/10000000-0000-0000-0000-00000000000a/activate \
   -H "Authorization: Bearer <token>"
 ```
 
-> **Seed manual (fallback):** se preferir semear via SQL, ative o usuário com
+> **Manual seed (fallback):** if you prefer to seed via SQL, activate the user with
 > `UPDATE identity."Users" SET "IsActive"=true, "EmailConfirmedAt"=now() WHERE "Email"=...`
-> e insira company + membership manualmente. O seeder automatizado torna isso desnecessário.
+> and insert the company + membership manually. The automated seeder makes this unnecessary.
 
-> **Campos dos endpoints da Lumen:** `register` = `{ email, username, password }`;
-> `login` = `{ identifier, password }` (o campo é `identifier`, não `email`). Regras de senha:
-> mínimo 12 chars, com maiúscula, minúscula, dígito, caractere especial, diferente do
-> email/username e não vazada (HIBP).
+> **Lumen endpoint fields:** `register` = `{ email, username, password }`;
+> `login` = `{ identifier, password }` (the field is `identifier`, not `email`). Password rules:
+> minimum 12 chars with uppercase, lowercase, digit, special character, different from
+> email/username and not breached (HIBP).

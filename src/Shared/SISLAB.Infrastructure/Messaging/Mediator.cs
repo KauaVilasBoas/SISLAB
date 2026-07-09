@@ -6,23 +6,19 @@ using SISLAB.SharedKernel.Messaging;
 namespace SISLAB.Infrastructure.Messaging;
 
 /// <summary>
-/// Implementação do <see cref="IMediator"/> com suporte a pipeline de behaviors.
+/// <see cref="IMediator"/> implementation with pipeline behavior support.
 ///
-/// PIPELINE DE EXECUÇÃO (da ordem de registro no DI):
+/// Pipeline order (by DI registration order):
 /// ValidationBehavior → LoggingBehavior → TransactionBehavior → IRequestHandler
 ///
-/// RESOLUÇÃO POR REFLEXÃO:
-/// O tipo concreto de TRequest é conhecido apenas em runtime (polimorfismo no SendAsync).
-/// Usamos reflexão para construir o pipeline com os tipos corretos e cacheamos o método
-/// invocador em um ConcurrentDictionary para evitar o overhead de reflexão repetida.
-///
-/// BEHAVIORS OPEN-GENERIC:
-/// Behaviors registrados como IPipelineBehavior&lt;&gt; (open-generic) são resolvidos
-/// como IEnumerable&lt;IPipelineBehavior&lt;TRequest, TResult&gt;&gt; via DI e encadeados em ordem.
+/// Reflection is used to build the pipeline with the correct concrete types known only at runtime.
+/// The invoker MethodInfo is cached in a ConcurrentDictionary to avoid per-request reflection overhead.
+/// Open-generic behaviors (registered as IPipelineBehavior&lt;&gt;) are resolved via
+/// IEnumerable&lt;IPipelineBehavior&lt;TRequest, TResult&gt;&gt; and chained in order.
 /// </summary>
 public sealed class Mediator : IMediator
 {
-    // Cache de MethodInfo para o método genérico interno — evita GetMethod por request.
+    // MethodInfo cache for the internal generic method — avoids GetMethod per request.
     private static readonly ConcurrentDictionary<Type, MethodInfo> DispatchCache = new();
 
     private readonly IServiceProvider _serviceProvider;
@@ -37,7 +33,7 @@ public sealed class Mediator : IMediator
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        // Obtém o tipo concreto em runtime (ex: CreateItemCommand) para resolver handlers corretos.
+        // Get the concrete type at runtime (e.g. CreateItemCommand) to resolve the correct handlers.
         Type requestType = request.GetType();
 
         MethodInfo dispatchMethod = DispatchCache.GetOrAdd(
@@ -50,23 +46,23 @@ public sealed class Mediator : IMediator
     }
 
     /// <summary>
-    /// Método genérico interno que constrói e executa o pipeline completo.
-    /// TRequest e TResult são conhecidos em compile-time aqui — behaviors são resolvidos corretamente.
+    /// Internal generic method that builds and executes the full pipeline.
+    /// TRequest and TResult are known at compile-time here — behaviors are resolved correctly.
     /// </summary>
     private async Task<TResult> DispatchAsync<TRequest, TResult>(
         TRequest request,
         CancellationToken cancellationToken)
         where TRequest : IRequest<TResult>
     {
-        // Resolve o handler terminal.
+        // Resolve the terminal handler.
         IRequestHandler<TRequest, TResult> handler =
             _serviceProvider.GetRequiredService<IRequestHandler<TRequest, TResult>>();
 
-        // Resolve todos os behaviors registrados para este par (TRequest, TResult).
+        // Resolve all behaviors registered for this (TRequest, TResult) pair.
         IEnumerable<IPipelineBehavior<TRequest, TResult>> behaviors =
             _serviceProvider.GetServices<IPipelineBehavior<TRequest, TResult>>();
 
-        // Constrói a cadeia de delegates de fora para dentro (último registered = mais interno).
+        // Build the delegate chain from outermost to innermost (last registered = most inner).
         RequestHandlerDelegate<TResult> pipeline = behaviors
             .Reverse()
             .Aggregate(

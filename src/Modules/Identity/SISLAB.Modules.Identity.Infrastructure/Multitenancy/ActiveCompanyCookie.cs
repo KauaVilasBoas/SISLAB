@@ -3,23 +3,22 @@ using Microsoft.AspNetCore.Http;
 namespace SISLAB.Modules.Identity.Infrastructure.Multitenancy;
 
 /// <summary>
-/// Convenção única do cookie de company ativa (Opção A: companyId FORA do JWT,
-/// mantido em cookie httpOnly + SameSite). Centralizar aqui evita divergência entre
-/// o middleware que lê o cookie e os endpoints que o escrevem.
+/// Single source of truth for the active-company cookie convention (companyId outside the JWT,
+/// stored in an httpOnly + SameSite cookie). Centralizing here prevents divergence between the
+/// middleware that reads the cookie and the endpoints that write it.
 /// </summary>
 internal static class ActiveCompanyCookie
 {
-    /// <summary>Nome do cookie que carrega o ID da company ativa.</summary>
     public const string Name = "sislab_active_company";
 
     /// <summary>
-    /// Opções padrão do cookie de company ativa.
+    /// Default cookie options for the active company.
     ///
-    /// - HttpOnly: o SPA nunca lê o valor via JS (defesa contra XSS).
-    /// - SameSite=Lax: default sensato para dev same-site; endurecer para None+Secure
-    ///   quando o SPA for servido em origem distinta (E7). Documentado no DEV_SETUP.
-    /// - Secure: acompanha a request (HTTPS em produção; permitido em http de dev).
-    /// - Path "/": disponível para toda a API.
+    /// - HttpOnly: the SPA cannot read the value via JS (XSS defense).
+    /// - SameSite=Lax: safe default for dev same-site; tighten to None+Secure
+    ///   when the React SPA runs on a different origin (E7). Documented in DEV_SETUP.md.
+    /// - Secure: follows the request (HTTPS in production; allowed over HTTP in dev).
+    /// - Path "/": available to the entire API.
     /// </summary>
     public static CookieOptions BuildOptions(bool isSecure) => new()
     {

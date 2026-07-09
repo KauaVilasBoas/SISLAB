@@ -1,19 +1,19 @@
 namespace SISLAB.SharedKernel.Multitenancy;
 
 /// <summary>
-/// Contexto de tenant da requisição atual (Opção A: companyId FORA do JWT).
-/// A company ativa é resolvida a partir de um cookie httpOnly de company, validado a cada
-/// request contra <c>company_user</c> pelo TenantResolutionMiddleware. Scoped — uma
-/// instância por requisição HTTP.
-/// CompanyId flui: cookie de company ativa → middleware valida em company_user →
-/// ITenantContext → Command → global query filter EF → WHERE no Dapper.
+/// Tenant context for the current request (Option A: companyId outside the JWT).
+/// The active company is resolved from an httpOnly cookie, validated per-request against
+/// <c>company_memberships</c> by TenantResolutionMiddleware. Scoped — one instance per HTTP request.
+///
+/// CompanyId flow: httpOnly cookie → middleware validates membership → ITenantContext →
+/// Command → EF Core global query filter → WHERE clause in Dapper.
 /// </summary>
 public interface ITenantContext
 {
     /// <summary>
-    /// ID da empresa (tenant) que está executando a operação.
-    /// Em rotas públicas, sem cookie válido ou quando o usuário não pertence à company,
-    /// permanece <see cref="System.Guid.Empty"/> (sem tenant ativo).
+    /// Active company (tenant) for the current operation.
+    /// Remains <see cref="Guid.Empty"/> on public routes, when no valid cookie is present,
+    /// or when the user does not belong to the requested company.
     /// </summary>
     Guid CompanyId { get; }
 }

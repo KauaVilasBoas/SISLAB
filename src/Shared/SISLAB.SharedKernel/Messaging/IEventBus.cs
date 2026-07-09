@@ -1,15 +1,11 @@
 namespace SISLAB.SharedKernel.Messaging;
 
 /// <summary>
-/// Barramento de integration events. Publica eventos para consumidores externos
-/// (outros módulos ou sistemas). A implementação concreta decide o mecanismo
-/// (Outbox + broker, in-process, etc.).
+/// Integration event bus. The concrete implementation decides the delivery mechanism
+/// (in-process, Outbox + broker, etc.).
 /// </summary>
 public interface IEventBus
 {
-    /// <summary>
-    /// Publica um integration event de forma assíncrona.
-    /// </summary>
     Task PublishAsync<TEvent>(TEvent integrationEvent, CancellationToken cancellationToken = default)
         where TEvent : class;
 }

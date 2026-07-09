@@ -3,21 +3,21 @@ using SISLAB.SharedKernel.Domain;
 namespace SISLAB.Modules.Identity.Domain.Companies;
 
 /// <summary>
-/// Aggregate root que representa uma empresa (tenant) no SISLAB.
+/// Aggregate root representing a company (tenant) in SISLAB.
 ///
-/// Uma Company agrupa usuários da Lumen (referenciados por valor via <see cref="CompanyMembership"/>)
-/// e serve de escopo para a autorização granular da Lumen.Authorization.
+/// A Company groups Lumen users (referenced by value via <see cref="CompanyMembership"/>)
+/// and serves as the authorization scope for Lumen.Authorization.
 ///
-/// Invariantes:
-/// - Nome não pode ser nulo nem vazio.
-/// - Não é possível adicionar o mesmo usuário duas vezes à mesma empresa.
-/// - Um usuário pode pertencer a múltiplas empresas (N:N via CompanyMembership).
+/// Invariants:
+/// - Name cannot be null or empty.
+/// - The same user cannot be added to the same company twice.
+/// - A user can belong to multiple companies (N:N via CompanyMembership).
 /// </summary>
 public sealed class Company : AggregateRoot<Guid>
 {
     private readonly List<CompanyMembership> _memberships = [];
 
-    // Construtor privado para EF Core
+    // Private constructor for EF Core
     private Company() : base(Guid.Empty) { }
 
     private Company(Guid id, string name, string? taxId, DateTime createdAt)
@@ -29,106 +29,85 @@ public sealed class Company : AggregateRoot<Guid>
         IsActive = true;
     }
 
-    /// <summary>Nome fantasia ou razão social da empresa.</summary>
     public string Name { get; private set; } = default!;
 
-    /// <summary>CNPJ ou identificador fiscal da empresa (opcional).</summary>
     public string? TaxId { get; private set; }
 
-    /// <summary>Indica se a empresa está ativa. Empresas inativas não podem logar.</summary>
     public bool IsActive { get; private set; }
 
-    /// <summary>Data de criação do registro.</summary>
     public DateTime CreatedAt { get; private init; }
 
-    /// <summary>Membros da empresa. Somente-leitura externamente.</summary>
     public IReadOnlyList<CompanyMembership> Memberships => _memberships.AsReadOnly();
 
-    /// <summary>
-    /// Cria uma nova empresa com os dados informados.
-    /// </summary>
     public static Company Create(string name, string? taxId = null)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("O nome da empresa não pode ser vazio.", nameof(name));
+            throw new ArgumentException("Company name cannot be empty.", nameof(name));
 
         return new Company(Guid.NewGuid(), name.Trim(), taxId?.Trim(), DateTime.UtcNow);
     }
 
     /// <summary>
-    /// Cria uma empresa com um identificador determinístico informado.
-    ///
-    /// Reservado para cenários de seed/bootstrap idempotente, onde a mesma empresa
-    /// precisa ter sempre o mesmo <see cref="Guid"/> entre execuções (permitindo checar
-    /// existência por Id antes de recriar). Mantém as mesmas invariantes de <see cref="Create"/>.
+    /// Creates a company with a deterministic identifier.
+    /// Reserved for idempotent seed/bootstrap scenarios where the same company must have the
+    /// same <see cref="Guid"/> across restarts (existence check by id before re-creating).
     /// </summary>
-    /// <param name="id">Identificador fixo da empresa (não pode ser vazio).</param>
-    /// <param name="name">Nome da empresa (não pode ser vazio).</param>
-    /// <param name="taxId">Identificador fiscal (opcional).</param>
     public static Company Seed(Guid id, string name, string? taxId = null)
     {
         if (id == Guid.Empty)
-            throw new ArgumentException("O Id de seed da empresa não pode ser vazio.", nameof(id));
+            throw new ArgumentException("Seed company Id cannot be empty.", nameof(id));
         if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("O nome da empresa não pode ser vazio.", nameof(name));
+            throw new ArgumentException("Company name cannot be empty.", nameof(name));
 
         return new Company(id, name.Trim(), taxId?.Trim(), DateTime.UtcNow);
     }
 
-    /// <summary>
-    /// Atualiza o nome da empresa.
-    /// </summary>
     public void Rename(string newName)
     {
         if (string.IsNullOrWhiteSpace(newName))
-            throw new ArgumentException("O novo nome não pode ser vazio.", nameof(newName));
+            throw new ArgumentException("New name cannot be empty.", nameof(newName));
 
         Name = newName.Trim();
     }
 
-    /// <summary>
-    /// Ativa a empresa.
-    /// </summary>
     public void Activate() => IsActive = true;
 
     /// <summary>
-    /// Desativa a empresa. Usuários associados perdem acesso implicitamente via filtro de tenant.
+    /// Deactivates the company. Associated users lose access implicitly via the tenant query filter.
     /// </summary>
     public void Deactivate() => IsActive = false;
 
     /// <summary>
-    /// Associa um usuário da Lumen a esta empresa.
-    /// O userId é o ID do usuário no sistema de identidade externo (Lumen), referenciado por valor.
+    /// Adds a Lumen user as a member of this company.
+    /// The userId is the user's identity in Lumen, referenced by value — no FK to Lumen's schema.
     /// </summary>
-    /// <param name="lumenUserId">ID do usuário na Lumen.</param>
-    /// <exception cref="InvalidOperationException">Usuário já é membro desta empresa.</exception>
+    /// <exception cref="InvalidOperationException">User is already a member of this company.</exception>
     public void AddMember(Guid lumenUserId)
     {
         bool alreadyMember = _memberships.Any(m => m.LumenUserId == lumenUserId);
         if (alreadyMember)
             throw new InvalidOperationException(
-                $"Usuário '{lumenUserId}' já é membro da empresa '{Name}'.");
+                $"User '{lumenUserId}' is already a member of company '{Name}'.");
 
         _memberships.Add(CompanyMembership.Create(Id, lumenUserId));
     }
 
     /// <summary>
-    /// Remove a associação de um usuário da Lumen com esta empresa.
+    /// Removes a Lumen user's membership from this company.
     /// </summary>
-    /// <param name="lumenUserId">ID do usuário na Lumen.</param>
-    /// <exception cref="InvalidOperationException">Usuário não é membro desta empresa.</exception>
+    /// <exception cref="InvalidOperationException">User is not a member of this company.</exception>
     public void RemoveMember(Guid lumenUserId)
     {
         CompanyMembership? membership = _memberships.FirstOrDefault(m => m.LumenUserId == lumenUserId);
         if (membership is null)
             throw new InvalidOperationException(
-                $"Usuário '{lumenUserId}' não é membro da empresa '{Name}'.");
+                $"User '{lumenUserId}' is not a member of company '{Name}'.");
 
         _memberships.Remove(membership);
     }
 
     /// <summary>
-    /// Reconstitui uma empresa a partir do repositório (usado pelo EF Core via navigation loading).
+    /// Reconstitutes the company from the repository (used by EF Core via navigation loading).
     /// </summary>
     internal void LoadMemberships(IEnumerable<CompanyMembership> memberships)
     {

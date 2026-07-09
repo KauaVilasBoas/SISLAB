@@ -7,17 +7,16 @@ using SISLAB.SharedKernel.Time;
 namespace SISLAB.Infrastructure.Outbox;
 
 /// <summary>
-/// Lê mensagens pendentes do Outbox e as publica via <see cref="IEventBus"/>.
-/// Acionado pelo background worker do E6 em intervalo configurável.
+/// Reads pending Outbox messages and publishes them via <see cref="IEventBus"/>.
+/// Invoked by the background worker in SISLAB.Jobs on a configurable interval.
 ///
-/// IDEMPOTÊNCIA:
-/// Antes de publicar, verifica <see cref="OutboxMessage.ProcessedAtUtc"/> == null.
-/// Após publicar, marca <see cref="OutboxMessage.MarkProcessed"/> e salva.
-/// Em caso de falha, registra o erro via <see cref="OutboxMessage.RecordError"/> e continua
-/// com as demais mensagens — a mensagem com erro será retentada na próxima execução.
+/// Idempotency: checks <see cref="OutboxMessage.ProcessedAtUtc"/> == null before publishing.
+/// After publishing, marks <see cref="OutboxMessage.MarkProcessed"/> and saves.
+/// On failure, records the error via <see cref="OutboxMessage.RecordError"/> and continues
+/// with remaining messages — the failed message is retried on the next run.
 ///
-/// NOTA: O host worker (E6) é responsável por criar o escopo DI e invocar
-/// <see cref="ProcessPendingAsync"/>. Este componente é stateless e thread-safe.
+/// The host worker (SISLAB.Jobs) is responsible for creating the DI scope and invoking
+/// <see cref="ProcessPendingAsync"/>. This component is stateless and thread-safe.
 /// </summary>
 public sealed class OutboxDispatcher
 {
@@ -43,12 +42,8 @@ public sealed class OutboxDispatcher
         _logger = logger;
     }
 
-    /// <summary>
-    /// Processa um lote de mensagens pendentes do Outbox.
-    /// </summary>
-    /// <param name="batchSize">Máximo de mensagens processadas por invocação.</param>
-    /// <param name="cancellationToken">Token de cancelamento.</param>
-    /// <returns>Quantidade de mensagens publicadas com sucesso nesta execução.</returns>
+    /// <param name="batchSize">Maximum messages processed per invocation.</param>
+    /// <returns>Number of messages successfully published in this run.</returns>
     public async Task<int> ProcessPendingAsync(
         int batchSize = 50,
         CancellationToken cancellationToken = default)
@@ -73,35 +68,34 @@ public sealed class OutboxDispatcher
                 if (integrationEvent is null)
                 {
                     _logger.LogWarning(
-                        "Outbox: tipo '{EventType}' não pôde ser desserializado. MessageId={MessageId}",
+                        "Outbox: type '{EventType}' could not be deserialized. MessageId={MessageId}",
                         message.EventType, message.Id);
 
-                    message.RecordError($"Tipo não encontrado: {message.EventType}");
+                    message.RecordError($"Type not found: {message.EventType}");
                     continue;
                 }
 
-                // Publica via EventBus usando reflexão para preservar o tipo concreto.
+                // Publish via EventBus using reflection to preserve the concrete type.
                 await PublishDynamicAsync(integrationEvent, cancellationToken);
 
                 message.MarkProcessed(_clock.UtcNow);
                 published++;
 
                 _logger.LogDebug(
-                    "Outbox: publicado {EventType} | MessageId={MessageId}",
+                    "Outbox: published {EventType} | MessageId={MessageId}",
                     message.EventType, message.Id);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex,
-                    "Outbox: falha ao publicar {EventType} | MessageId={MessageId}",
+                    "Outbox: failed to publish {EventType} | MessageId={MessageId}",
                     message.EventType, message.Id);
 
                 message.RecordError(ex.Message);
             }
         }
 
-        // Persiste marcações (ProcessedAtUtc / Error) no mesmo contexto.
-        // O DbContext aqui é o mesmo escopo do caller — não abre nova transação.
+        // Persist ProcessedAtUtc / Error marks in the same context scope.
         if (_outboxContext is DbContext dbContext)
             await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -120,8 +114,8 @@ public sealed class OutboxDispatcher
 
     private async Task PublishDynamicAsync(object integrationEvent, CancellationToken cancellationToken)
     {
-        // Resolve PublishAsync<TEvent> com o tipo concreto do evento via reflexão.
-        // O custo de reflexão aqui é irrelevante dado que é um background job por lote.
+        // Resolve PublishAsync<TEvent> with the concrete event type via reflection.
+        // Reflection cost here is irrelevant — this is a background batch job.
         var publishMethod = typeof(IEventBus)
             .GetMethod(nameof(IEventBus.PublishAsync))!
             .MakeGenericMethod(integrationEvent.GetType());

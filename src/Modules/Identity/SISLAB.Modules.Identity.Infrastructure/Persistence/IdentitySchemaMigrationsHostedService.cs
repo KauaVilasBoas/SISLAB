@@ -6,15 +6,14 @@ using Microsoft.Extensions.Logging;
 namespace SISLAB.Modules.Identity.Infrastructure.Persistence;
 
 /// <summary>
-/// Hosted service que aplica as migrations do <see cref="IdentityDbContext"/> do SISLAB
-/// (tabelas <c>companies</c> e <c>company_memberships</c> no schema <c>tenancy</c>) no startup.
+/// Hosted service that applies <see cref="IdentityDbContext"/> migrations on startup
+/// (<c>companies</c> and <c>company_memberships</c> in schema <c>tenancy</c>).
 ///
-/// Espelha o padrão dos hosted services de migrations da Lumen (Identity/Authorization):
-/// cada DbContext aplica seu próprio schema no boot. As tabelas da Lumen continuam
-/// sendo migradas pelos hosted services da própria Lumen — este cobre apenas o
-/// bounded context de identidade do SISLAB.
+/// Mirrors the pattern Lumen uses for its own schema migrations — each DbContext applies
+/// its schema at boot. Lumen's tables continue to be migrated by Lumen's own hosted services;
+/// this one covers only the SISLAB tenancy bounded context.
 ///
-/// Resolve um escopo próprio porque o <see cref="IdentityDbContext"/> é registrado como Scoped.
+/// Creates its own scope because <see cref="IdentityDbContext"/> is registered as Scoped.
 /// </summary>
 internal sealed class IdentitySchemaMigrationsHostedService : IHostedService
 {
@@ -31,14 +30,14 @@ internal sealed class IdentitySchemaMigrationsHostedService : IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Aplicando migrations do SISLAB Identity (schema 'identity')...");
+        _logger.LogInformation("Applying SISLAB Identity migrations (schema 'tenancy')...");
 
         using IServiceScope scope = _scopeFactory.CreateScope();
         IdentityDbContext dbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
 
         await dbContext.Database.MigrateAsync(cancellationToken);
 
-        _logger.LogInformation("Migrations do SISLAB Identity aplicadas.");
+        _logger.LogInformation("SISLAB Identity migrations applied.");
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

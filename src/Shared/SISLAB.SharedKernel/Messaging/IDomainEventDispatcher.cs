@@ -3,33 +3,31 @@ using SISLAB.SharedKernel.Domain;
 namespace SISLAB.SharedKernel.Messaging;
 
 /// <summary>
-/// Despacha domain events coletados nos agregados após (ou antes de) a persistência,
-/// de acordo com a estratégia de consistência de cada handler:
+/// Dispatches domain events collected from aggregates according to the hybrid consistency strategy:
 ///
-/// - Handlers <see cref="ITransactionalDomainEventHandler{TEvent}"/>: executados de forma
-///   síncrona ANTES do SaveChanges, dentro da mesma transação. Falha = rollback completo.
+/// - <see cref="ITransactionalDomainEventHandler{TEvent}"/>: runs synchronously BEFORE SaveChanges,
+///   inside the same transaction. Failure = full rollback.
 ///
-/// - Handlers <see cref="IDomainEventHandler{TEvent}"/> (não-transacionais): traduzidos para
-///   IntegrationEvents e gravados no Outbox na mesma transação. Publicação é eventual (pós-commit).
+/// - <see cref="IDomainEventHandler{TEvent}"/> (non-transactional): translated to IntegrationEvents
+///   and written to the Outbox in the same transaction. Publication is eventual (post-commit).
 ///
-/// Chamado pela infraestrutura (EfUnitOfWork) durante SaveChangesAsync.
+/// Called by infrastructure (EfUnitOfWork) during SaveChangesAsync.
 /// </summary>
 public interface IDomainEventDispatcher
 {
     /// <summary>
-    /// Despacha os handlers transacionais (in-transaction) de todos os eventos pendentes
-    /// nos agregados fornecidos. Deve ser chamado ANTES do SaveChanges.
-    /// Não limpa os eventos — aguarda confirmação de SaveChanges para fazê-lo.
+    /// Dispatches transactional handlers for all pending events in the provided aggregates.
+    /// Must be called BEFORE SaveChanges. Does not clear events — waits for SaveChanges confirmation.
     /// </summary>
     Task DispatchTransactionalAsync(
         IEnumerable<IHasDomainEvents> aggregates,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Traduz os domain events dos agregados fornecidos para IntegrationEvents e os grava
-    /// no Outbox (via UoW/DbContext), ainda na mesma transação.
-    /// Limpa a lista de eventos dos agregados após a gravação no Outbox.
-    /// Deve ser chamado APÓS o despacho transacional e ANTES do SaveChanges.
+    /// Translates the aggregates' domain events to IntegrationEvents and writes them to
+    /// the Outbox (via the UoW/DbContext) still inside the same transaction.
+    /// Clears the aggregates' event lists after Outbox write.
+    /// Must be called AFTER transactional dispatch and BEFORE SaveChanges.
     /// </summary>
     Task DispatchToOutboxAsync(
         IEnumerable<IHasDomainEvents> aggregates,

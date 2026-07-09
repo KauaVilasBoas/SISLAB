@@ -6,12 +6,11 @@ using SISLAB.SharedKernel.Time;
 namespace SISLAB.Infrastructure.Outbox;
 
 /// <summary>
-/// Serializa integration events e os grava no Outbox dentro da transação corrente.
-/// Injetado no <see cref="SISLAB.Infrastructure.Persistence.EfUnitOfWork{TContext}"/> para
-/// preencher o ponto de extensão do E0.
+/// Serializes integration events and writes them to the Outbox inside the current transaction.
+/// Injected into <see cref="SISLAB.Infrastructure.Persistence.EfUnitOfWork{TContext}"/>.
 ///
-/// O DbContext concreto é tipado como <see cref="IOutboxDbContext"/> para que o writer
-/// possa acessar o DbSet&lt;OutboxMessage&gt; sem depender do contexto específico do módulo.
+/// The concrete DbContext is typed as <see cref="IOutboxDbContext"/> so the writer can
+/// access the OutboxMessage DbSet without depending on a module-specific context.
 /// </summary>
 public sealed class OutboxWriter
 {
@@ -31,10 +30,9 @@ public sealed class OutboxWriter
     }
 
     /// <summary>
-    /// Serializa e enfileira um integration event no Outbox.
-    /// Deve ser chamado ANTES do SaveChanges para que a gravação seja parte da mesma transação.
+    /// Serializes and enqueues an integration event into the Outbox.
+    /// Must be called BEFORE SaveChanges so the write is part of the same transaction.
     /// </summary>
-    /// <typeparam name="TEvent">Tipo concreto do integration event (IIntegrationEvent).</typeparam>
     public void Enqueue<TEvent>(TEvent integrationEvent)
         where TEvent : class, IIntegrationEvent
     {

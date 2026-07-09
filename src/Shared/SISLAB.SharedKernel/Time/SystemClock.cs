@@ -1,9 +1,6 @@
 namespace SISLAB.SharedKernel.Time;
 
-/// <summary>
-/// Implementação de produção de <see cref="IClock"/> delegando para o sistema operacional.
-/// Registrar como Singleton no DI.
-/// </summary>
+/// <summary>Production implementation of <see cref="IClock"/>. Register as Singleton.</summary>
 public sealed class SystemClock : IClock
 {
     public DateTime UtcNow => DateTime.UtcNow;

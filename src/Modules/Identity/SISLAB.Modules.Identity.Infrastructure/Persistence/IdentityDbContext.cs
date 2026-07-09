@@ -6,14 +6,10 @@ using SISLAB.Modules.Identity.Infrastructure.Persistence.Configurations;
 namespace SISLAB.Modules.Identity.Infrastructure.Persistence;
 
 /// <summary>
-/// DbContext do módulo Identity.
-/// Gerencia exclusivamente entidades do bounded context de multi-tenancy do SISLAB:
-/// Company e CompanyMembership (schema "tenancy"). O schema "identity" é reservado à
-/// Lumen Identity (usuários, tokens) — este contexto nunca o utiliza.
-///
-/// As tabelas da Lumen (usuários, tokens, perfis, permissões) são gerenciadas pelos
-/// DbContexts internos da Lumen via hosted service de migrations — este contexto
-/// nunca referencia aquelas entidades.
+/// DbContext for the Identity module.
+/// Exclusively manages SISLAB multi-tenancy entities — Company and CompanyMembership
+/// — in the <c>tenancy</c> schema. Schema <c>identity</c> is reserved for Lumen Identity
+/// (users, tokens); this context never touches it.
 /// </summary>
 public sealed class IdentityDbContext : SislabDbContextBase
 {
@@ -25,7 +21,7 @@ public sealed class IdentityDbContext : SislabDbContextBase
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // snake_case naming convention aplicada pelo base
+        // snake_case naming convention applied by the base
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.ApplyConfiguration(new CompanyConfiguration());
