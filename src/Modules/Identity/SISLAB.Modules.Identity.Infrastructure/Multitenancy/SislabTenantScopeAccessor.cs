@@ -4,18 +4,15 @@ using SISLAB.SharedKernel.Multitenancy;
 namespace SISLAB.Modules.Identity.Infrastructure.Multitenancy;
 
 /// <summary>
-/// Implementação de <see cref="ITenantScopeAccessor"/> (Lumen.Authorization.Contracts)
-/// que delega ao <see cref="ITenantContext"/> do SISLAB para obter o escopo de autorização.
+/// Implements Lumen's <see cref="ITenantScopeAccessor"/> by delegating to SISLAB's <see cref="ITenantContext"/>.
 ///
-/// A Lumen usa o escopo retornado aqui para filtrar permissões por tenant:
-/// <c>GetPermissionCodesByUserIdAsync(userId, scopeId)</c> retorna apenas as permissões
-/// que o usuário possui dentro da empresa ativa.
+/// Lumen uses the scope returned here to filter permissions by tenant:
+/// <c>GetPermissionCodesByUserIdAsync(userId, scopeId)</c> returns only the permissions
+/// the user holds within the active company.
 ///
-/// Registro: sobrepõe o NoOp registrado pela Lumen via TryAdd — deve ser registrado DEPOIS
-/// do wiring da Lumen (AddLumenIdentityCore / AddLumenAuthorization) para garantir
-/// que o override aconteça.
-///
-/// Ciclo de vida: Scoped — acompanha a requisição HTTP, assim como o ITenantContext.
+/// Registration: overrides Lumen's no-op (registered via TryAdd) — must be registered
+/// AFTER all Lumen wiring (AddLumenIdentity / AddLumenAuthorization) to win the override.
+/// Scoped — follows the HTTP request lifetime, same as ITenantContext.
 /// </summary>
 internal sealed class SislabTenantScopeAccessor : ITenantScopeAccessor
 {
@@ -27,8 +24,8 @@ internal sealed class SislabTenantScopeAccessor : ITenantScopeAccessor
     }
 
     /// <summary>
-    /// Retorna o ID da empresa ativa como escopo de autorização da Lumen.
-    /// Rotas não autenticadas ou sem tenant ativo retornam null (sem escopo → permissões globais).
+    /// Returns the active company id as the Lumen authorization scope.
+    /// Unauthenticated routes or requests without an active tenant return null (global scope).
     /// </summary>
     public Guid? GetCurrentScopeId()
     {
@@ -39,8 +36,7 @@ internal sealed class SislabTenantScopeAccessor : ITenantScopeAccessor
         }
         catch
         {
-            // ITenantContext pode lançar fora de rotas autenticadas.
-            // Nesse caso, nenhum escopo é aplicado.
+            // ITenantContext may throw outside authenticated routes; treat as no scope.
             return null;
         }
     }

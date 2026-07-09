@@ -3,11 +3,11 @@ using System.Data;
 namespace SISLAB.Infrastructure.Data;
 
 /// <summary>
-/// Base para os QueryHandlers do read-side (Dapper). Convenção do projeto (ref. Branef.SGF):
-/// a Query, o QueryHandler, o Result e o ResultItem ficam no MESMO arquivo <c>.cs</c>; o handler
-/// herda desta classe e obtém a conexão via <see cref="OpenConnectionAsync"/>.
+/// Base class for read-side query handlers (Dapper). Project convention (ref. Branef.SGF pattern):
+/// the Query, QueryHandler, Result, and ResultItem are all in the SAME .cs file; the handler
+/// inherits this class and gets the connection via <see cref="OpenConnectionAsync"/>.
 ///
-/// PADRÃO DE SQL (PostgreSQL — NÃO SQL Server):
+/// SQL dialect (PostgreSQL — NOT SQL Server):
 /// <code>
 /// WITH records AS (
 ///     SELECT s.id,
@@ -23,13 +23,13 @@ namespace SISLAB.Infrastructure.Data;
 /// ORDER BY row_number;
 /// </code>
 ///
-/// REGRAS DO DIALETO:
-/// - Identificadores em lowercase/aspas duplas (nunca colchetes <c>[...]</c>).
-/// - <c>ILIKE</c> em vez de <c>LIKE '%' + @x</c>; concatenação com <c>||</c>.
-/// - Sem <c>WITH(NOLOCK)</c> (não existe no PostgreSQL).
-/// - SEMPRE <c>WHERE company_id = @CompanyId</c> em tabelas multi-tenant (isolamento de tenant
-///   no read-side; o EF cuida do write-side via global query filter).
-/// - Paginação por <c>ROW_NUMBER()</c> + <c>COUNT(*) OVER()</c>, usando
+/// Rules:
+/// - Identifiers in lowercase / double-quoted (never square brackets <c>[...]</c>).
+/// - <c>ILIKE</c> instead of <c>LIKE</c>; concatenation with <c>||</c>.
+/// - No <c>WITH(NOLOCK)</c> (does not exist in PostgreSQL).
+/// - ALWAYS <c>WHERE company_id = @CompanyId</c> on multi-tenant tables (read-side isolation;
+///   EF Core handles the write-side via global query filter).
+/// - Pagination via <c>ROW_NUMBER()</c> + <c>COUNT(*) OVER()</c> using
 ///   <c>PagedQuery.FirstResult/LastResult</c>.
 /// </summary>
 public abstract class BaseDataAccess
@@ -40,8 +40,8 @@ public abstract class BaseDataAccess
         => _connectionFactory = connectionFactory;
 
     /// <summary>
-    /// Abre uma nova conexão Npgsql para a consulta Dapper.
-    /// O chamador é responsável por dispor a conexão (padrão <c>using</c>).
+    /// Opens a new Npgsql connection for the Dapper query.
+    /// The caller is responsible for disposing the connection (use <c>using</c>).
     /// </summary>
     protected Task<IDbConnection> OpenConnectionAsync()
         => _connectionFactory.CreateOpenConnectionAsync();

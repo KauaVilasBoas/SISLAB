@@ -1,12 +1,10 @@
 namespace SISLAB.SharedKernel.Exceptions;
 
-/// <summary>
-/// Recurso não encontrado. Resulta em HTTP 404 Not Found.
-/// </summary>
+/// <summary>Resource not found. HTTP 404.</summary>
 public class NotFoundException : Exception
 {
     public NotFoundException(string resourceName, object key)
-        : base($"'{resourceName}' com identificador '{key}' não foi encontrado.") { }
+        : base($"'{resourceName}' with identifier '{key}' was not found.") { }
 
     public NotFoundException(string message) : base(message) { }
 }

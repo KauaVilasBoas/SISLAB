@@ -8,14 +8,6 @@ using SISLAB.Modules.Identity.Infrastructure.Multitenancy;
 
 namespace SISLAB.Modules.Identity.Application;
 
-/// <summary>
-/// Ponto de entrada do módulo Identity no Composition Root.
-/// O Host referencia este assembly para descoberta automática via reflection;
-/// nunca referencia o projeto Domain ou Infrastructure internos diretamente.
-///
-/// Delega o registro de serviços para <see cref="IdentityModuleServiceExtensions"/>
-/// (Infrastructure), mantendo o Application como ponto de entrada limpo.
-/// </summary>
 public sealed class IdentityModule : IModule
 {
     /// <inheritdoc />
@@ -30,12 +22,11 @@ public sealed class IdentityModule : IModule
     /// <inheritdoc />
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
-        // Mapeia endpoints de autenticação da Lumen: login, refresh, register,
-        // confirm-email, forgot-password, reset-password, logout, me.
-        // Prefixo "/api/auth" segue a convenção do SISLAB.
+        // Lumen auth endpoints: login, refresh, register, confirm-email,
+        // forgot-password, reset-password, logout, me. Prefix follows SISLAB convention.
         endpoints.MapLumenIdentityEndpoints(prefix: "/api/auth");
 
-        // Endpoints do SISLAB para seleção/troca da company ativa (pós-login, cookie httpOnly).
+        // SISLAB endpoints for active company selection/switching (post-login, httpOnly cookie).
         endpoints.MapActiveCompanyEndpoints();
     }
 }

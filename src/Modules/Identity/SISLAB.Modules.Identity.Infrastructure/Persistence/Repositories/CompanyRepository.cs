@@ -4,8 +4,8 @@ using SISLAB.Modules.Identity.Domain.Companies;
 namespace SISLAB.Modules.Identity.Infrastructure.Persistence.Repositories;
 
 /// <summary>
-/// Implementação concreta do <see cref="ICompanyRepository"/> usando EF Core.
-/// Carrega memberships via Include para que o agregado seja reconstituído completo.
+/// EF Core implementation of <see cref="ICompanyRepository"/>.
+/// Loads memberships via Include so the aggregate is reconstituted fully.
 /// </summary>
 internal sealed class CompanyRepository : ICompanyRepository
 {

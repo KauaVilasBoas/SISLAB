@@ -1,32 +1,28 @@
 namespace SISLAB.Modules.Identity.Domain.Companies;
 
 /// <summary>
-/// Repositório do agregado <see cref="Company"/>.
-/// Implementação concreta reside na Infrastructure do módulo.
+/// Repository for the <see cref="Company"/> aggregate.
+/// Concrete implementation lives in the module's Infrastructure project.
 /// </summary>
 public interface ICompanyRepository
 {
-    /// <summary>Busca uma empresa pelo seu ID.</summary>
     Task<Company?> FindByIdAsync(Guid id, CancellationToken ct = default);
 
-    /// <summary>Retorna todas as empresas ativas.</summary>
     Task<IReadOnlyList<Company>> ListActiveAsync(CancellationToken ct = default);
 
     /// <summary>
-    /// Lista as empresas ativas às quais o usuário da Lumen pertence (via <c>company_user</c>),
-    /// ordenadas por nome. Usado no pós-login para resolver as companies do usuário.
+    /// Lists active companies the Lumen user belongs to (via <c>company_memberships</c>),
+    /// ordered by name. Used post-login to resolve the user's available companies.
     /// </summary>
     Task<IReadOnlyList<Company>> ListForMemberAsync(Guid lumenUserId, CancellationToken ct = default);
 
     /// <summary>
-    /// Indica se o usuário da Lumen é membro da empresa informada e se ela está ativa.
-    /// Usado pelo middleware de tenant e pela troca de company para validar a associação.
+    /// Returns whether the Lumen user is an active member of the given company.
+    /// Used by the tenant middleware and by company activation to validate membership.
     /// </summary>
     Task<bool> IsActiveMemberAsync(Guid companyId, Guid lumenUserId, CancellationToken ct = default);
 
-    /// <summary>Persiste uma nova empresa no banco de dados.</summary>
     Task AddAsync(Company company, CancellationToken ct = default);
 
-    /// <summary>Atualiza os dados de uma empresa existente.</summary>
     Task UpdateAsync(Company company, CancellationToken ct = default);
 }

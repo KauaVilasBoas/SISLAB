@@ -1,9 +1,9 @@
 namespace SISLAB.Modules.Identity.Contracts.ActiveCompany;
 
 /// <summary>
-/// DTO público da company ativa resolvida para a requisição corrente (via cookie httpOnly,
-/// revalidado contra <c>company_user</c> pelo TenantResolutionMiddleware).
-/// Exposto pela API para o SPA confirmar qual empresa está ativa.
+/// Public DTO for the active company resolved for the current request (from the httpOnly cookie,
+/// re-validated against <c>company_memberships</c> by TenantResolutionMiddleware).
+/// Returned by the API so the SPA can confirm which company is currently active.
 /// </summary>
-/// <param name="CompanyId">Identificador da empresa ativa (tenant) da requisição.</param>
+/// <param name="CompanyId">Identifier of the active company (tenant) for the request.</param>
 public sealed record ActiveCompanyDto(Guid CompanyId);

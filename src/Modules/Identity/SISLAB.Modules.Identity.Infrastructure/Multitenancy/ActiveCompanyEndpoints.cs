@@ -9,11 +9,12 @@ using SISLAB.SharedKernel.Multitenancy;
 namespace SISLAB.Modules.Identity.Infrastructure.Multitenancy;
 
 /// <summary>
-/// Endpoints do SISLAB para seleção e troca da company ativa (pós-login).
+/// SISLAB endpoints for active company selection and switching (post-login).
 ///
-/// A AuthN é 100% da Lumen (MapLumenIdentityEndpoints). Aqui vive apenas a lógica do SISLAB:
-/// resolver as companies do usuário via <c>company_user</c> e materializar a company ativa
-/// num cookie httpOnly. A troca de company NÃO exige novo login — é o mesmo endpoint de seleção.
+/// Authentication is entirely Lumen's responsibility (MapLumenIdentityEndpoints).
+/// This class only contains SISLAB logic: resolving the user's companies via
+/// <c>company_memberships</c> and writing the active company into an httpOnly cookie.
+/// Company switching does NOT require re-login — it is the same activation endpoint.
 /// </summary>
 public static class ActiveCompanyEndpoints
 {
@@ -24,22 +25,22 @@ public static class ActiveCompanyEndpoints
             .WithTags("Companies")
             .RequireAuthorization();
 
-        // Lista as companies do usuário autenticado (via company_user).
-        // O SPA usa isto para: 1 company → seleção automática; N → tela de escolha.
+        // Lists the authenticated user's companies (via company_memberships).
+        // The SPA uses this for: 1 company → auto-select; N → show picker.
         group.MapGet("/mine", GetMyCompaniesAsync)
             .Produces<IReadOnlyList<CompanyMembershipDto>>()
             .ProducesProblem(StatusCodes.Status401Unauthorized);
 
-        // Seleciona/troca a company ativa. Valida a pertença; 403 se o usuário não é membro.
-        // Grava o cookie httpOnly de company ativa. Serve tanto para a 1ª seleção quanto para troca.
+        // Selects or switches the active company. Validates membership; 403 if not a member.
+        // Writes the httpOnly active-company cookie. Used for both first selection and switching.
         group.MapPost("/{companyId:guid}/activate", ActivateCompanyAsync)
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
 
-        // Retorna a company ativa resolvida pelo TenantResolutionMiddleware para a requisição
-        // atual (a partir do cookie httpOnly, revalidado contra company_user). O SPA usa para
-        // saber qual empresa está ativa; 404 quando não há tenant resolvido (sem cookie válido).
+        // Returns the active company as resolved by TenantResolutionMiddleware for the current
+        // request (from the httpOnly cookie, re-validated against company_memberships).
+        // 404 when no valid tenant is resolved (no cookie or cookie rejected).
         group.MapGet("/active", GetActiveCompanyAsync)
             .Produces<ActiveCompanyDto>()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
@@ -52,10 +53,9 @@ public static class ActiveCompanyEndpoints
     {
         if (tenantContext.CompanyId == Guid.Empty)
         {
-            // Autenticado, porém sem company ativa válida (sem cookie ou cookie rejeitado).
             return Results.Problem(
-                title: "Nenhuma company ativa",
-                detail: "Selecione uma empresa ativa via POST /api/companies/{companyId}/activate.",
+                title: "No active company",
+                detail: "Select an active company via POST /api/companies/{companyId}/activate.",
                 statusCode: StatusCodes.Status404NotFound);
         }
 
@@ -93,10 +93,9 @@ public static class ActiveCompanyEndpoints
         bool isMember = await companyRepository.IsActiveMemberAsync(companyId, userId, ct);
         if (!isMember)
         {
-            // Defense-in-depth: rejeita ativar company que o usuário não pertence (ou inativa).
             return Results.Problem(
-                title: "Company não permitida",
-                detail: "O usuário não é membro ativo da empresa informada.",
+                title: "Company not allowed",
+                detail: "The user is not an active member of the requested company.",
                 statusCode: StatusCodes.Status403Forbidden);
         }
 

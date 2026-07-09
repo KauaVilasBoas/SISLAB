@@ -1,10 +1,10 @@
 namespace SISLAB.Modules.Identity.Contracts.ActiveCompany;
 
 /// <summary>
-/// DTO público (achatado) de uma empresa à qual o usuário autenticado pertence.
-/// Exposto pela API para o SPA montar a seleção de company ativa.
-/// Não expõe o aggregate Company nem tipos internos do Domain.
+/// Public flattened DTO of a company the authenticated user belongs to.
+/// Returned by the API for the SPA to build the active company selector.
+/// Does not expose the Company aggregate or any internal Domain types.
 /// </summary>
-/// <param name="Id">Identificador da empresa.</param>
-/// <param name="Name">Nome/razão social da empresa.</param>
+/// <param name="Id">Company identifier.</param>
+/// <param name="Name">Company display name.</param>
 public sealed record CompanyMembershipDto(Guid Id, string Name);

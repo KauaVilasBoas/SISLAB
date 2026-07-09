@@ -1,47 +1,42 @@
 namespace SISLAB.Modules.Identity.Infrastructure.Seeding;
 
 /// <summary>
-/// Opções do seed de desenvolvimento (empresa demo LAFTE + usuário administrador).
+/// Options for the development seed (LAFTE demo company + admin user).
 ///
-/// Vinculadas à seção de configuração <c>Seed</c>. As credenciais do admin NUNCA são
-/// hardcoded: vêm de User Secrets / variáveis de ambiente (<c>Seed:Admin:*</c>). O seed
-/// só executa quando <see cref="Enabled"/> = true e todas as credenciais estão presentes.
+/// Bound to the <c>Seed</c> configuration section. Admin credentials are NEVER hardcoded —
+/// they come from User Secrets / environment variables (<c>Seed:Admin:*</c>). The seed only
+/// runs when <see cref="Enabled"/> = true and all credentials are present.
 /// </summary>
 public sealed class DevSeedOptions
 {
-    /// <summary>Nome da seção de configuração raiz.</summary>
     public const string SectionName = "Seed";
 
     /// <summary>
-    /// Habilita a execução do seed no boot. Padrão: false (opt-in).
-    /// Recomenda-se ligar apenas em ambientes de desenvolvimento.
+    /// Enables the seed on startup. Default: false (opt-in).
+    /// Should only be enabled in development environments.
     /// </summary>
     public bool Enabled { get; set; }
 
-    /// <summary>Dados do usuário administrador demo.</summary>
     public AdminSeedOptions Admin { get; set; } = new();
 
     /// <summary>
-    /// Indica se há credenciais suficientes para semear o admin.
-    /// Evita executar o seed com configuração incompleta.
+    /// Returns true when sufficient credentials exist to seed the admin user.
+    /// Prevents the seed from running with incomplete configuration.
     /// </summary>
     public bool HasAdminCredentials =>
         !string.IsNullOrWhiteSpace(Admin.Email)
         && !string.IsNullOrWhiteSpace(Admin.Username)
         && !string.IsNullOrWhiteSpace(Admin.Password);
 
-    /// <summary>Credenciais do usuário administrador semeado.</summary>
     public sealed class AdminSeedOptions
     {
-        /// <summary>E-mail do admin (identificador de login).</summary>
         public string Email { get; set; } = string.Empty;
 
-        /// <summary>Username do admin.</summary>
         public string Username { get; set; } = string.Empty;
 
         /// <summary>
-        /// Senha do admin. Deve respeitar a política da Lumen (mín. 12 chars, maiúscula,
-        /// minúscula, dígito, caractere especial). Fornecida via User Secret/env.
+        /// Admin password. Must satisfy Lumen's policy (min. 12 chars: uppercase, lowercase,
+        /// digit, special character). Provided via User Secret / environment variable.
         /// </summary>
         public string Password { get; set; } = string.Empty;
     }

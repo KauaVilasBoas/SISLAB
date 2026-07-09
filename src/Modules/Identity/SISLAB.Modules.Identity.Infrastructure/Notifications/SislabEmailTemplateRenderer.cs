@@ -4,38 +4,32 @@ using Lumen.Identity.Domain.Notifications;
 namespace SISLAB.Modules.Identity.Infrastructure.Notifications;
 
 /// <summary>
-/// Implementação SISLAB de <see cref="IEmailTemplateRenderer"/>: renderiza o corpo dos
-/// e-mails transacionais (confirmação de conta, redefinição de senha, aviso de senha
-/// alterada) a partir de templates HTML/texto com a marca SISLAB.
+/// SISLAB implementation of <see cref="IEmailTemplateRenderer"/>: renders transactional email
+/// bodies (account confirmation, password reset, password changed) from HTML/text templates
+/// with SISLAB branding.
 ///
-/// MOTIVO DO OVERRIDE: o renderer do pacote Lumen.Identity 1.0.0
-/// (<c>EmailTemplateRenderer</c>) resolve os templates como <b>recursos embedados no
-/// assembly da própria Lumen</b> (prefixo
-/// <c>Lumen.Identity.Infrastructure.Notifications.Templates.Email.</c>). Esses recursos NÃO
-/// existem no pacote publicado, então todo fluxo que dispara e-mail (notadamente o
-/// <c>register</c>, que envia a confirmação) lança
-/// <c>InvalidOperationException("Email template '...' was not found as an embedded
-/// resource.")</c> e retorna HTTP 500. Como a Lumen é consumida como pacote externo
-/// black-box, não corrigimos o pacote: fornecemos o renderer do SISLAB — os templates são
-/// nossos, com a identidade visual do produto — e o registramos DEPOIS de
-/// <c>AddLumenIdentity</c>, vencendo o registro defeituoso na resolução única de
-/// <see cref="IEmailTemplateRenderer"/>.
+/// WHY THIS EXISTS: Lumen.Identity 1.0.0's <c>EmailTemplateRenderer</c> resolves templates as
+/// embedded resources in the Lumen assembly itself
+/// (prefix <c>Lumen.Identity.Infrastructure.Notifications.Templates.Email.</c>).
+/// Those resources do NOT exist in the published package — any email flow (notably
+/// <c>register</c>, which sends the confirmation) throws
+/// <c>InvalidOperationException("Email template '...' was not found as an embedded resource.")</c>
+/// and returns HTTP 500. Because Lumen is consumed as an external NuGet black box, SISLAB
+/// does not patch the package: it provides its own renderer with product-branded templates
+/// and registers it AFTER <c>AddLumenIdentity</c>, winning the <see cref="IEmailTemplateRenderer"/>
+/// singleton override.
 ///
-/// Contrato (confirmado por reflexão no assembly da Lumen 1.0.0):
-/// <list type="bullet">
-///   <item><c>Render(templateName, placeholders)</c> retorna a tupla
-///   <c>(string HtmlBody, string TextBody)</c> — o <b>assunto</b> é definido pelo serviço
-///   chamador da Lumen, não pelo renderer.</item>
-///   <item>Placeholders no template usam a sintaxe <c>{{Chave}}</c> (case-sensitive), a
-///   mesma do renderer original.</item>
-///   <item>Nomes de template usados pela Lumen: <c>EmailConfirmation</c> (placeholders
-///   <c>UserName</c>, <c>ConfirmationUrl</c>), <c>PasswordReset</c> (<c>UserName</c>,
-///   <c>ResetUrl</c>) e <c>PasswordChanged</c> (<c>UserName</c>).</item>
-/// </list>
+/// Contract (verified by reflection against Lumen.Identity 1.0.0):
+/// - <c>Render(templateName, placeholders)</c> returns <c>(string HtmlBody, string TextBody)</c>.
+///   The email subject is set by Lumen's calling service, not by the renderer.
+/// - Placeholder syntax in templates: <c>{{Key}}</c> (case-sensitive).
+/// - Template names used by Lumen: <c>EmailConfirmation</c> (placeholders: <c>UserName</c>,
+///   <c>ConfirmationUrl</c>), <c>PasswordReset</c> (<c>UserName</c>, <c>ResetUrl</c>),
+///   <c>PasswordChanged</c> (<c>UserName</c>).
 ///
-/// Convenção de resolução: cada template é um par de recursos embedados neste assembly em
-/// <c>Notifications/Templates/{templateName}.html</c> e <c>.txt</c>. O <c>.txt</c> é
-/// opcional (fallback para string vazia).
+/// Resolution convention: each template is a pair of embedded resources in this assembly at
+/// <c>Notifications/Templates/{templateName}.html</c> and <c>.txt</c>.
+/// The <c>.txt</c> is optional (falls back to an empty string).
 /// </summary>
 internal sealed class SislabEmailTemplateRenderer : IEmailTemplateRenderer
 {
@@ -74,9 +68,8 @@ internal sealed class SislabEmailTemplateRenderer : IEmailTemplateRenderer
             if (required)
             {
                 throw new InvalidOperationException(
-                    $"Template de e-mail SISLAB '{fileName}' não encontrado como recurso " +
-                    $"embedado ('{resourceName}'). Verifique se o arquivo está marcado como " +
-                    "<EmbeddedResource> no .csproj.");
+                    $"SISLAB email template '{fileName}' not found as an embedded resource " +
+                    $"('{resourceName}'). Make sure the file is marked as <EmbeddedResource> in the .csproj.");
             }
 
             return null;

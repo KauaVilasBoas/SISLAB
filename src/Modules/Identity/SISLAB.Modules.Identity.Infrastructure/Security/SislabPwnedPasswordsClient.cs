@@ -6,26 +6,24 @@ using Microsoft.Extensions.Logging;
 namespace SISLAB.Modules.Identity.Infrastructure.Security;
 
 /// <summary>
-/// Implementação SISLAB de <see cref="IPwnedPasswordsClient"/> (verificação de senha vazada
-/// via HaveIBeenPwned, com k-anonymity).
+/// SISLAB implementation of <see cref="IPwnedPasswordsClient"/> (HaveIBeenPwned k-anonymity check).
 ///
-/// MOTIVO DO OVERRIDE: o pacote Lumen.Identity 1.0.0 registra o typed client
-/// <c>AddHttpClient&lt;IPwnedPasswordsClient, PwnedPasswordsClient&gt;</c> (que configura o
-/// <c>BaseAddress</c> a partir de <c>Hibp:ApiBaseUrl</c>) e, LOGO EM SEGUIDA, sobrepõe esse
-/// registro com <c>AddScoped&lt;IPwnedPasswordsClient, PwnedPasswordsClient&gt;</c>. O último
-/// registro vence: o <c>HttpClient</c> injetado passa a ser o default do container, SEM
-/// <c>BaseAddress</c> — o que lança <c>InvalidOperationException</c> ("An invalid request URI
-/// was provided") em todo <c>register</c>/<c>change-password</c>. Como a Lumen é consumida como
-/// pacote externo black-box, não corrigimos o pacote: fornecemos uma implementação pública
-/// própria (a interface é pública; a impl da Lumen é internal) registrada como typed client
-/// corretamente configurado, sobrepondo o registro defeituoso.
+/// WHY THIS EXISTS: Lumen.Identity 1.0.0 registers a typed HttpClient
+/// <c>AddHttpClient&lt;IPwnedPasswordsClient, PwnedPasswordsClient&gt;</c> (configured with
+/// BaseAddress from <c>Hibp:ApiBaseUrl</c>) and then IMMEDIATELY overrides it with
+/// <c>AddScoped&lt;IPwnedPasswordsClient, PwnedPasswordsClient&gt;</c>. The last registration
+/// wins: the injected HttpClient is the container default, with no BaseAddress — causing
+/// <c>InvalidOperationException</c> ("An invalid request URI was provided") on every
+/// register/change-password call. Because Lumen is a black-box NuGet, SISLAB registers
+/// its own correctly configured typed client after AddLumenIdentity, winning the override.
+/// The interface is public; Lumen's implementation is internal.
 ///
-/// Algoritmo (idêntico ao HIBP Pwned Passwords range API): SHA-1 da senha em HEX maiúsculo,
-/// dividido em prefixo (5 chars) + sufixo (35 chars); <c>GET range/{prefix}</c> retorna linhas
-/// <c>SUFIXO:contagem</c>; a senha está comprometida se o sufixo constar na resposta.
+/// Algorithm (HIBP Pwned Passwords range API): SHA-1 of the password in uppercase hex,
+/// split into prefix (5 chars) + suffix (35 chars); <c>GET range/{prefix}</c> returns lines
+/// <c>SUFFIX:count</c>; the password is compromised if the suffix appears in the response.
 ///
-/// Fail-open: falhas de rede/HTTP NÃO bloqueiam o cadastro (retorna <c>false</c>); a verificação
-/// de vazamento é defesa-em-profundidade, não a única barreira de força de senha.
+/// Fail-open: network/HTTP failures do NOT block registration (returns <c>false</c>).
+/// The HIBP check is defense-in-depth, not the only password strength barrier.
 /// </summary>
 internal sealed class SislabPwnedPasswordsClient : IPwnedPasswordsClient
 {
@@ -55,8 +53,8 @@ internal sealed class SislabPwnedPasswordsClient : IPwnedPasswordsClient
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            // Fail-open: indisponibilidade do HIBP não impede o cadastro.
-            _logger.LogWarning(ex, "Verificação HaveIBeenPwned indisponível; senha não checada contra vazamentos.");
+            // Fail-open: HIBP unavailability does not block registration.
+            _logger.LogWarning(ex, "HaveIBeenPwned check unavailable; password not verified against breaches.");
             return false;
         }
     }
@@ -64,13 +62,13 @@ internal sealed class SislabPwnedPasswordsClient : IPwnedPasswordsClient
     private static (string Prefix, string Suffix) ComputeSha1RangeParts(string password)
     {
         byte[] hashBytes = SHA1.HashData(Encoding.UTF8.GetBytes(password));
-        string hash = Convert.ToHexString(hashBytes); // HEX maiúsculo, 40 chars
+        string hash = Convert.ToHexString(hashBytes); // uppercase hex, 40 chars
         return (hash[..5], hash[5..]);
     }
 
     private static bool ContainsSuffix(string rangeBody, string suffix)
     {
-        // Resposta HIBP: uma linha por sufixo, no formato "SUFIXO:contagem".
+        // HIBP response: one line per suffix, format "SUFFIX:count".
         foreach (ReadOnlySpan<char> line in rangeBody.AsSpan().EnumerateLines())
         {
             int separator = line.IndexOf(':');

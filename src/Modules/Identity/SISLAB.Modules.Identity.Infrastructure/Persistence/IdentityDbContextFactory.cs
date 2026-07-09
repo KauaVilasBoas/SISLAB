@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore.Design;
 namespace SISLAB.Modules.Identity.Infrastructure.Persistence;
 
 /// <summary>
-/// Factory de design-time para o <see cref="IdentityDbContext"/>.
-/// Permite ao CLI do EF Core gerar migrations sem um host rodando.
-/// Usa uma connection string de design-time — nunca exposta em produção.
+/// Design-time factory for <see cref="IdentityDbContext"/>.
+/// Allows the EF Core CLI to generate migrations without a running host.
+/// Uses a design-time connection string — never exposed in production.
 /// </summary>
 internal sealed class IdentityDbContextFactory : IDesignTimeDbContextFactory<IdentityDbContext>
 {

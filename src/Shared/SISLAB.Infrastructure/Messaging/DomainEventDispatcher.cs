@@ -7,22 +7,21 @@ using SISLAB.SharedKernel.Messaging;
 namespace SISLAB.Infrastructure.Messaging;
 
 /// <summary>
-/// Implementação de <see cref="IDomainEventDispatcher"/>.
+/// <see cref="IDomainEventDispatcher"/> implementation.
 ///
-/// Fluxo dentro do SaveChangesAsync (orquestrado pelo EfUnitOfWork):
+/// Flow within SaveChangesAsync (orchestrated by EfUnitOfWork):
 ///
-/// 1. <see cref="DispatchTransactionalAsync"/>: para cada DomainEvent com pelo menos um
-///    <see cref="ITransactionalDomainEventHandler{TEvent}"/> registrado no DI,
-///    invoca todos os handlers na mesma transação. Falha = rollback.
+/// 1. <see cref="DispatchTransactionalAsync"/>: for each DomainEvent that has at least one
+///    <see cref="ITransactionalDomainEventHandler{TEvent}"/> registered in the DI container,
+///    invokes all handlers inside the current transaction. Failure = rollback.
 ///
-/// 2. <see cref="DispatchToOutboxAsync"/>: eventos restantes (sem handler transacional, ou
-///    que também têm handlers não-transacionais) são traduzidos para IntegrationEvents
-///    e gravados no Outbox via <see cref="OutboxWriter"/>. Limpa os eventos dos agregados.
+/// 2. <see cref="DispatchToOutboxAsync"/>: remaining events (or events that also need eventual
+///    side effects) are translated to IntegrationEvents and written to the Outbox via
+///    <see cref="OutboxWriter"/>. Clears the aggregate event lists.
 ///
-/// NOTA SOBRE EVENTOS TRANSACIONAIS:
-/// Um DomainEvent pode ter TANTO um handler transacional quanto ser gravado no Outbox.
-/// O handler transacional roda first (invariante in-transaction); o Outbox cuida dos
-/// efeitos colaterais eventuais.
+/// A DomainEvent can have BOTH a transactional handler AND be enqueued in the Outbox.
+/// The transactional handler runs first (in-transaction invariant); the Outbox handles
+/// eventual side effects.
 /// </summary>
 public sealed class DomainEventDispatcher : IDomainEventDispatcher
 {
@@ -70,8 +69,7 @@ public sealed class DomainEventDispatcher : IDomainEventDispatcher
             await EnqueueEventInOutbox(domainEvent, cancellationToken);
         }
 
-        // Limpa os eventos após enfileirar no Outbox.
-        // A partir daqui, os eventos estão seguros na tabela outbox_messages.
+        // Clear events after Outbox write — they are now safely persisted in outbox_messages.
         foreach (IHasDomainEvents aggregate in aggregateList)
             aggregate.ClearDomainEvents();
     }
@@ -90,12 +88,12 @@ public sealed class DomainEventDispatcher : IDomainEventDispatcher
             if (handler is null) continue;
 
             _logger.LogDebug(
-                "DomainEventDispatcher: executando handler transacional {Handler} para {Event}",
+                "DomainEventDispatcher: running transactional handler {Handler} for {Event}",
                 handler.GetType().Name, eventType.Name);
 
-            // Invocação via reflexão — custo aceitável para domain events (volume baixo).
-            // HandleAsync é declarado na interface BASE IDomainEventHandler<>; GetMethod numa
-            // interface derivada não retorna membros herdados, então resolvemos na base.
+            // Reflection invocation — acceptable cost for domain events (low volume).
+            // HandleAsync is declared in the BASE IDomainEventHandler<> interface; GetMethod on
+            // a derived interface does not return inherited members, so resolve on the base.
             Type baseHandlerInterface = typeof(IDomainEventHandler<>).MakeGenericType(eventType);
             var handleMethod = baseHandlerInterface.GetMethod(nameof(IDomainEventHandler<IDomainEvent>.HandleAsync))!;
             await (Task)handleMethod.Invoke(handler, [domainEvent, cancellationToken])!;
@@ -104,8 +102,8 @@ public sealed class DomainEventDispatcher : IDomainEventDispatcher
 
     private Task EnqueueEventInOutbox(IDomainEvent domainEvent, CancellationToken cancellationToken)
     {
-        // Verifica se existe um translator registrado para este DomainEvent.
-        // O translator converte DomainEvent → IIntegrationEvent antes de gravar no Outbox.
+        // Check whether a translator is registered for this DomainEvent type.
+        // The translator converts DomainEvent → IIntegrationEvent before writing to the Outbox.
         Type eventType = domainEvent.GetType();
         Type translatorInterface = typeof(IDomainEventToIntegrationEventTranslator<>).MakeGenericType(eventType);
 
@@ -114,13 +112,12 @@ public sealed class DomainEventDispatcher : IDomainEventDispatcher
         if (translator is null)
         {
             _logger.LogDebug(
-                "DomainEventDispatcher: nenhum translator para {EventType} — evento não gravado no Outbox.",
+                "DomainEventDispatcher: no translator for {EventType} — event not written to Outbox.",
                 eventType.Name);
 
             return Task.CompletedTask;
         }
 
-        // Invoca o translator para obter o integration event.
         var translateMethod = translatorInterface.GetMethod(
             nameof(IDomainEventToIntegrationEventTranslator<IDomainEvent>.Translate))!;
 
@@ -129,7 +126,7 @@ public sealed class DomainEventDispatcher : IDomainEventDispatcher
         _outboxWriter.Enqueue(integrationEvent);
 
         _logger.LogDebug(
-            "DomainEventDispatcher: {EventType} traduzido e enfileirado no Outbox como {IntegrationEventType}",
+            "DomainEventDispatcher: {EventType} translated and enqueued in Outbox as {IntegrationEventType}.",
             eventType.Name, integrationEvent.GetType().Name);
 
         return Task.CompletedTask;

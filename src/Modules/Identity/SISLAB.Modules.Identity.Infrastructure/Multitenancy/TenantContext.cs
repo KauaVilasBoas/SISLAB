@@ -3,34 +3,28 @@ using SISLAB.SharedKernel.Multitenancy;
 namespace SISLAB.Modules.Identity.Infrastructure.Multitenancy;
 
 /// <summary>
-/// Implementação concreta e mutável de <see cref="ITenantContext"/>, com ciclo de vida Scoped
-/// (uma instância por requisição HTTP).
+/// Mutable, concrete implementation of <see cref="ITenantContext"/> — Scoped (one instance per HTTP request).
 ///
-/// O <see cref="TenantResolutionMiddleware"/> resolve a empresa ativa a partir do cookie
-/// httpOnly de company, valida contra <c>company_user</c> e chama <see cref="SetCompany"/>.
-/// Em rotas públicas ou sem cookie válido, o <see cref="CompanyId"/> permanece
-/// <see cref="Guid.Empty"/> — o <see cref="SislabTenantScopeAccessor"/> trata esse caso
-/// retornando escopo nulo (sem tenant ativo).
+/// <see cref="TenantResolutionMiddleware"/> resolves the active company from the httpOnly cookie,
+/// validates membership, and calls <see cref="SetCompany"/>. On public routes or when no valid cookie
+/// is present, <see cref="CompanyId"/> stays <see cref="Guid.Empty"/> and
+/// <see cref="SislabTenantScopeAccessor"/> returns a null scope (no active tenant).
 /// </summary>
 internal sealed class TenantContext : ITenantContext
 {
     /// <inheritdoc />
     public Guid CompanyId { get; private set; } = Guid.Empty;
 
-    /// <summary>
-    /// Indica se há uma empresa ativa resolvida para a requisição atual.
-    /// </summary>
     public bool HasCompany => CompanyId != Guid.Empty;
 
     /// <summary>
-    /// Define a empresa ativa da requisição. Chamado exclusivamente pelo
-    /// <see cref="TenantResolutionMiddleware"/> após validar a associação do usuário.
+    /// Sets the active company for this request.
+    /// Called exclusively by <see cref="TenantResolutionMiddleware"/> after membership validation.
     /// </summary>
-    /// <param name="companyId">ID da empresa ativa (não pode ser vazio).</param>
     public void SetCompany(Guid companyId)
     {
         if (companyId == Guid.Empty)
-            throw new ArgumentException("O CompanyId ativo não pode ser vazio.", nameof(companyId));
+            throw new ArgumentException("Active CompanyId cannot be empty.", nameof(companyId));
 
         CompanyId = companyId;
     }

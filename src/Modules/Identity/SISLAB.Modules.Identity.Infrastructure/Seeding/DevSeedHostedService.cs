@@ -5,13 +5,13 @@ using Microsoft.Extensions.Logging;
 namespace SISLAB.Modules.Identity.Infrastructure.Seeding;
 
 /// <summary>
-/// Hosted service que executa o <see cref="LafteDevSeeder"/> no boot, atrás da flag
-/// <c>Seed:Enabled</c>. Registrado APÓS os hosted services de migrations (SISLAB + Lumen)
-/// para que todos os schemas/seed de sistema já existam quando o seed rodar
-/// (hosted services executam em ordem de registro).
+/// Hosted service that runs <see cref="LafteDevSeeder"/> on startup, behind the
+/// <c>Seed:Enabled</c> flag. Registered AFTER the migration hosted services (SISLAB + Lumen)
+/// so all schemas and Lumen's system seed (Administrator/User profiles) already exist when
+/// the seed runs (hosted services execute in registration order).
 ///
-/// Falhas do seed são logadas mas NÃO derrubam a aplicação — é uma conveniência de dev,
-/// nunca um pré-requisito de disponibilidade.
+/// Seed failures are logged but do NOT crash the application — this is a dev convenience,
+/// never a production availability prerequisite.
 /// </summary>
 internal sealed class DevSeedHostedService : IHostedService
 {
@@ -42,7 +42,7 @@ internal sealed class DevSeedHostedService : IHostedService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Falha ao executar o seed de desenvolvimento LAFTE. Boot prossegue.");
+            _logger.LogError(ex, "Dev seed (LAFTE) failed. Boot continues.");
         }
     }
 

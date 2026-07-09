@@ -5,30 +5,30 @@ using Microsoft.Extensions.DependencyInjection;
 namespace SISLAB.Infrastructure.Modules;
 
 /// <summary>
-/// Contrato público de um módulo do monólito modular.
-/// Cada bounded context implementa este contrato no seu projeto Application
-/// (ou Infrastructure do módulo), expondo-se ao Host sem revelar o Domain interno.
+/// Public contract for a module in the modular monolith.
+/// Each bounded context implements this in its Application project, exposing itself to the host
+/// without leaking its internal Domain.
 ///
-/// O Host descobre módulos por assembly scanning e invoca RegisterServices/MapEndpoints
-/// em ordem determinística definida pela propriedade <see cref="Order"/>.
+/// The host discovers modules by assembly scanning and invokes RegisterServices/MapEndpoints
+/// in the deterministic order defined by <see cref="Order"/>.
 /// </summary>
 public interface IModule
 {
     /// <summary>
-    /// Ordem de carregamento. Módulos com menor número são registrados primeiro.
-    /// Convenção: Shared=0, Identity=10, Inventory=20.
+    /// Load order — modules with a lower value are registered first.
+    /// Convention: Identity = 10, Inventory = 20.
     /// </summary>
     int Order { get; }
 
     /// <summary>
-    /// Registra os serviços do módulo no contêiner de DI.
-    /// Chamado durante o bootstrap, antes de WebApplication.Build().
+    /// Registers the module's services into the DI container.
+    /// Called during bootstrap, before <c>WebApplication.Build()</c>.
     /// </summary>
     void RegisterServices(IServiceCollection services, IConfiguration configuration);
 
     /// <summary>
-    /// Mapeia os endpoints mínimos (Minimal API) do módulo no roteador da aplicação.
-    /// Chamado após WebApplication.Build(), durante a configuração do pipeline HTTP.
+    /// Maps the module's Minimal API endpoints into the application router.
+    /// Called after <c>WebApplication.Build()</c>, during HTTP pipeline setup.
     /// </summary>
     void MapEndpoints(IEndpointRouteBuilder endpoints);
 }

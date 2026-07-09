@@ -6,19 +6,19 @@ using SISLAB.Modules.Identity.Domain.Companies;
 namespace SISLAB.Modules.Identity.Infrastructure.Multitenancy;
 
 /// <summary>
-/// Middleware de resolução de tenant (Opção A: company ativa em cookie httpOnly, FORA do JWT).
+/// Tenant resolution middleware (Option A: active company in an httpOnly cookie, outside the JWT).
 ///
-/// A cada requisição:
-/// 1. Resolve o usuário autenticado a partir do principal (JWT) via <see cref="IUserIdAccessor"/>.
-/// 2. Lê o cookie de company ativa (<see cref="ActiveCompanyCookie.Name"/>).
-/// 3. VALIDA a associação usuário↔company contra <c>company_user</c> (defense-in-depth:
-///    o cookie por si só não é confiável — a pertença é reconferida a cada request).
-/// 4. Se válida, popula <see cref="TenantContext.CompanyId"/>.
+/// Per request:
+/// 1. Resolves the authenticated user from the JWT principal via <see cref="IUserIdAccessor"/>.
+/// 2. Reads the active-company cookie (<see cref="ActiveCompanyCookie.Name"/>).
+/// 3. VALIDATES membership against <c>company_memberships</c> (defense-in-depth:
+///    the cookie alone is not trusted — membership is re-checked on every request).
+/// 4. If valid, populates <see cref="TenantContext.CompanyId"/>.
 ///
-/// Em rotas públicas, sem JWT, sem cookie ou com company não pertencente, o CompanyId
-/// permanece vazio — o <see cref="SislabTenantScopeAccessor"/> trata isso retornando
-/// escopo nulo. Este middleware NUNCA aborta a request (não é ele quem autoriza); a
-/// exigência de tenant fica a cargo dos handlers/policies que dele dependem.
+/// On public routes, unauthenticated requests, missing cookie, or non-member company,
+/// CompanyId remains empty — <see cref="SislabTenantScopeAccessor"/> handles that by
+/// returning a null scope. This middleware NEVER aborts the request; authorization
+/// enforcement is the responsibility of handlers and policies that depend on the tenant.
 /// </summary>
 internal sealed class TenantResolutionMiddleware
 {
@@ -31,7 +31,7 @@ internal sealed class TenantResolutionMiddleware
         _logger = logger;
     }
 
-    // Serviços Scoped resolvidos por request via injeção no InvokeAsync.
+    // Scoped services resolved per-request via InvokeAsync injection.
     public async Task InvokeAsync(
         HttpContext context,
         TenantContext tenantContext,
@@ -49,10 +49,10 @@ internal sealed class TenantResolutionMiddleware
             }
             else
             {
-                // Cookie aponta para uma company que o usuário não pertence (ou inativa).
-                // Não populamos o tenant; o cookie será tratado como inválido.
+                // Cookie points to a company the user does not belong to (or is inactive).
+                // Leave the tenant unpopulated; the cookie is treated as invalid.
                 _logger.LogWarning(
-                    "Cookie de company ativa ({CompanyId}) rejeitado para o usuário {UserId}: não é membro ativo.",
+                    "Active company cookie ({CompanyId}) rejected for user {UserId}: not an active member.",
                     companyId, userId);
             }
         }
@@ -69,7 +69,7 @@ internal sealed class TenantResolutionMiddleware
         userId = Guid.Empty;
         companyId = Guid.Empty;
 
-        // Precisa de usuário autenticado (JWT) para validar a pertença.
+        // Requires an authenticated user (JWT) to validate membership.
         if (context.User?.Identity?.IsAuthenticated != true)
             return false;
 

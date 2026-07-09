@@ -1,27 +1,24 @@
 namespace SISLAB.SharedKernel.Messaging;
 
 /// <summary>
-/// Marcador para integration events — representação pública e achatada de um DomainEvent,
-/// publicada para outros bounded contexts via Outbox/barramento de eventos.
+/// Integration event marker — a public, flattened representation of a DomainEvent,
+/// published to other bounded contexts via the Outbox/event bus.
 ///
-/// DIFERENÇA DE DOMAIN EVENT:
-/// - DomainEvent: interno ao módulo, rico em dados de domínio, descartado após despacho.
-/// - IntegrationEvent: público, serializado como JSON no Outbox, transportável via fila/broker.
+/// Unlike a DomainEvent (module-internal, rich, discarded after dispatch), an IntegrationEvent
+/// is serialized as JSON in the Outbox and transportable via a queue/broker.
 ///
-/// CONVENÇÃO:
-/// Cada DomainEvent que precisa cruzar bounded contexts deve ter um IntegrationEvent
-/// correspondente no projeto Contracts do módulo emissor.
-/// A tradução (DomainEvent → IntegrationEvent) ocorre no EventHandler do módulo,
-/// antes de gravar no Outbox.
+/// Convention: each DomainEvent that needs to cross bounded-context boundaries must have a
+/// corresponding IntegrationEvent in the emitting module's Contracts project.
+/// Translation (DomainEvent → IntegrationEvent) happens in the module's event handler
+/// before writing to the Outbox.
 /// </summary>
 public interface IIntegrationEvent
 {
-    /// <summary>Identificador único do evento (para idempotência no consumidor).</summary>
+    /// <summary>Unique event identifier (used for consumer-side idempotency).</summary>
     Guid EventId { get; }
 
-    /// <summary>Momento em que o evento ocorreu (UTC).</summary>
     DateTime OccurredOnUtc { get; }
 
-    /// <summary>Nome do tipo do evento (discriminador para desserialização polimórfica).</summary>
+    /// <summary>Event type name — discriminator for polymorphic deserialization.</summary>
     string EventType { get; }
 }

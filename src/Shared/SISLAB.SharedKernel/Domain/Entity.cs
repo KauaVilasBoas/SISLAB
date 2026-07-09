@@ -1,10 +1,5 @@
 namespace SISLAB.SharedKernel.Domain;
 
-/// <summary>
-/// Entidade de domínio com igualdade baseada em identidade.
-/// Duas entidades são iguais se e somente se possuem o mesmo tipo e o mesmo ID.
-/// </summary>
-/// <typeparam name="TId">Tipo do identificador da entidade.</typeparam>
 public abstract class Entity<TId>
     where TId : notnull
 {
@@ -13,7 +8,6 @@ public abstract class Entity<TId>
         Id = id;
     }
 
-    /// <summary>Identificador único da entidade.</summary>
     public TId Id { get; private init; }
 
     public override bool Equals(object? obj)

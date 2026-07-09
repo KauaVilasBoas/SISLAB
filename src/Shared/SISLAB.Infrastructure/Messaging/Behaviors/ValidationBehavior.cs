@@ -5,20 +5,14 @@ using SISLAB.SharedKernel.Messaging;
 namespace SISLAB.Infrastructure.Messaging.Behaviors;
 
 /// <summary>
-/// Behavior de pipeline que executa validadores FluentValidation antes do handler.
-/// Se nenhum <see cref="IValidator{TRequest}"/> estiver registrado, o request passa direto.
-/// Se houver violações, lança <see cref="ValidationException"/> — o handler nunca é chamado.
+/// Pipeline behavior that runs FluentValidation validators before the handler.
+/// If no <see cref="IValidator{TRequest}"/> is registered, the request passes through.
+/// If there are failures, throws <see cref="ValidationException"/> — the handler is never called.
 ///
-/// REGISTRO:
-/// O behavior é registrado automaticamente como open-generic pelo assembly scanning
-/// em <see cref="SISLAB.Infrastructure.DependencyInjection.InfrastructureServiceExtensions"/>.
-/// Validators são descobertos via FluentValidation.DependencyInjectionExtensions por módulo.
-///
-/// ORDEM NO PIPELINE: ValidationBehavior → LoggingBehavior → TransactionBehavior → Handler
-/// (registrado primeiro = executa mais externamente na cadeia)
+/// Validators are discovered via FluentValidation DI extensions per module.
+/// Pipeline order: ValidationBehavior → LoggingBehavior → TransactionBehavior → Handler
+/// (registered first = executes outermost in the chain)
 /// </summary>
-/// <typeparam name="TRequest">Tipo do request sendo validado.</typeparam>
-/// <typeparam name="TResult">Tipo do resultado.</typeparam>
 public sealed class ValidationBehavior<TRequest, TResult> : IPipelineBehavior<TRequest, TResult>
     where TRequest : IRequest<TResult>
 {

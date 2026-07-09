@@ -1,10 +1,10 @@
 namespace SISLAB.Modules.Identity.Contracts.Administration;
 
 /// <summary>
-/// DTO público (achatado) de um membro de uma company, exposto pelos endpoints de
-/// administração. Referencia o usuário da Lumen apenas por valor (<see cref="UserId"/>),
-/// sem expor o aggregate <c>CompanyMembership</c> nem tipos internos do Domain.
+/// Public flattened DTO for a company member, returned by admin endpoints.
+/// References the Lumen user by value only (<see cref="UserId"/>) — does not expose
+/// the <c>CompanyMembership</c> aggregate or any internal Domain types.
 /// </summary>
-/// <param name="MembershipId">Identificador do vínculo (CompanyMembership).</param>
-/// <param name="UserId">Identificador do usuário na Lumen (por valor).</param>
+/// <param name="MembershipId">Identifier of the membership link (CompanyMembership).</param>
+/// <param name="UserId">Identifier of the Lumen user (by value).</param>
 public sealed record CompanyMemberDto(Guid MembershipId, Guid UserId);

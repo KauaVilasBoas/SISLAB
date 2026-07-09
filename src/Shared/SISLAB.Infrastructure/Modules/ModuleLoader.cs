@@ -6,20 +6,20 @@ using Microsoft.Extensions.DependencyInjection;
 namespace SISLAB.Infrastructure.Modules;
 
 /// <summary>
-/// Composition Root: descobre todas as implementações de <see cref="IModule"/>
-/// presentes nos assemblies informados, ordena por <see cref="IModule.Order"/>
-/// e delega o registro de serviços e endpoints.
+/// Composition Root: discovers all <see cref="IModule"/> implementations in the provided
+/// assemblies, orders them by <see cref="IModule.Order"/>, and delegates service registration
+/// and endpoint mapping.
 ///
-/// Garante que o Host não precise referenciar os projetos internos dos módulos —
-/// basta referenciar o assembly de entrada de cada módulo (que expõe IModule).
+/// The host only needs a reference to each module's entry-point assembly — never to its
+/// internal Domain or Infrastructure projects.
 /// </summary>
 public static class ModuleLoader
 {
     private static IReadOnlyList<IModule>? _modules;
 
     /// <summary>
-    /// Descobre módulos nos assemblies fornecidos e registra seus serviços.
-    /// Deve ser chamado antes de WebApplication.Build().
+    /// Discovers modules in the provided assemblies and registers their services.
+    /// Must be called before <c>WebApplication.Build()</c>.
     /// </summary>
     public static void RegisterModules(
         IServiceCollection services,
@@ -33,14 +33,14 @@ public static class ModuleLoader
     }
 
     /// <summary>
-    /// Mapeia os endpoints de todos os módulos carregados.
-    /// Deve ser chamado após WebApplication.Build().
+    /// Maps the endpoints of all loaded modules.
+    /// Must be called after <c>WebApplication.Build()</c>.
     /// </summary>
     public static void MapModuleEndpoints(IEndpointRouteBuilder endpoints)
     {
         if (_modules is null)
             throw new InvalidOperationException(
-                $"Nenhum módulo foi carregado. Certifique-se de chamar {nameof(RegisterModules)} antes de {nameof(MapModuleEndpoints)}.");
+                $"No modules were loaded. Make sure to call {nameof(RegisterModules)} before {nameof(MapModuleEndpoints)}.");
 
         foreach (IModule module in _modules)
             module.MapEndpoints(endpoints);
