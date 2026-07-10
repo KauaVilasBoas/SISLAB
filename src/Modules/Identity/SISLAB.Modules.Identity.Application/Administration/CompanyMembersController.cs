@@ -2,11 +2,11 @@ using Lumen.Authorization.AspNetCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using SISLAB.Infrastructure.AspNetCore;
 using SISLAB.Modules.Identity.Contracts.Administration;
-using SISLAB.Modules.Identity.Domain.Companies;
-using SISLAB.SharedKernel.Multitenancy;
+using SISLAB.SharedKernel.Messaging;
 
-namespace SISLAB.Modules.Identity.Infrastructure.Administration;
+namespace SISLAB.Modules.Identity.Application.Administration;
 
 /// <summary>
 /// Admin endpoints for managing members of the <b>active company</b>.
@@ -23,33 +23,24 @@ namespace SISLAB.Modules.Identity.Infrastructure.Administration;
 /// any explicit string passed to the attribute. Therefore actions are decorated with
 /// <c>[RequirePermission]</c> WITHOUT an explicit code: discovery (which writes
 /// <c>Controller.Action</c>) and enforcement (which, with a null attribute code, derives
-/// <c>Controller.Action</c> from the descriptor) agree. Passing an explicit code breaks
-/// enforcement — the handler would compare the attribute code against the stored
-/// <c>Controller.Action</c> and always deny (403). Method names (<c>ListMembers</c>,
+/// <c>Controller.Action</c> from the descriptor) agree. Method names (<c>ListMembers</c>,
 /// <c>CheckRemovalEligibility</c>) are the single source of truth for codes; see
 /// <c>SISLAB.Modules.Identity.Contracts.Authorization.IdentityPermissions</c>.</para>
 ///
-/// <para><b>Tenant-scoped:</b> all actions operate on <see cref="ITenantContext.CompanyId"/>
-/// (the active company from the httpOnly cookie). Lumen's <c>PermissionAuthorizationHandler</c>
-/// resolves the user's permission <i>within the scope</i> of that company (via
-/// <c>ITenantScopeAccessor</c> → <c>SislabTenantScopeAccessor</c>): holding the Administrator
-/// profile in LAFTE grants access when LAFTE is active and denies (403) when another company
-/// is active.</para>
+/// <para><b>Tenant-scoped:</b> all actions operate on the active company (from the httpOnly cookie),
+/// read from <see cref="SislabControllerBase.GetCompanyId"/> — never from the request body. The
+/// controller only dispatches CQRS queries via <see cref="IMediator"/> and maps the result to HTTP;
+/// it never touches repositories or the DbContext directly.</para>
 /// </summary>
-[ApiController]
 [Route("api/admin/companies/active/members")]
 [Authorize]
-public sealed class CompanyMembersController : ControllerBase
+public sealed class CompanyMembersController : SislabControllerBase
 {
-    private readonly ITenantContext _tenantContext;
-    private readonly ICompanyRepository _companyRepository;
+    private readonly IMediator _mediator;
 
-    public CompanyMembersController(
-        ITenantContext tenantContext,
-        ICompanyRepository companyRepository)
+    public CompanyMembersController(IMediator mediator)
     {
-        _tenantContext = tenantContext;
-        _companyRepository = companyRepository;
+        _mediator = mediator;
     }
 
     /// <summary>
@@ -65,19 +56,13 @@ public sealed class CompanyMembersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ListMembers(CancellationToken ct)
     {
-        Guid companyId = _tenantContext.CompanyId;
-        if (companyId == Guid.Empty)
-            return NotFoundNoActiveCompany();
+        if (!HasActiveTenant())
+            return NoActiveCompany();
 
-        Company? company = await _companyRepository.FindByIdAsync(companyId, ct);
-        if (company is null)
-            return NotFoundNoActiveCompany();
+        ListCompanyMembersResult result =
+            await _mediator.SendAsync(new ListCompanyMembersQuery(GetCompanyId()), ct);
 
-        var members = company.Memberships
-            .Select(m => new CompanyMemberDto(m.Id, m.LumenUserId))
-            .ToList();
-
-        return Ok(members);
+        return result.CompanyExists ? Ok(result.Members) : NoActiveCompany();
     }
 
     /// <summary>
@@ -92,27 +77,19 @@ public sealed class CompanyMembersController : ControllerBase
     [HttpGet("{userId:guid}/removal-eligibility", Name = "CheckRemovalEligibility")]
     [ActionName("CheckRemovalEligibility")]
     [RequirePermission]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MemberRemovalEligibilityDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CheckRemovalEligibility(Guid userId, CancellationToken ct)
     {
-        Guid companyId = _tenantContext.CompanyId;
-        if (companyId == Guid.Empty)
-            return NotFoundNoActiveCompany();
+        if (!HasActiveTenant())
+            return NoActiveCompany();
 
-        Company? company = await _companyRepository.FindByIdAsync(companyId, ct);
-        if (company is null)
-            return NotFoundNoActiveCompany();
+        CheckMemberRemovalEligibilityResult result =
+            await _mediator.SendAsync(
+                new CheckMemberRemovalEligibilityQuery(GetCompanyId(), userId), ct);
 
-        bool isMember = company.Memberships.Any(m => m.LumenUserId == userId);
-        return Ok(new { userId, isMember, canRemove = isMember });
+        return result.CompanyExists ? Ok(result.Eligibility) : NoActiveCompany();
     }
-
-    private IActionResult NotFoundNoActiveCompany()
-        => Problem(
-            title: "No active company",
-            detail: "Select an active company via POST /api/companies/{companyId}/activate.",
-            statusCode: StatusCodes.Status404NotFound);
 }

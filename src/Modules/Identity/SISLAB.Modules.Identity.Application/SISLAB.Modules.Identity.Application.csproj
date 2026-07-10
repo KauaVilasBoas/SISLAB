@@ -8,6 +8,21 @@
     Os testes de arquitetura validam que o Host não referencia Domain diretamente;
     Application referenciar Infrastructure do mesmo módulo é permitido pela arquitetura modular.
   -->
+  <!--
+    Application hosts the module's MVC controllers (co-located with the CQRS queries they
+    dispatch), so it needs the ASP.NET Core shared framework. FrameworkReference does not flow
+    transitively, hence the explicit include; Lumen.Authorization.AspNetCore (for
+    [RequirePermission]) flows transitively from the module's Infrastructure package reference.
+  -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Exposes internal CQRS handlers to the module's unit tests. -->
+    <InternalsVisibleTo Include="SISLAB.Modules.Identity.Tests" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\SISLAB.Modules.Identity.Domain\SISLAB.Modules.Identity.Domain.csproj" />
     <ProjectReference Include="..\SISLAB.Modules.Identity.Infrastructure\SISLAB.Modules.Identity.Infrastructure.csproj" />
