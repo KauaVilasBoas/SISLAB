@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Modules\Identity\SISLAB.Modules.Identity.Domain\SISLAB.Modules.Identity.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\SISLAB.Modules.Identity.Infrastructure\SISLAB.Modules.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\SISLAB.Modules.Identity.Application\SISLAB.Modules.Identity.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
