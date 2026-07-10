@@ -145,6 +145,40 @@ No SPA yet. Dev default: **SameSite=Lax**, `Secure` follows the request (HTTPS).
 runs on a different origin (E7), tighten to `SameSite=None; Secure` and configure CORS with
 `AllowCredentials` + explicit origin (not `AllowAnyOrigin`).
 
+### Write-side data isolation — global query filter + stamping interceptor (#11)
+
+Authorization (#12) decides *what an authenticated user may do*; this layer guarantees *which rows
+exist for a company at all* — the **write-side half of defense-in-depth** (the read-side is the
+mandatory `WHERE company_id = @CompanyId` in Dapper). It is independent of Lumen: **Lumen is not
+multi-tenant, so its DbContexts (`identity`, `Lumen` schemas) are deliberately OUTSIDE this filter**
+— their tables have no `company_id`.
+
+Contributed by `SislabDbContextBase` (Shared/Infrastructure) so every module inherits it for free:
+
+- **Convention:** a tenant-scoped entity implements `ITenantEntity` (SharedKernel marker exposing
+  `Guid CompanyId`). Its column must be `company_id NOT NULL` and indexed (add a composite index
+  `(company_id, <lookup key>)` per table when the module lands in E3).
+- **Global query filter:** every mapped `ITenantEntity` gets
+  `e => ctx.TenantFilterBypassed || e.CompanyId == ctx.TenantFilterCompanyId`. The predicate reads
+  context instance members (EF-recommended) so the compiled model is cached once yet each request
+  filters by its own `ITenantContext.CompanyId`. **A user never sees another company's rows even
+  before authorization runs.**
+- **Stamping interceptor (`TenantStampingInterceptor`):** on `SaveChanges`, new `ITenantEntity`
+  rows are stamped with the active company automatically (developers never set `company_id` by hand);
+  a row carrying a *different* company is rejected (cross-tenant write blocked); changing `company_id`
+  on an existing row (re-parenting) is rejected. Adding a tenant row with **no active company and no
+  bypass fails fast** rather than persisting an orphan.
+- **Auditable bypass (`ITenantBypass`):** system/background work (Jobs processing the Outbox,
+  cross-tenant alert scans) opens `using bypass.BeginScope("reason")` — the only way to cross tenants.
+  Every open/close is logged at Warning level; a blank reason throws. The filter short-circuits while
+  a scope is open and isolation is restored on dispose (re-entrant, depth-counted).
+
+The Identity module's own `Company`/`CompanyMembership` are intentionally **not** `ITenantEntity`:
+`Company` *is* the tenant, and membership lookups must span the user's companies (the login/company
+picker would break under a per-company filter). Proven by `TenantIsolationTests`
+(Shared/Infrastructure.Tests): read isolation A≠B, auto-stamp, cross-tenant block, orphan fail-fast,
+and bypass. First real consumers arrive with Inventory (E3).
+
 ## 4. Database schemas and migrations on startup
 
 On startup, hosted services apply migrations per DbContext. Expected state after booting against a
