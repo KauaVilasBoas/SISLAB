@@ -57,15 +57,10 @@ public static class IdentityModuleServiceExtensions
         // 2. Domain repositories
         services.AddScoped<ICompanyRepository, CompanyRepository>();
 
-        // 3. MVC controllers for the module (Administration/*Controller).
-        //    Required for Lumen's permission discovery: PermissionDiscoveryScanner iterates
-        //    IActionDescriptorCollectionProvider, which only sees ControllerActionDescriptor
-        //    (MVC) — Minimal API is invisible to it. Registering this assembly as an
-        //    ApplicationPart makes [RequirePermission]-decorated controllers discoverable at
-        //    startup and reconciled into the Administrator profile. AddControllers is idempotent.
-        services
-            .AddControllers()
-            .AddApplicationPart(typeof(IdentityModuleServiceExtensions).Assembly);
+        // 3. MVC controllers for the module live in the Application assembly (co-located with the
+        //    CQRS queries they dispatch). Their ApplicationPart is registered by IdentityModule
+        //    (Application) — this Infrastructure project must not reference Application, so it
+        //    cannot register that part here without inverting the dependency graph.
 
         // 4. Applies SISLAB schema "tenancy" migrations at startup
         //    (mirrors the hosted-service pattern Lumen uses for its own schemas).
