@@ -4,27 +4,19 @@ using SISLAB.SharedKernel.Messaging;
 namespace SISLAB.Infrastructure.Messaging.Behaviors;
 
 /// <summary>
-/// Behavior de pipeline que envolve o handling de um <see cref="ICommand"/> ou
-/// <see cref="ICommand{TResult}"/> em uma transação via <see cref="IUnitOfWork"/>.
+/// Pipeline behavior that wraps a <see cref="ICommand"/> or <see cref="ICommand{TResult}"/>
+/// handler in a transaction via <see cref="IUnitOfWork"/>.
 ///
-/// COMPORTAMENTO:
-/// - Para Commands: chama SaveChangesAsync após o handler com sucesso.
-///   Exceções propagam naturalmente — EF reverte as mudanças em memória quando a
-///   transação não é commitada.
-/// - Para Queries (IQuery): o behavior é no-op — queries não devem iniciar transações de escrita.
+/// For Commands: calls SaveChangesAsync after the handler succeeds. Exceptions propagate
+/// naturally — EF discards in-memory changes when the transaction is not committed.
+/// For Queries (IQuery): no-op — queries must not trigger write transactions.
 ///
-/// NOTA SOBRE ROLLBACK:
-/// O EF Core não usa transações explícitas por padrão — cada SaveChangesAsync é atômico.
-/// Se uma exceção ocorrer NO HANDLER antes do SaveChangesAsync, as mudanças ficam apenas
-/// em memória e são descartadas quando o DbContext sai de escopo. Se a exceção ocorrer
-/// DURANTE o SaveChangesAsync (ex.: violação de constraint), o próprio SaveChanges aborta.
-/// Portanto, o rollback explícito só é necessário se você precisar envolver múltiplos
-/// SaveChanges na mesma transação — neste caso, use IDbContextTransaction diretamente.
+/// EF Core does not use explicit transactions by default — each SaveChangesAsync is atomic.
+/// Explicit IDbContextTransaction is only needed when multiple SaveChanges calls must be
+/// grouped in a single transaction.
 ///
-/// ORDEM NO PIPELINE: ValidationBehavior → LoggingBehavior → TransactionBehavior → Handler
+/// Pipeline order: ValidationBehavior → LoggingBehavior → TransactionBehavior → Handler
 /// </summary>
-/// <typeparam name="TRequest">Tipo do request sendo processado.</typeparam>
-/// <typeparam name="TResult">Tipo do resultado.</typeparam>
 public sealed class TransactionBehavior<TRequest, TResult> : IPipelineBehavior<TRequest, TResult>
     where TRequest : IRequest<TResult>
 {
@@ -41,7 +33,7 @@ public sealed class TransactionBehavior<TRequest, TResult> : IPipelineBehavior<T
         RequestHandlerDelegate<TResult> next,
         CancellationToken cancellationToken = default)
     {
-        // Queries não devem acionar SaveChanges — bypassa o behavior.
+        // Queries must not trigger SaveChanges — bypass the behavior.
         if (request is not (ICommand or ICommand<TResult>))
             return await next();
 

@@ -1,10 +1,7 @@
 namespace SISLAB.SharedKernel.Time;
 
-/// <summary>
-/// Abstração de relógio — permite substituição em testes sem manipular DateTime.Now estático.
-/// </summary>
+/// <summary>Clock abstraction — allows substitution in tests without patching static DateTime.Now.</summary>
 public interface IClock
 {
-    /// <summary>Data e hora atual em UTC.</summary>
     DateTime UtcNow { get; }
 }

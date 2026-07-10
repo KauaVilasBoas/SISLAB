@@ -3,47 +3,27 @@ using SISLAB.SharedKernel.Domain;
 namespace SISLAB.SharedKernel.Messaging;
 
 /// <summary>
-/// Handler de domain event. Implementações são registradas no DI e
-/// descobertas pelo <see cref="IDomainEventDispatcher"/> via assembly scanning.
+/// Domain event handler.
 ///
-/// ESTRATÉGIA DE CONSISTÊNCIA:
-/// - Handlers que implementam <see cref="ITransactionalDomainEventHandler{TEvent}"/>
-///   são executados de forma síncrona DENTRO da transação (pré-SaveChanges).
-///   Uma falha faz rollback de toda a operação — use APENAS para invariantes de negócio.
-/// - Handlers que implementam apenas esta interface são executados pós-SaveChanges,
-///   via Outbox, de forma eventual. A operação principal NÃO é afetada por falhas aqui.
-///   Use para efeitos colaterais (notificações, sincronização entre módulos, etc.).
-///
-/// Veja também: <seealso cref="ITransactionalDomainEventHandler{TEvent}"/>
+/// Consistency strategy:
+/// - Handlers implementing <see cref="ITransactionalDomainEventHandler{TEvent}"/> run synchronously
+///   INSIDE the transaction (pre-SaveChanges). Failure = full rollback. Use ONLY for business invariants.
+/// - Handlers implementing only this interface run via the Outbox, eventually (post-commit).
+///   The main operation is NOT affected by failures here. Use for side effects (notifications,
+///   cross-module sync, external calls).
 /// </summary>
-/// <typeparam name="TEvent">Tipo do domain event que este handler processa.</typeparam>
 public interface IDomainEventHandler<in TEvent>
     where TEvent : IDomainEvent
 {
-    /// <summary>
-    /// Processa o domain event.
-    /// </summary>
     Task HandleAsync(TEvent domainEvent, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
-/// Marker interface: sinaliza que este handler deve ser executado de forma síncrona
-/// DENTRO da transação corrente, antes do SaveChanges.
-///
-/// QUANDO USAR:
-/// Use apenas quando o handler precisa garantir atomicidade com a operação que gerou o evento.
-/// Exemplo: checar invariante de estoque que cruza dois agregados na mesma transação.
-///
-/// CONSEQUÊNCIAS:
-/// - Qualquer exceção lançada aqui provoca rollback completo da transação.
-/// - O handler PODE modificar o DbContext — suas mudanças são incluídas no mesmo SaveChanges.
-/// - Não é adequado para chamadas a sistemas externos (HTTP, fila) — use Outbox para isso.
-///
-/// QUANDO NÃO USAR:
-/// Para notificações, emails, sync com outros módulos ou sistemas externos — use
-/// <see cref="IDomainEventHandler{TEvent}"/> (via Outbox).
+/// Marker: this handler runs synchronously INSIDE the current transaction, before SaveChanges.
+/// Any exception thrown here causes a full rollback. The handler MAY modify the DbContext —
+/// its changes are included in the same SaveChanges. Not suitable for external calls (HTTP, queues)
+/// — use the Outbox for those.
 /// </summary>
-/// <typeparam name="TEvent">Tipo do domain event que este handler processa.</typeparam>
 public interface ITransactionalDomainEventHandler<in TEvent> : IDomainEventHandler<TEvent>
     where TEvent : IDomainEvent
 {

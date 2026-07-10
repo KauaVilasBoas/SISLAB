@@ -3,14 +3,13 @@ using Microsoft.EntityFrameworkCore;
 namespace SISLAB.Infrastructure.Outbox;
 
 /// <summary>
-/// Interface de acesso ao DbSet de Outbox. Implementada por cada <see cref="SISLAB.Infrastructure.Persistence.SislabDbContextBase"/>
-/// derivado que participa do Transactional Outbox Pattern.
+/// Outbox DbSet accessor. Implemented by each <see cref="SISLAB.Infrastructure.Persistence.SislabDbContextBase"/>
+/// derived context that participates in the Transactional Outbox Pattern.
 ///
-/// COMO IMPLEMENTAR:
-/// Cada DbContext de módulo que precisa do Outbox deve:
-/// 1. Implementar esta interface.
-/// 2. Declarar: public DbSet&lt;OutboxMessage&gt; OutboxMessages => Set&lt;OutboxMessage&gt;();
-/// 3. Registrar a configuração <see cref="OutboxMessageConfiguration"/> no OnModelCreating.
+/// To opt in, a module DbContext must:
+/// 1. Implement this interface.
+/// 2. Expose: public DbSet&lt;OutboxMessage&gt; OutboxMessages => Set&lt;OutboxMessage&gt;();
+/// 3. Register <see cref="OutboxMessageConfiguration"/> in OnModelCreating.
 /// </summary>
 public interface IOutboxDbContext
 {

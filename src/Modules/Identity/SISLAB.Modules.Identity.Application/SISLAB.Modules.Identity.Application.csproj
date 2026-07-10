@@ -1,8 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Application: orquestra casos de uso. Depende de Domain + SharedKernel + Infrastructure (para IModule). -->
+  <!--
+    Application: orquestra casos de uso.
+    Depende de Domain + SharedKernel + Infrastructure (para IModule).
+    Referencia a própria Infrastructure do módulo para delegar o wiring de DI.
+    Isso é intencional: Application é o único ponto de entrada público, exposto ao Host.
+    Os testes de arquitetura validam que o Host não referencia Domain diretamente;
+    Application referenciar Infrastructure do mesmo módulo é permitido pela arquitetura modular.
+  -->
   <ItemGroup>
     <ProjectReference Include="..\SISLAB.Modules.Identity.Domain\SISLAB.Modules.Identity.Domain.csproj" />
+    <ProjectReference Include="..\SISLAB.Modules.Identity.Infrastructure\SISLAB.Modules.Identity.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
   </ItemGroup>
 

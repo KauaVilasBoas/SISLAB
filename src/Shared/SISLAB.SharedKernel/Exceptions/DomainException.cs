@@ -1,9 +1,6 @@
 namespace SISLAB.SharedKernel.Exceptions;
 
-/// <summary>
-/// Exceção base para violações de regras de negócio (invariantes de domínio).
-/// Resulta em HTTP 422 Unprocessable Entity ou 400, dependendo da política da API.
-/// </summary>
+/// <summary>Base exception for business rule violations (domain invariants).</summary>
 public class DomainException : Exception
 {
     public DomainException(string message) : base(message) { }

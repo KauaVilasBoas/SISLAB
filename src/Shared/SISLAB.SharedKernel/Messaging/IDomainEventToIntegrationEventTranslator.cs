@@ -3,34 +3,18 @@ using SISLAB.SharedKernel.Domain;
 namespace SISLAB.SharedKernel.Messaging;
 
 /// <summary>
-/// Traduz um <see cref="IDomainEvent"/> (interno, rico) em um <see cref="IIntegrationEvent"/>
-/// (público, achatado) antes de gravar no Outbox.
+/// Translates an <see cref="IDomainEvent"/> (internal, rich) into an <see cref="IIntegrationEvent"/>
+/// (public, flattened) before writing to the Outbox.
 ///
-/// RESPONSABILIDADE:
-/// Cada DomainEvent que precisa cruzar bounded contexts deve ter um translator concreto
-/// registrado no DI. O <see cref="IDomainEventDispatcher"/> consulta este translator
-/// antes de enfileirar a mensagem no Outbox.
+/// Each DomainEvent that needs to cross bounded-context boundaries must have a concrete translator
+/// registered in the DI container. <see cref="IDomainEventDispatcher"/> consults this translator
+/// before enqueueing the message in the Outbox.
 ///
-/// CONVENÇÃO DE LOCALIZAÇÃO:
-/// Implemente no projeto Application do módulo emissor. O integration event resultado
-/// deve ser definido no projeto Contracts do mesmo módulo (acessível a outros módulos).
-///
-/// EXEMPLO:
-/// <code>
-/// public sealed class ItemRegisteredTranslator
-///     : IDomainEventToIntegrationEventTranslator&lt;ItemRegisteredEvent&gt;
-/// {
-///     public IIntegrationEvent Translate(ItemRegisteredEvent domainEvent)
-///         => new ItemRegisteredIntegrationEvent(domainEvent.ItemId, domainEvent.OccurredOnUtc);
-/// }
-/// </code>
+/// Implement in the emitting module's Application project. The resulting IntegrationEvent
+/// should be defined in the same module's Contracts project.
 /// </summary>
-/// <typeparam name="TDomainEvent">Tipo do domain event a ser traduzido.</typeparam>
 public interface IDomainEventToIntegrationEventTranslator<in TDomainEvent>
     where TDomainEvent : IDomainEvent
 {
-    /// <summary>
-    /// Traduz o domain event em um integration event pronto para serialização/Outbox.
-    /// </summary>
     IIntegrationEvent Translate(TDomainEvent domainEvent);
 }
