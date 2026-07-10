@@ -4,11 +4,10 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace SISLAB.Infrastructure.Outbox;
 
 /// <summary>
-/// Configuração EF Core para a entidade <see cref="OutboxMessage"/>.
-/// Aplica convenções de naming snake_case (herdadas do SislabDbContextBase) e
-/// define índices para otimizar a consulta do dispatcher:
-/// - ix_outbox_messages_processed_at_utc: filtra mensagens pendentes (IS NULL).
-/// - ix_outbox_messages_occurred_on_utc: ordenação temporal para processamento FIFO.
+/// EF Core configuration for <see cref="OutboxMessage"/>.
+/// Indexes optimize the dispatcher query:
+/// - ix_outbox_messages_processed_at_utc: filters pending messages (IS NULL).
+/// - ix_outbox_messages_occurred_on_utc: temporal ordering for FIFO processing.
 /// </summary>
 public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<OutboxMessage>
 {
@@ -39,7 +38,6 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
             .HasMaxLength(2048)
             .IsRequired(false);
 
-        // Índice principal do dispatcher: busca mensagens pendentes ordenadas por data.
         builder.HasIndex(m => m.ProcessedAtUtc)
             .HasDatabaseName("ix_outbox_messages_processed_at_utc");
 

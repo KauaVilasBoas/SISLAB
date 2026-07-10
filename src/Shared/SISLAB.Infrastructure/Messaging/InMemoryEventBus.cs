@@ -5,21 +5,12 @@ using SISLAB.SharedKernel.Messaging;
 namespace SISLAB.Infrastructure.Messaging;
 
 /// <summary>
-/// Implementação in-process de <see cref="IEventBus"/>.
-/// Resolve os handlers do integration event via DI (IServiceProvider) e os invoca
-/// em sequência no mesmo processo.
+/// In-process implementation of <see cref="IEventBus"/>.
+/// Resolves integration event handlers from the DI container and invokes them in sequence.
 ///
-/// QUANDO USAR:
-/// Adequado para desenvolvimento local, testes de integração e arquiteturas onde todos os
-/// módulos rodam no mesmo processo. Para produção com múltiplas instâncias, substitua por
-/// uma implementação baseada em broker (RabbitMQ, SQS, etc.) — a interface IEventBus
-/// é o ponto de troca sem impacto nos publishers.
-///
-/// REGISTRO:
-/// services.AddScoped&lt;IEventBus, InMemoryEventBus&gt;();
-///
-/// HANDLERS:
-/// Registre IIntegrationEventHandler&lt;TEvent&gt; no DI; o bus os descobre via IServiceProvider.
+/// Suitable for local development and architectures where all modules run in the same process.
+/// For multi-instance production deployments, replace with a broker-based implementation
+/// (RabbitMQ, SQS, etc.) — the <see cref="IEventBus"/> interface is the swap point.
 /// </summary>
 public sealed class InMemoryEventBus : IEventBus
 {
@@ -53,11 +44,11 @@ public sealed class InMemoryEventBus : IEventBus
             catch (Exception ex)
             {
                 _logger.LogError(ex,
-                    "InMemoryEventBus: falha no handler {HandlerType} para evento {EventType}",
+                    "InMemoryEventBus: handler {HandlerType} failed for event {EventType}.",
                     handler.GetType().Name, typeof(TEvent).Name);
 
-                // Não relança: outros handlers devem ter a chance de executar.
-                // Em produção, considere Dead Letter Queue ou compensação.
+                // Do not rethrow — other handlers must still get the chance to run.
+                // In production, consider Dead Letter Queue or compensation.
             }
         }
     }

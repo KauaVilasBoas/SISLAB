@@ -1,11 +1,7 @@
 namespace SISLAB.SharedKernel.Messaging;
 
-/// <summary>
-/// Tipo unitário (void equivalente para generics).
-/// Usado como TResult em commands que não retornam valor de negócio.
-/// </summary>
+/// <summary>Void equivalent for generic constraints. Used as TResult in commands that return no value.</summary>
 public readonly struct Unit
 {
-    /// <summary>Valor singleton de Unit.</summary>
     public static readonly Unit Value = default;
 }

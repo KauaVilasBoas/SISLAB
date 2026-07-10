@@ -5,21 +5,21 @@ using SISLAB.SharedKernel.Messaging;
 namespace SISLAB.Infrastructure.Persistence;
 
 /// <summary>
-/// Implementação de <see cref="IUnitOfWork"/> baseada em EF Core.
-/// Genérica para que cada módulo instancie com seu próprio DbContext derivado.
+/// EF Core-based implementation of <see cref="IUnitOfWork"/>.
+/// Generic so each module instantiates it with its own derived DbContext.
 ///
-/// FLUXO DE SaveChangesAsync (Estratégia Híbrida de Consistência — E2):
-/// 1. Coleta todos os agregados rastreados pelo ChangeTracker que têm domain events pendentes.
-/// 2. Despacha handlers TRANSACIONAIS (ITransactionalDomainEventHandler) de forma síncrona.
-///    → Falha aqui provoca rollback de toda a transação (invariante de negócio).
-/// 3. Enfileira os integration events no Outbox (na mesma transação) via IDomainEventDispatcher.
-///    → Falha aqui também provoca rollback (o Outbox é parte da consistência local).
-/// 4. Chama SaveChangesAsync no DbContext — persiste tudo atomicamente.
+/// SaveChangesAsync flow (hybrid consistency strategy — E2):
+/// 1. Collects all tracked aggregates with pending domain events.
+/// 2. Dispatches TRANSACTIONAL handlers (ITransactionalDomainEventHandler) synchronously.
+///    → Failure here rolls back the entire transaction (business invariant).
+/// 3. Translates domain events to integration events and writes them to the Outbox
+///    (in the same transaction) via IDomainEventDispatcher.
+///    → Failure here also rolls back (the Outbox is part of local consistency).
+/// 4. Calls SaveChangesAsync on the DbContext — persists everything atomically.
 ///
-/// IMPORTANTE: o despacho EVENTUAL (efeitos colaterais via broker/Outbox) ocorre fora desta
-/// classe, no background worker do E6, que lê outbox_messages e publica via IEventBus.
+/// EVENTUAL dispatch (side effects via the Outbox) is handled outside this class,
+/// by the background worker in SISLAB.Jobs, which reads outbox_messages and publishes via IEventBus.
 /// </summary>
-/// <typeparam name="TContext">DbContext derivado do módulo.</typeparam>
 public sealed class EfUnitOfWork<TContext> : IUnitOfWork
     where TContext : DbContext
 {
@@ -35,21 +35,21 @@ public sealed class EfUnitOfWork<TContext> : IUnitOfWork
     /// <inheritdoc />
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        // Coleta agregados rastreados que possuem domain events pendentes.
+        // Collect tracked aggregates that have pending domain events.
         List<IHasDomainEvents> aggregatesWithEvents = _dbContext.ChangeTracker
             .Entries<IHasDomainEvents>()
             .Where(entry => entry.Entity.DomainEvents.Count > 0)
             .Select(entry => entry.Entity)
             .ToList();
 
-        // Passo 1: despacha handlers transacionais (in-transaction, com rollback em falha).
+        // Step 1: dispatch transactional handlers (in-transaction, rollback on failure).
         await _domainEventDispatcher.DispatchTransactionalAsync(aggregatesWithEvents, cancellationToken);
 
-        // Passo 2: traduz domain events para integration events e grava no Outbox.
-        // Limpa os eventos dos agregados após enfileirar.
+        // Step 2: translate domain events to integration events and write to the Outbox.
+        //         Clears aggregate event lists after enqueueing.
         await _domainEventDispatcher.DispatchToOutboxAsync(aggregatesWithEvents, cancellationToken);
 
-        // Passo 3: persiste tudo (entidades + outbox_messages) em uma única transação EF.
+        // Step 3: persist everything (entities + outbox_messages) in a single EF transaction.
         return await _dbContext.SaveChangesAsync(cancellationToken);
     }
 }

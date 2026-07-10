@@ -4,11 +4,9 @@ using Microsoft.EntityFrameworkCore.Metadata;
 namespace SISLAB.Infrastructure.Persistence;
 
 /// <summary>
-/// DbContext base para todos os módulos do SISLAB.
-/// Cada módulo herda este contexto e registra suas configurações via
-/// <see cref="DbContext.OnModelCreating"/> chamando o assembly scanning.
-///
-/// Convenção de naming: snake_case em tabelas, colunas, chaves e índices.
+/// Base DbContext for all SISLAB modules.
+/// Each module inherits this and registers its configurations via OnModelCreating.
+/// Applies snake_case naming convention to all tables, columns, keys, and indexes.
 /// </summary>
 public abstract class SislabDbContextBase : DbContext
 {
@@ -21,12 +19,6 @@ public abstract class SislabDbContextBase : DbContext
         ApplySnakeCaseNamingConvention(modelBuilder);
     }
 
-    /// <summary>
-    /// Aplica a convenção snake_case a todos os nomes de tabela, coluna,
-    /// chave primária, chave estrangeira e índice do modelo.
-    /// Módulos derivados devem chamar este método ANTES de aplicar suas
-    /// configurações por assembly para que o override local prevaleça quando necessário.
-    /// </summary>
     private static void ApplySnakeCaseNamingConvention(ModelBuilder modelBuilder)
     {
         foreach (IMutableEntityType entity in modelBuilder.Model.GetEntityTypes())
@@ -51,7 +43,6 @@ public abstract class SislabDbContextBase : DbContext
         }
     }
 
-    /// <summary>Converte PascalCase/camelCase para snake_case.</summary>
     private static string ToSnakeCase(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) return name;
