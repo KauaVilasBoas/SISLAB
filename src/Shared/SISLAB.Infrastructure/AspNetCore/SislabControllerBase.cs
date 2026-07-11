@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using SISLAB.SharedKernel.Multitenancy;
@@ -27,16 +26,10 @@ public abstract class SislabControllerBase : ControllerBase
     private ITenantContext TenantContext =>
         _tenantContext ??= HttpContext.RequestServices.GetRequiredService<ITenantContext>();
 
-    /// <summary>Active company (tenant) for the current request.</summary>
+    /// <summary>
+    /// Active company (tenant) for the current request. Returns <see cref="Guid.Empty"/> when no
+    /// active company was resolved; downstream query/command handlers translate a non-existent
+    /// company into a <c>NotFoundException</c>, surfaced by the exception-handling middleware.
+    /// </summary>
     protected Guid GetCompanyId() => TenantContext.CompanyId;
-
-    /// <summary>True when a valid active company was resolved for the current request.</summary>
-    protected bool HasActiveTenant() => TenantContext.CompanyId != Guid.Empty;
-
-    /// <summary>Standard 404 response for requests made without a resolved active company.</summary>
-    protected IActionResult NoActiveCompany() =>
-        Problem(
-            title: "No active company",
-            detail: "Select an active company via POST /api/companies/{companyId}/activate.",
-            statusCode: StatusCodes.Status404NotFound);
 }

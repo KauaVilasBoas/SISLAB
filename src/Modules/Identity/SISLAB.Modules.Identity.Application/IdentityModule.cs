@@ -41,11 +41,11 @@ public sealed class IdentityModule : IModule
     private static void RegisterApplicationHandlers(IServiceCollection services)
     {
         services.AddScoped<
-            IRequestHandler<ListCompanyMembersQuery, ListCompanyMembersResult>,
+            IRequestHandler<ListCompanyMembersQuery, ListCompanyMembersQueryResult>,
             ListCompanyMembersQueryHandler>();
 
         services.AddScoped<
-            IRequestHandler<CheckMemberRemovalEligibilityQuery, CheckMemberRemovalEligibilityResult>,
+            IRequestHandler<CheckMemberRemovalEligibilityQuery, CheckMemberRemovalEligibilityQueryResult>,
             CheckMemberRemovalEligibilityQueryHandler>();
     }
 

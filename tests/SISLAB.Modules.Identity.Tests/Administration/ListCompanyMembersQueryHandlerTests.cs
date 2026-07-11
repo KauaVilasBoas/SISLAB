@@ -1,11 +1,14 @@
 using SISLAB.Modules.Identity.Application.Administration;
 using SISLAB.Modules.Identity.Domain.Companies;
+using SISLAB.SharedKernel.Exceptions;
 
 namespace SISLAB.Modules.Identity.Tests.Administration;
 
 /// <summary>
 /// Proves the read handler that backs <c>CompanyMembersController.ListMembers</c>: the controller
 /// no longer touches the repository — this handler owns that call and maps the aggregate to DTOs.
+/// A missing company is signalled by <see cref="NotFoundException"/> (the middleware maps it to 404),
+/// not by a flag the controller must interpret.
 /// </summary>
 public sealed class ListCompanyMembersQueryHandlerTests
 {
@@ -22,24 +25,20 @@ public sealed class ListCompanyMembersQueryHandlerTests
 
         var handler = new ListCompanyMembersQueryHandler(new CompanyRepositoryStub(company));
 
-        ListCompanyMembersResult result =
+        ListCompanyMembersQueryResult result =
             await handler.HandleAsync(new ListCompanyMembersQuery(CompanyId));
 
-        Assert.True(result.CompanyExists);
         Assert.Equal(2, result.Members.Count);
         Assert.Contains(result.Members, m => m.UserId == UserA);
         Assert.Contains(result.Members, m => m.UserId == UserB);
     }
 
     [Fact]
-    public async Task HandleAsync_WhenCompanyMissing_ReportsNotFound()
+    public async Task HandleAsync_WhenCompanyMissing_ThrowsNotFound()
     {
         var handler = new ListCompanyMembersQueryHandler(new CompanyRepositoryStub(company: null));
 
-        ListCompanyMembersResult result =
-            await handler.HandleAsync(new ListCompanyMembersQuery(CompanyId));
-
-        Assert.False(result.CompanyExists);
-        Assert.Empty(result.Members);
+        await Assert.ThrowsAsync<NotFoundException>(
+            () => handler.HandleAsync(new ListCompanyMembersQuery(CompanyId)));
     }
 }

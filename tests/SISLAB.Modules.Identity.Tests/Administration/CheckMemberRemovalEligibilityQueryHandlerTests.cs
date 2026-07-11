@@ -1,11 +1,13 @@
 using SISLAB.Modules.Identity.Application.Administration;
 using SISLAB.Modules.Identity.Domain.Companies;
+using SISLAB.SharedKernel.Exceptions;
 
 namespace SISLAB.Modules.Identity.Tests.Administration;
 
 /// <summary>
 /// Proves the read handler that backs <c>CompanyMembersController.CheckRemovalEligibility</c>:
 /// the eligibility dry-run lives here (behind the mediator), not in the controller.
+/// A missing company is signalled by <see cref="NotFoundException"/>, not by a controller-facing flag.
 /// </summary>
 public sealed class CheckMemberRemovalEligibilityQueryHandlerTests
 {
@@ -21,12 +23,10 @@ public sealed class CheckMemberRemovalEligibilityQueryHandlerTests
 
         var handler = new CheckMemberRemovalEligibilityQueryHandler(new CompanyRepositoryStub(company));
 
-        CheckMemberRemovalEligibilityResult result =
+        CheckMemberRemovalEligibilityQueryResult result =
             await handler.HandleAsync(new CheckMemberRemovalEligibilityQuery(CompanyId, Member));
 
-        Assert.True(result.CompanyExists);
-        Assert.NotNull(result.Eligibility);
-        Assert.True(result.Eligibility!.IsMember);
+        Assert.True(result.Eligibility.IsMember);
         Assert.True(result.Eligibility.CanRemove);
     }
 
@@ -38,24 +38,19 @@ public sealed class CheckMemberRemovalEligibilityQueryHandlerTests
 
         var handler = new CheckMemberRemovalEligibilityQueryHandler(new CompanyRepositoryStub(company));
 
-        CheckMemberRemovalEligibilityResult result =
+        CheckMemberRemovalEligibilityQueryResult result =
             await handler.HandleAsync(new CheckMemberRemovalEligibilityQuery(CompanyId, Outsider));
 
-        Assert.True(result.CompanyExists);
-        Assert.NotNull(result.Eligibility);
-        Assert.False(result.Eligibility!.IsMember);
+        Assert.False(result.Eligibility.IsMember);
         Assert.False(result.Eligibility.CanRemove);
     }
 
     [Fact]
-    public async Task HandleAsync_WhenCompanyMissing_ReportsNotFound()
+    public async Task HandleAsync_WhenCompanyMissing_ThrowsNotFound()
     {
         var handler = new CheckMemberRemovalEligibilityQueryHandler(new CompanyRepositoryStub(company: null));
 
-        CheckMemberRemovalEligibilityResult result =
-            await handler.HandleAsync(new CheckMemberRemovalEligibilityQuery(CompanyId, Member));
-
-        Assert.False(result.CompanyExists);
-        Assert.Null(result.Eligibility);
+        await Assert.ThrowsAsync<NotFoundException>(
+            () => handler.HandleAsync(new CheckMemberRemovalEligibilityQuery(CompanyId, Member)));
     }
 }
