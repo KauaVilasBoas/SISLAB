@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SISLAB.Infrastructure.Messaging;
+using SISLAB.Infrastructure.Messaging.Behaviors;
 using SISLAB.Infrastructure.Outbox;
 using SISLAB.Infrastructure.Persistence;
 using SISLAB.Modules.Inventory.Domain.StockItems;
@@ -58,6 +59,13 @@ public static class InventoryModuleServiceExtensions
         services.AddScoped<OutboxWriter>();
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         services.AddScoped<IUnitOfWork, EfUnitOfWork<InventoryDbContext>>();
+
+        //    TransactionBehavior is registered HERE (not in AddSislabInfrastructure) because it
+        //    depends on THIS module's IUnitOfWork. Registered after the shared Logging/Validation
+        //    behaviors, so the mediator resolves the pipeline as
+        //    Logging → Validation → Transaction → Handler (first registered = outermost).
+        //    On commands it calls SaveChangesAsync after the handler; on queries it is a no-op.
+        services.AddScoped(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
 
         // 4. Applies schema "inventory" migrations at startup (mirrors the Identity pattern).
         services.AddHostedService<InventorySchemaMigrationsHostedService>();
