@@ -2,11 +2,10 @@ using Lumen.Identity.AspNetCore;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SISLAB.Infrastructure.DependencyInjection;
 using SISLAB.Infrastructure.Modules;
-using SISLAB.Modules.Identity.Application.Administration;
 using SISLAB.Modules.Identity.Infrastructure.DependencyInjection;
 using SISLAB.Modules.Identity.Infrastructure.Multitenancy;
-using SISLAB.SharedKernel.Messaging;
 
 namespace SISLAB.Modules.Identity.Application;
 
@@ -29,24 +28,7 @@ public sealed class IdentityModule : IModule
             .AddControllers()
             .AddApplicationPart(typeof(IdentityModule).Assembly);
 
-        RegisterApplicationHandlers(services);
-    }
-
-    /// <summary>
-    /// Registers the module's CQRS handlers. Each request type maps to exactly one handler
-    /// (the mediator resolves <c>IRequestHandler&lt;TRequest, TResult&gt;</c> by concrete type).
-    /// Handlers live in this assembly, so registration belongs here rather than in Infrastructure
-    /// (which does not reference Application, to keep the dependency graph acyclic).
-    /// </summary>
-    private static void RegisterApplicationHandlers(IServiceCollection services)
-    {
-        services.AddScoped<
-            IRequestHandler<ListCompanyMembersQuery, ListCompanyMembersQueryResult>,
-            ListCompanyMembersQueryHandler>();
-
-        services.AddScoped<
-            IRequestHandler<CheckMemberRemovalEligibilityQuery, CheckMemberRemovalEligibilityQueryResult>,
-            CheckMemberRemovalEligibilityQueryHandler>();
+        services.AddHandlersFromAssembly(typeof(IdentityModule).Assembly);
     }
 
     /// <inheritdoc />
