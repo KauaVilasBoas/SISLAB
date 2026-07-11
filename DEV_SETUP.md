@@ -139,6 +139,43 @@ GET  /api/admin/companies/active/members/{id}/removal-... -> 403
 > (observed: collision on `ix_lumen_permission_code_unique`). Kill orphaned `dotnet` processes before
 > starting a new one.
 
+### CSRF protection (browser / cookie flow) — #61
+
+Because the browser SPA authenticates over cookies (the httpOnly `sislab_active_company` cookie, and
+later an httpOnly session cookie), state-changing requests are guarded with ASP.NET Core antiforgery
+using the **double-submit-cookie** pattern.
+
+**Token cookie / header:** readable cookie `XSRF-TOKEN` (not httpOnly — the SPA reads it via JS) and
+request header `X-XSRF-TOKEN`. The value is an anti-CSRF token, **not** a credential.
+
+1. **Arm CSRF once** (on app bootstrap and after login):
+   ```
+   GET /api/auth/csrf   -> 204 + Set-Cookie: XSRF-TOKEN=<token> (SameSite=Strict)
+   ```
+2. **Send the token** on every state-changing request (POST/PUT/PATCH/DELETE):
+   ```
+   X-XSRF-TOKEN: <value of the XSRF-TOKEN cookie>
+   ```
+   The browser automatically resends the `XSRF-TOKEN` cookie; the middleware compares cookie vs header.
+   A forged cross-site request cannot read the cookie (same-origin policy), so it cannot produce the
+   matching header and is rejected with **403** `{ "success": false, "message": "CSRF token validation failed." }`.
+
+**What is exempt (and why):**
+- **Safe methods** (GET/HEAD/OPTIONS/TRACE) — read-only, never mutate state.
+- **Public auth/infra paths** reached before a session exists: `/api/auth/*` (login, refresh, register,
+  password reset, and `GET /api/auth/csrf` itself), `/health`, `/swagger` — no session cookie to ride on yet.
+- **Pure-Bearer, non-browser clients** — a request with **no** `XSRF-TOKEN` cookie is treated as a
+  non-browser client whose credential (the `Authorization: Bearer` header) is never sent ambiently by a
+  browser, so it cannot be a CSRF victim. Such requests skip validation.
+
+**Pipeline ordering:** `CsrfValidationMiddleware` runs **after** `UseAuthentication`/tenant resolution
+and **before** `UseAuthorization`, so forged state-changing requests are short-circuited with 403 before
+reaching any endpoint. Antiforgery is registered via `AddSislabAntiforgery()` in `Program.cs`.
+
+**Cookie `SameSite`:** the `XSRF-TOKEN` cookie is `SameSite=Strict` (defense in depth). Once the SPA runs
+on a cross-origin host (E7) and the session cookie becomes `SameSite=None; Secure`, revisit whether the
+XSRF cookie needs relaxing so the SPA can read it after a cross-site navigation.
+
 ### CORS / SameSite (dev)
 
 No SPA yet. Dev default: **SameSite=Lax**, `Secure` follows the request (HTTPS). When the React SPA
