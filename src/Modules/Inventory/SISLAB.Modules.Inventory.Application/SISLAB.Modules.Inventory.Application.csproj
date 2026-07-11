@@ -6,4 +6,9 @@
     <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Exposes internal CQRS command handlers to the module's unit tests. -->
+    <InternalsVisibleTo Include="SISLAB.Modules.Inventory.Tests" />
+  </ItemGroup>
+
 </Project>
