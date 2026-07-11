@@ -18,4 +18,8 @@
     <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="SISLAB.Api.Tests" />
+  </ItemGroup>
+
 </Project>
