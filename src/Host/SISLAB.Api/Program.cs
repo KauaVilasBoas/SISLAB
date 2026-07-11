@@ -1,4 +1,5 @@
 using System.Reflection;
+using SISLAB.Api.Csrf;
 using SISLAB.Api.Middleware;
 using SISLAB.Infrastructure.DependencyInjection;
 using SISLAB.Infrastructure.Modules;
@@ -80,6 +81,13 @@ builder.Services.AddCors(options =>
 });
 
 // ---------------------------------------------------------------------------
+// CSRF protection (ASP.NET Core antiforgery) for the cookie-authenticated SPA.
+// The SPA arms it via GET /api/auth/csrf; CsrfValidationMiddleware enforces it
+// on state-changing requests that carry the XSRF-TOKEN cookie.
+// ---------------------------------------------------------------------------
+builder.Services.AddSislabAntiforgery();
+
+// ---------------------------------------------------------------------------
 // Build
 // ---------------------------------------------------------------------------
 WebApplication app = builder.Build();
@@ -118,10 +126,18 @@ app.UseAuthentication();
 // tenant-scoped endpoint even when the user has the correct permission.
 app.UseSislabTenantResolution();
 
+// CSRF enforcement — runs after authentication (so exemptions can reason about the
+// request) and before authorization, short-circuiting forged state-changing requests
+// with 403 before they reach any endpoint.
+app.UseMiddleware<CsrfValidationMiddleware>();
+
 app.UseAuthorization();
 
 // Health check endpoint — public (AllowAnonymous bypasses Lumen's FallbackPolicy).
 app.MapHealthChecks("/health").AllowAnonymous();
+
+// CSRF token endpoint — public. Issues the readable XSRF-TOKEN cookie for the SPA.
+app.MapCsrfEndpoints();
 
 // Modules map their own Minimal API endpoints
 ModuleLoader.MapModuleEndpoints(app);
