@@ -4,7 +4,7 @@ using SISLAB.SharedKernel.Domain;
 namespace SISLAB.Modules.Inventory.Domain.StorageLocations.Events;
 
 /// <summary>Raised when a new <see cref="StorageLocation"/> is registered for the laboratory.</summary>
-public sealed record StorageLocationRegistered(
+public sealed record StorageLocationRegisteredEvent(
     Guid StorageLocationId,
     string Name,
     StorageLocationType Type) : IDomainEvent

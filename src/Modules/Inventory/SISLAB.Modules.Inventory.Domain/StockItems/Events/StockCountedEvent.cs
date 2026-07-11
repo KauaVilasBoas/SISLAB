@@ -17,7 +17,7 @@ namespace SISLAB.Modules.Inventory.Domain.StockItems.Events;
 /// Counted minus system balance: positive when the physical count is higher than the system, negative
 /// when lower, zero when they match.
 /// </param>
-public sealed record StockCounted(
+public sealed record StockCountedEvent(
     Guid StockItemId,
     Quantity SystemQuantity,
     Quantity CountedQuantity,

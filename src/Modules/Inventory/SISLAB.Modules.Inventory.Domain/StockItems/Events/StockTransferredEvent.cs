@@ -8,7 +8,7 @@ namespace SISLAB.Modules.Inventory.Domain.StockItems.Events;
 /// a controlled item may only reside in a controlled location is enforced where the location type is
 /// known (card [E3] #23), not inside this aggregate.
 /// </summary>
-public sealed record StockTransferred(
+public sealed record StockTransferredEvent(
     Guid StockItemId,
     Guid FromStorageLocationId,
     Guid ToStorageLocationId) : IDomainEvent

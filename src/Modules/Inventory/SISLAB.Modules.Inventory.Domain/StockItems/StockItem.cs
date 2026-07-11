@@ -147,7 +147,7 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
         Lot = lot ?? Lot;
         Expiry = expiry ?? Expiry;
 
-        RaiseDomainEvent(new StockReceived(Id, received, _quantity, Lot, Expiry));
+        RaiseDomainEvent(new StockReceivedEvent(Id, received, _quantity, Lot, Expiry));
     }
 
     /// <summary>
@@ -161,7 +161,7 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
 
         _quantity = _quantity.Subtract(consumed);
 
-        RaiseDomainEvent(new StockConsumed(Id, consumed, _quantity));
+        RaiseDomainEvent(new StockConsumedEvent(Id, consumed, _quantity));
     }
 
     /// <summary>
@@ -178,7 +178,7 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
         Guid origin = StorageLocationId;
         StorageLocationId = destinationStorageLocationId;
 
-        RaiseDomainEvent(new StockTransferred(Id, origin, destinationStorageLocationId));
+        RaiseDomainEvent(new StockTransferredEvent(Id, origin, destinationStorageLocationId));
     }
 
     /// <summary>
@@ -192,13 +192,13 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
 
         _quantity = _quantity.Subtract(disposed);
 
-        RaiseDomainEvent(new StockDisposed(Id, disposed, _quantity));
+        RaiseDomainEvent(new StockDisposedEvent(Id, disposed, _quantity));
     }
 
     /// <summary>
     /// Records a physical stock count (conference) of a controlled item. This is an append-only
     /// compliance operation: it compares the counted balance with the current system balance and
-    /// raises <see cref="StockCounted"/> with the divergence, but <b>never changes the on-hand
+    /// raises <see cref="StockCountedEvent"/> with the divergence, but <b>never changes the on-hand
     /// quantity</b> (decision recorded on card [E3] #24). Corrections, when needed, follow the normal
     /// entry or disposal flow. Returns the divergence (counted minus system balance) so the caller can
     /// surface it; a zero divergence still produces a record, because "counted and matched" is itself a
@@ -211,7 +211,7 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
 
         decimal divergence = countedQuantity.Value - _quantity.Value;
 
-        RaiseDomainEvent(new StockCounted(Id, _quantity, countedQuantity, divergence));
+        RaiseDomainEvent(new StockCountedEvent(Id, _quantity, countedQuantity, divergence));
 
         return divergence;
     }

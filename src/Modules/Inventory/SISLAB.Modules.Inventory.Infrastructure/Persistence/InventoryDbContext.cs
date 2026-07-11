@@ -23,7 +23,7 @@ namespace SISLAB.Modules.Inventory.Infrastructure.Persistence;
 /// </para>
 /// <para>
 /// It participates in the Transactional Outbox pattern (<see cref="IOutboxDbContext"/>): the module
-/// raises domain events (StockReceived, StockConsumed, ...) that <see cref="EfUnitOfWork{TContext}"/>
+/// raises domain events (StockReceivedEvent, StockConsumedEvent, ...) that <see cref="EfUnitOfWork{TContext}"/>
 /// translates and writes to <c>outbox_messages</c> in the same transaction as the aggregate change.
 /// </para>
 /// </remarks>

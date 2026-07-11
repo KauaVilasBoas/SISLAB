@@ -93,7 +93,7 @@ public sealed class StorageLocation : AggregateRoot<Guid>, ITenantEntity
             NormalizeDescription(description),
             temperatureRange);
 
-        location.RaiseDomainEvent(new StorageLocationRegistered(location.Id, location.Name, location.Type));
+        location.RaiseDomainEvent(new StorageLocationRegisteredEvent(location.Id, location.Name, location.Type));
         return location;
     }
 
@@ -127,7 +127,7 @@ public sealed class StorageLocation : AggregateRoot<Guid>, ITenantEntity
             return;
 
         IsActive = false;
-        RaiseDomainEvent(new StorageLocationDeactivated(Id));
+        RaiseDomainEvent(new StorageLocationDeactivatedEvent(Id));
     }
 
     /// <summary>Puts a deactivated location back in service. Idempotent.</summary>
@@ -137,7 +137,7 @@ public sealed class StorageLocation : AggregateRoot<Guid>, ITenantEntity
             return;
 
         IsActive = true;
-        RaiseDomainEvent(new StorageLocationReactivated(Id));
+        RaiseDomainEvent(new StorageLocationReactivatedEvent(Id));
     }
 
     /// <summary>

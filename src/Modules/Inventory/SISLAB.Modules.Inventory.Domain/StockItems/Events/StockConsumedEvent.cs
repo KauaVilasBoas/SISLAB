@@ -8,7 +8,7 @@ namespace SISLAB.Modules.Inventory.Domain.StockItems.Events;
 /// quantity lets consumers detect a crossing of the minimum threshold; the dedicated
 /// <c>StockBelowThreshold</c> event and its Outbox handling are owned by card [E3] #26.
 /// </summary>
-public sealed record StockConsumed(
+public sealed record StockConsumedEvent(
     Guid StockItemId,
     Quantity ConsumedQuantity,
     Quantity ResultingQuantity) : IDomainEvent

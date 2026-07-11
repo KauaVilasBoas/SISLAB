@@ -21,7 +21,7 @@ public sealed class RegisterStockCountCommandHandlerTests
         Assert.Equal(-5m, divergence);
         Assert.Equal(Quantity.Of(100m, StockItemFactory.Ml), item.Quantity);
 
-        StockCounted counted = Assert.IsType<StockCounted>(Assert.Single(item.DomainEvents));
+        StockCountedEvent counted = Assert.IsType<StockCountedEvent>(Assert.Single(item.DomainEvents));
         Assert.Equal(-5m, counted.Divergence);
         Assert.Equal(Quantity.Of(95m, StockItemFactory.Ml), counted.CountedQuantity);
         Assert.Same(item, repository.LastUpdated);

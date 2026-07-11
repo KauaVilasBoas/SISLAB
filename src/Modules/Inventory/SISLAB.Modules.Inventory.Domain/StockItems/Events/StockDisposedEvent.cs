@@ -8,7 +8,7 @@ namespace SISLAB.Modules.Inventory.Domain.StockItems.Events;
 /// unusable batch). Disposing expired stock is a legitimate operation and is never blocked; the reason
 /// and audit trail for controlled items are handled downstream (cards [E3] #26 / #57).
 /// </summary>
-public sealed record StockDisposed(
+public sealed record StockDisposedEvent(
     Guid StockItemId,
     Quantity DisposedQuantity,
     Quantity ResultingQuantity) : IDomainEvent
