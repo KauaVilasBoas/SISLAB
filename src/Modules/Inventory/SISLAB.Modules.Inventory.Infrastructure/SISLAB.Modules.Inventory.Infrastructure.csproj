@@ -1,9 +1,30 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <!-- Infrastructure do módulo: acesso a banco, EF, implementações concretas. -->
   <ItemGroup>
-    <ProjectReference Include="..\SISLAB.Modules.Inventory.Application\SISLAB.Modules.Inventory.Application.csproj" />
+    <!-- Infrastructure depende de Domain + Contracts (nunca de Application, evita ciclo). -->
+    <ProjectReference Include="..\SISLAB.Modules.Inventory.Domain\SISLAB.Modules.Inventory.Domain.csproj" />
     <ProjectReference Include="..\SISLAB.Modules.Inventory.Contracts\SISLAB.Modules.Inventory.Contracts.csproj" />
+    <!-- Shared infra: SislabDbContextBase, IUnitOfWork, EfUnitOfWork, Outbox, DomainEventDispatcher. -->
+    <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Expõe tipos internos (InventoryDbContext, repositórios) aos testes do módulo. -->
+    <InternalsVisibleTo Include="SISLAB.Modules.Inventory.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- EF Core + Npgsql para o DbContext do módulo (write-side). -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.15" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.15">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
+    <!-- Npgsql 8.0.11 arrasta EFCore.Relational 8.0.11; alinhar com o 8.0.15 do EFCore para
+         eliminar o conflito de versões (MSB3277) e manter um build limpo. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.15" />
   </ItemGroup>
 
 </Project>

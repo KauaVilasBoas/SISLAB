@@ -1,9 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Application: orquestra casos de uso. Depende de Domain + Infrastructure (para IModule). -->
+  <!--
+    Application: orquestra casos de uso. Depende de Domain + SharedKernel + Infrastructure (para IModule).
+    Referencia a própria Infrastructure do módulo para delegar o wiring de DI (AddInventoryModule).
+    Isso é intencional e simétrico ao Identity: Application é o único ponto de entrada público,
+    exposto ao Host. Os testes de arquitetura validam que o Host não referencia Domain diretamente;
+    Application referenciar a Infrastructure do MESMO módulo é permitido pela arquitetura modular.
+  -->
   <ItemGroup>
     <ProjectReference Include="..\SISLAB.Modules.Inventory.Domain\SISLAB.Modules.Inventory.Domain.csproj" />
+    <ProjectReference Include="..\SISLAB.Modules.Inventory.Infrastructure\SISLAB.Modules.Inventory.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Exposes internal CQRS command handlers to the module's unit tests. -->
+    <InternalsVisibleTo Include="SISLAB.Modules.Inventory.Tests" />
   </ItemGroup>
 
 </Project>
