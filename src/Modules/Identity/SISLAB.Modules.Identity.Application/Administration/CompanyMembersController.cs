@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SISLAB.Infrastructure.AspNetCore;
 using SISLAB.Modules.Identity.Contracts.Administration;
+using SISLAB.SharedKernel.Http;
 using SISLAB.SharedKernel.Messaging;
 
 namespace SISLAB.Modules.Identity.Application.Administration;
@@ -29,8 +30,9 @@ namespace SISLAB.Modules.Identity.Application.Administration;
 ///
 /// <para><b>Tenant-scoped:</b> all actions operate on the active company (from the httpOnly cookie),
 /// read from <see cref="SislabControllerBase.GetCompanyId"/> — never from the request body. The
-/// controller only dispatches CQRS queries via <see cref="IMediator"/> and maps the result to HTTP;
-/// it never touches repositories or the DbContext directly.</para>
+/// controller only dispatches CQRS queries via <see cref="IMediator"/> and maps the successful
+/// result to HTTP; it never touches repositories or the DbContext, and never maps errors — those
+/// bubble up to the exception-handling middleware as the uniform <see cref="ApiResult"/> envelope.</para>
 /// </summary>
 [Route("api/admin/companies/active/members")]
 [Authorize]
@@ -50,19 +52,17 @@ public sealed class CompanyMembersController : SislabControllerBase
     [HttpGet(Name = "ListMembers")]
     [ActionName("ListMembers")]
     [RequirePermission]
-    [ProducesResponseType(typeof(IReadOnlyList<CompanyMemberDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult<IReadOnlyList<CompanyMemberDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ListMembers(CancellationToken ct)
     {
-        if (!HasActiveTenant())
-            return NoActiveCompany();
-
-        ListCompanyMembersResult result =
+        ListCompanyMembersQueryResult result =
             await _mediator.SendAsync(new ListCompanyMembersQuery(GetCompanyId()), ct);
 
-        return result.CompanyExists ? Ok(result.Members) : NoActiveCompany();
+        return Ok(new ApiResult<IReadOnlyList<CompanyMemberDto>>(
+            true, "Members retrieved.", result.Members));
     }
 
     /// <summary>
@@ -77,19 +77,17 @@ public sealed class CompanyMembersController : SislabControllerBase
     [HttpGet("{userId:guid}/removal-eligibility", Name = "CheckRemovalEligibility")]
     [ActionName("CheckRemovalEligibility")]
     [RequirePermission]
-    [ProducesResponseType(typeof(MemberRemovalEligibilityDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult<MemberRemovalEligibilityDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CheckRemovalEligibility(Guid userId, CancellationToken ct)
     {
-        if (!HasActiveTenant())
-            return NoActiveCompany();
-
-        CheckMemberRemovalEligibilityResult result =
+        CheckMemberRemovalEligibilityQueryResult result =
             await _mediator.SendAsync(
                 new CheckMemberRemovalEligibilityQuery(GetCompanyId(), userId), ct);
 
-        return result.CompanyExists ? Ok(result.Eligibility) : NoActiveCompany();
+        return Ok(new ApiResult<MemberRemovalEligibilityDto>(
+            true, "Member removal eligibility evaluated.", result.Eligibility));
     }
 }
