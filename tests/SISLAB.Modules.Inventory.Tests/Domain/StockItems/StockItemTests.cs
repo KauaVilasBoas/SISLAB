@@ -233,6 +233,40 @@ public sealed class StockItemTests
     }
 
     [Fact]
+    public void RegisterConsumption_raises_StockBelowMinimum_when_it_crosses_the_threshold()
+    {
+        StockItem item = NewItem(initial: 12m, minimum: 10m);
+
+        item.RegisterConsumption(Quantity.Of(5m, Ml));
+
+        StockBelowMinimumEvent belowMinimum = Assert.Single(item.DomainEvents.OfType<StockBelowMinimumEvent>());
+        Assert.Equal(item.Id, belowMinimum.StockItemId);
+        Assert.Equal(Quantity.Of(7m, Ml), belowMinimum.CurrentQuantity);
+        Assert.Equal(Quantity.Of(10m, Ml), belowMinimum.MinimumQuantity);
+    }
+
+    [Fact]
+    public void RegisterConsumption_does_not_raise_StockBelowMinimum_while_still_above_the_threshold()
+    {
+        StockItem item = NewItem(initial: 100m, minimum: 10m);
+
+        item.RegisterConsumption(Quantity.Of(30m, Ml));
+
+        Assert.Empty(item.DomainEvents.OfType<StockBelowMinimumEvent>());
+    }
+
+    [Fact]
+    public void RegisterConsumption_raises_StockBelowMinimum_only_once_on_the_crossing_not_on_every_consumption()
+    {
+        StockItem item = NewItem(initial: 12m, minimum: 10m);
+
+        item.RegisterConsumption(Quantity.Of(5m, Ml)); // 12 -> 7: crosses
+        item.RegisterConsumption(Quantity.Of(2m, Ml)); // 7 -> 5: already below, no new signal
+
+        Assert.Single(item.DomainEvents.OfType<StockBelowMinimumEvent>());
+    }
+
+    [Fact]
     public void A_new_item_starts_with_no_domain_events()
     {
         Assert.Empty(NewItem().DomainEvents);
