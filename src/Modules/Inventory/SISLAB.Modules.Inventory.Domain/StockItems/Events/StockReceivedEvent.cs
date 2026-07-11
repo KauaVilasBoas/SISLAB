@@ -9,7 +9,7 @@ namespace SISLAB.Modules.Inventory.Domain.StockItems.Events;
 /// react without reloading the aggregate. The public integration contract and Outbox translation are
 /// owned by card [E3] #26; this internal event only records that the entry happened.
 /// </summary>
-public sealed record StockReceived(
+public sealed record StockReceivedEvent(
     Guid StockItemId,
     Quantity ReceivedQuantity,
     Quantity ResultingQuantity,

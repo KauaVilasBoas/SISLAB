@@ -86,7 +86,7 @@ public sealed class StockItemTests
 
         item.RegisterEntry(Quantity.Of(20m, Ml));
 
-        StockReceived received = Assert.IsType<StockReceived>(Assert.Single(item.DomainEvents));
+        StockReceivedEvent received = Assert.IsType<StockReceivedEvent>(Assert.Single(item.DomainEvents));
         Assert.Equal(Quantity.Of(20m, Ml), received.ReceivedQuantity);
         Assert.Equal(Quantity.Of(120m, Ml), received.ResultingQuantity);
     }
@@ -99,7 +99,7 @@ public sealed class StockItemTests
         item.RegisterConsumption(Quantity.Of(30m, Ml));
 
         Assert.Equal(Quantity.Of(70m, Ml), item.Quantity);
-        StockConsumed consumed = Assert.IsType<StockConsumed>(Assert.Single(item.DomainEvents));
+        StockConsumedEvent consumed = Assert.IsType<StockConsumedEvent>(Assert.Single(item.DomainEvents));
         Assert.Equal(Quantity.Of(70m, Ml), consumed.ResultingQuantity);
     }
 
@@ -148,7 +148,7 @@ public sealed class StockItemTests
         item.TransferTo(destination);
 
         Assert.Equal(destination, item.StorageLocationId);
-        StockTransferred transferred = Assert.IsType<StockTransferred>(Assert.Single(item.DomainEvents));
+        StockTransferredEvent transferred = Assert.IsType<StockTransferredEvent>(Assert.Single(item.DomainEvents));
         Assert.Equal(Location, transferred.FromStorageLocationId);
         Assert.Equal(destination, transferred.ToStorageLocationId);
     }
@@ -170,7 +170,7 @@ public sealed class StockItemTests
         item.Dispose(Quantity.Of(15m, Ml));
 
         Assert.Equal(Quantity.Of(25m, Ml), item.Quantity);
-        Assert.IsType<StockDisposed>(Assert.Single(item.DomainEvents));
+        Assert.IsType<StockDisposedEvent>(Assert.Single(item.DomainEvents));
     }
 
     [Fact]

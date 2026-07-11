@@ -18,7 +18,7 @@ public sealed class DisposeStockCommandHandlerTests
         await handler.HandleAsync(new DisposeStockCommand(item.Id, 40m, "mL", "expired", null));
 
         Assert.Equal(Quantity.Of(60m, StockItemFactory.Ml), item.Quantity);
-        Assert.Contains(item.DomainEvents, e => e is StockDisposed);
+        Assert.Contains(item.DomainEvents, e => e is StockDisposedEvent);
         Assert.Same(item, repository.LastUpdated);
     }
 

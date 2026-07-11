@@ -46,8 +46,8 @@ public sealed class StorageLocationTests
     {
         StorageLocation location = NewLocation(StorageLocationType.Controlled);
 
-        StorageLocationRegistered registered =
-            Assert.IsType<StorageLocationRegistered>(Assert.Single(location.DomainEvents));
+        StorageLocationRegisteredEvent registered =
+            Assert.IsType<StorageLocationRegisteredEvent>(Assert.Single(location.DomainEvents));
         Assert.Equal(location.Id, registered.StorageLocationId);
         Assert.Equal(StorageLocationType.Controlled, registered.Type);
     }
@@ -123,7 +123,7 @@ public sealed class StorageLocationTests
         location.Deactivate();
 
         Assert.False(location.IsActive);
-        Assert.IsType<StorageLocationDeactivated>(Assert.Single(location.DomainEvents));
+        Assert.IsType<StorageLocationDeactivatedEvent>(Assert.Single(location.DomainEvents));
     }
 
     [Fact]
@@ -149,7 +149,7 @@ public sealed class StorageLocationTests
         location.Reactivate();
 
         Assert.True(location.IsActive);
-        Assert.IsType<StorageLocationReactivated>(Assert.Single(location.DomainEvents));
+        Assert.IsType<StorageLocationReactivatedEvent>(Assert.Single(location.DomainEvents));
     }
 
     [Fact]
