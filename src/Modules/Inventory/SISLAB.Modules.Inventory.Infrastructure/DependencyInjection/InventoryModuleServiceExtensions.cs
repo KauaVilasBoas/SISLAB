@@ -6,7 +6,9 @@ using SISLAB.Infrastructure.Messaging.Behaviors;
 using SISLAB.Infrastructure.Outbox;
 using SISLAB.Infrastructure.Persistence;
 using SISLAB.Modules.Inventory.Domain.StockItems;
+using SISLAB.Modules.Inventory.Domain.StockItems.Events;
 using SISLAB.Modules.Inventory.Domain.StorageLocations;
+using SISLAB.Modules.Inventory.Infrastructure.Messaging;
 using SISLAB.Modules.Inventory.Infrastructure.Persistence;
 using SISLAB.Modules.Inventory.Infrastructure.Repositories;
 using SISLAB.SharedKernel.Messaging;
@@ -67,7 +69,16 @@ public static class InventoryModuleServiceExtensions
         //    On commands it calls SaveChangesAsync after the handler; on queries it is a no-op.
         services.AddScoped(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
 
-        // 4. Applies schema "inventory" migrations at startup (mirrors the Identity pattern).
+        // 4. DomainEvent → IntegrationEvent translators (card [E3] #26). The DomainEventDispatcher
+        //    resolves these by DomainEvent type during SaveChanges and enqueues the flattened public
+        //    contract into the Outbox, in the aggregate's transaction. Events with no translator are
+        //    module-internal and stay off the Outbox. ItemExpiring has no translator here: it is a
+        //    derived, time-based signal published by the E6 job, not by the aggregate.
+        services.AddScoped<IDomainEventToIntegrationEventTranslator<StockReceivedEvent>, StockReceivedEventTranslator>();
+        services.AddScoped<IDomainEventToIntegrationEventTranslator<StockConsumedEvent>, StockConsumedEventTranslator>();
+        services.AddScoped<IDomainEventToIntegrationEventTranslator<StockBelowMinimumEvent>, StockBelowMinimumEventTranslator>();
+
+        // 5. Applies schema "inventory" migrations at startup (mirrors the Identity pattern).
         services.AddHostedService<InventorySchemaMigrationsHostedService>();
 
         return services;
