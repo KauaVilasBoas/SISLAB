@@ -5,6 +5,7 @@ using SISLAB.Infrastructure.Messaging;
 using SISLAB.Infrastructure.Messaging.Behaviors;
 using SISLAB.Infrastructure.Outbox;
 using SISLAB.Infrastructure.Persistence;
+using SISLAB.Modules.Inventory.Domain.Equipments;
 using SISLAB.Modules.Inventory.Domain.Partners;
 using SISLAB.Modules.Inventory.Domain.StockItems;
 using SISLAB.Modules.Inventory.Domain.StockItems.Events;
@@ -51,6 +52,7 @@ public static class InventoryModuleServiceExtensions
         services.AddScoped<IStockItemRepository, StockItemRepository>();
         services.AddScoped<IStorageLocationRepository, StorageLocationRepository>();
         services.AddScoped<IPartnerRepository, PartnerRepository>();
+        services.AddScoped<IEquipmentRepository, EquipmentRepository>();
 
         // 3. Write-side unit of work (hybrid consistency strategy — E2).
         //    - IOutboxDbContext points at THIS module's DbContext so the Outbox write shares the
