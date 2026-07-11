@@ -1,6 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <!-- Contracts: interface pública do módulo. Sem referência ao Domain interno. Sem EF/Dapper. -->
   <!-- Outros módulos referenciam APENAS este projeto, nunca o Domain. -->
+
+  <ItemGroup>
+    <!-- SharedKernel entrega o marker IIntegrationEvent que os contratos públicos implementam. -->
+    <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.SharedKernel\SISLAB.SharedKernel.csproj" />
+  </ItemGroup>
 
 </Project>
