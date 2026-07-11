@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SISLAB.Infrastructure.DependencyInjection;
 using SISLAB.Infrastructure.Modules;
+using SISLAB.Modules.Inventory.Infrastructure.DependencyInjection;
 
 namespace SISLAB.Modules.Inventory.Application;
 
@@ -37,9 +38,11 @@ public sealed class InventoryModule : IModule
         // package, so the wiring is done here explicitly. Scoped mirrors the handler lifetime.
         RegisterValidators(services, typeof(InventoryModule).Assembly);
 
-        // E3 #25: register the module DbContext, repositories (IStockItemRepository /
-        // IStorageLocationRepository) and IUnitOfWork so the pipeline can persist. Until then the
-        // commands above are wired but their transaction/persistence dependencies come with #25.
+        // Write-side composition (card [E3] #25): module DbContext (schema "inventory"), the
+        // repositories the command handlers depend on (IStockItemRepository /
+        // IStorageLocationRepository), the unit of work + Outbox wiring, and the schema migrations
+        // hosted service. Symmetric to how IdentityModule delegates to AddIdentityModule.
+        services.AddInventoryModule(configuration);
     }
 
     /// <inheritdoc />
