@@ -147,7 +147,7 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
         Lot = lot ?? Lot;
         Expiry = expiry ?? Expiry;
 
-        RaiseDomainEvent(new StockReceivedEvent(Id, received, _quantity, Lot, Expiry));
+        RaiseDomainEvent(new StockReceivedEvent(CompanyId, Id, received, _quantity, Lot, Expiry));
     }
 
     /// <summary>
@@ -159,9 +159,15 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
         Quantity consumed = EnsurePositiveOperationQuantity(quantity, "consume");
         EnsureBalanceCovers(consumed, "consume");
 
+        bool wasBelowMinimum = IsBelowMinimum;
         _quantity = _quantity.Subtract(consumed);
 
-        RaiseDomainEvent(new StockConsumedEvent(Id, consumed, _quantity));
+        RaiseDomainEvent(new StockConsumedEvent(CompanyId, Id, consumed, _quantity));
+
+        // Emit the low-stock signal only on the crossing (not-below → below), so the alert (E6)
+        // fires once per breach instead of on every consumption while already depleted.
+        if (!wasBelowMinimum && IsBelowMinimum)
+            RaiseDomainEvent(new StockBelowMinimumEvent(CompanyId, Id, _quantity, MinimumQuantity));
     }
 
     /// <summary>
