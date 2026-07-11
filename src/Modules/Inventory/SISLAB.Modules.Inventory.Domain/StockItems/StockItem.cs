@@ -196,6 +196,27 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
     }
 
     /// <summary>
+    /// Records a physical stock count (conference) of a controlled item. This is an append-only
+    /// compliance operation: it compares the counted balance with the current system balance and
+    /// raises <see cref="StockCounted"/> with the divergence, but <b>never changes the on-hand
+    /// quantity</b> (decision recorded on card [E3] #24). Corrections, when needed, follow the normal
+    /// entry or disposal flow. Returns the divergence (counted minus system balance) so the caller can
+    /// surface it; a zero divergence still produces a record, because "counted and matched" is itself a
+    /// compliance fact worth keeping.
+    /// </summary>
+    public decimal RegisterStockCount(Quantity countedQuantity)
+    {
+        Guard.AgainstNull(countedQuantity, nameof(countedQuantity));
+        EnsureSameUnit(_quantity, countedQuantity);
+
+        decimal divergence = countedQuantity.Value - _quantity.Value;
+
+        RaiseDomainEvent(new StockCounted(Id, _quantity, countedQuantity, divergence));
+
+        return divergence;
+    }
+
+    /// <summary>
     /// Classifies the item's validity for alerts and the UI. Returns <see langword="null"/> for items
     /// without an expiry date (n/a). This is derived on demand from <see cref="Expiry"/> and the
     /// supplied clock; it is never persisted.
