@@ -57,6 +57,11 @@ public sealed class FakeUnitOfWork : IUnitOfWork
 {
     public int SaveChangesCallCount { get; private set; }
 
+    /// <summary>SaveChanges count observed at the moment the handler ran (0 = commit happens after).</summary>
+    public int SaveChangesCallCountAtHandler { get; private set; }
+
+    public void CaptureSaveChangesCallCountAtHandler() => SaveChangesCallCountAtHandler = SaveChangesCallCount;
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         SaveChangesCallCount++;

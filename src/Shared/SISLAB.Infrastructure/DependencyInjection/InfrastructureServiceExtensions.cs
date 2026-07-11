@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using SISLAB.Infrastructure.Data;
 using SISLAB.Infrastructure.Messaging;
+using SISLAB.Infrastructure.Messaging.Behaviors;
 using SISLAB.Infrastructure.Multitenancy;
 using SISLAB.SharedKernel.Messaging;
 using SISLAB.SharedKernel.Multitenancy;
@@ -20,6 +21,20 @@ public static class InfrastructureServiceExtensions
         // bypass opened inside one unit of work never leaks into another). ITenantContext
         // itself is contributed by the Identity module (it owns the tenant source).
         services.AddScoped<ITenantBypass, TenantBypass>();
+
+        // Cross-cutting CQRS pipeline behaviors that carry NO module-specific dependency.
+        // Registration order defines pipeline position: the Mediator reverses the resolved
+        // sequence, so the FIRST registered behavior becomes the OUTERMOST wrapper.
+        //   Logging (outermost — observes everything, including validation failures)
+        //     → Validation (short-circuits before the handler on invalid input)
+        //       → [TransactionBehavior — registered per write-side module, see AddInventoryModule]
+        //         → Handler
+        // TransactionBehavior is NOT registered here on purpose: it depends on IUnitOfWork,
+        // which is a per-module (per-DbContext) service. Registering it globally would force
+        // every module that dispatches through the mediator (e.g. Identity, which only issues
+        // queries) to register an otherwise-unused IUnitOfWork just to satisfy the constructor.
+        services.AddScoped(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+        services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
         return services;
     }

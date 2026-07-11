@@ -113,6 +113,15 @@ public abstract class SislabDbContextBase : DbContext
             if (entity.GetTableName() is { } tableName)
                 entity.SetTableName(ToSnakeCase(tableName));
 
+            // Owned entity types (value objects mapped to the owner's table via table splitting)
+            // share the principal's primary key column. Their non-key columns are already named
+            // explicitly by each configuration (HasColumnName), and their shared key/FK columns must
+            // keep the principal's column name — renaming them here would split the shared column into
+            // a divergent name (e.g. stock_item_id vs id) and break the mapping. So the whole
+            // snake_case pass is skipped for owned types.
+            if (entity.IsOwned())
+                continue;
+
             foreach (IMutableProperty property in entity.GetProperties())
             {
                 if (property.GetColumnName() is { } columnName)
