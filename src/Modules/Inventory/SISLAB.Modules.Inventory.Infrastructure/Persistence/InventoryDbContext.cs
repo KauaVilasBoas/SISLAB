@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SISLAB.Infrastructure.Multitenancy;
 using SISLAB.Infrastructure.Outbox;
 using SISLAB.Infrastructure.Persistence;
+using SISLAB.Modules.Inventory.Domain.Equipments;
 using SISLAB.Modules.Inventory.Domain.Partners;
 using SISLAB.Modules.Inventory.Domain.StockItems;
 using SISLAB.Modules.Inventory.Domain.StorageLocations;
@@ -12,7 +13,8 @@ namespace SISLAB.Modules.Inventory.Infrastructure.Persistence;
 
 /// <summary>
 /// DbContext for the Inventory module (write-side). Manages the <see cref="StockItem"/>,
-/// <see cref="StorageLocation"/> and <see cref="Partner"/> aggregates in the <c>inventory</c> schema.
+/// <see cref="StorageLocation"/>, <see cref="Partner"/> and <see cref="Equipment"/> aggregates in the
+/// <c>inventory</c> schema.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -42,6 +44,8 @@ public sealed class InventoryDbContext : SislabDbContextBase, IOutboxDbContext
 
     public DbSet<Partner> Partners => Set<Partner>();
 
+    public DbSet<Equipment> Equipment => Set<Equipment>();
+
     /// <inheritdoc />
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
@@ -55,6 +59,7 @@ public sealed class InventoryDbContext : SislabDbContextBase, IOutboxDbContext
         modelBuilder.ApplyConfiguration(new StockItemConfiguration());
         modelBuilder.ApplyConfiguration(new StorageLocationConfiguration());
         modelBuilder.ApplyConfiguration(new PartnerConfiguration());
+        modelBuilder.ApplyConfiguration(new EquipmentConfiguration());
 
         // Outbox table lives in the module schema so the aggregate write and the outbox write
         // share one transaction/one connection (local transactional consistency).
