@@ -1,4 +1,5 @@
 using System.Reflection;
+using SISLAB.Api.Middleware;
 using SISLAB.Infrastructure.DependencyInjection;
 using SISLAB.Infrastructure.Modules;
 using SISLAB.Modules.Identity.Application;
@@ -86,6 +87,11 @@ WebApplication app = builder.Build();
 // ---------------------------------------------------------------------------
 // HTTP pipeline
 // ---------------------------------------------------------------------------
+
+// First in the pipeline so it wraps every downstream middleware and endpoint,
+// translating domain/application exceptions into the uniform ApiResult envelope.
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
