@@ -51,6 +51,26 @@ public sealed class StockEventTranslatorTests
     }
 
     [Fact]
+    public void StockReceivedEventTranslator_carries_occurred_on_and_supplier_for_the_read_model()
+    {
+        Guid supplier = Guid.NewGuid();
+        var occurredOn = new DateOnly(2026, 7, 10);
+        var domainEvent = new StockReceivedEvent(
+            Company, Item,
+            ReceivedQuantity: Quantity.Of(20m, Ml),
+            ResultingQuantity: Quantity.Of(120m, Ml),
+            Lot: null,
+            Expiry: null,
+            OccurredOn: occurredOn,
+            SupplierPartnerId: supplier);
+
+        var integrationEvent = (StockReceivedIntegrationEvent)new StockReceivedEventTranslator().Translate(domainEvent);
+
+        Assert.Equal(occurredOn, integrationEvent.OccurredOn);
+        Assert.Equal(supplier, integrationEvent.SupplierPartnerId);
+    }
+
+    [Fact]
     public void StockReceivedEventTranslator_leaves_lot_and_expiry_null_when_absent()
     {
         var domainEvent = new StockReceivedEvent(
@@ -77,6 +97,24 @@ public sealed class StockEventTranslatorTests
         Assert.Equal(30m, integrationEvent.ConsumedQuantity);
         Assert.Equal(70m, integrationEvent.ResultingQuantity);
         Assert.Equal("mL", integrationEvent.Unit);
+    }
+
+    [Fact]
+    public void StockConsumedEventTranslator_carries_occurred_on_and_experiment_for_the_read_model()
+    {
+        Guid experiment = Guid.NewGuid();
+        var occurredOn = new DateOnly(2026, 7, 9);
+        var domainEvent = new StockConsumedEvent(
+            Company, Item,
+            ConsumedQuantity: Quantity.Of(30m, Ml),
+            ResultingQuantity: Quantity.Of(70m, Ml),
+            OccurredOn: occurredOn,
+            ExperimentId: experiment);
+
+        var integrationEvent = (StockConsumedIntegrationEvent)new StockConsumedEventTranslator().Translate(domainEvent);
+
+        Assert.Equal(occurredOn, integrationEvent.OccurredOn);
+        Assert.Equal(experiment, integrationEvent.ExperimentId);
     }
 
     [Fact]
