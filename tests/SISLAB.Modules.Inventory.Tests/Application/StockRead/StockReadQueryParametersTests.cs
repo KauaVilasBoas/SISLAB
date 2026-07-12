@@ -23,6 +23,12 @@ public sealed class StockReadQueryParametersTests
     private readonly GetLocationsSummaryQueryHandler _summaryHandler =
         new(connectionFactory: null!, new StubTenantContext(ActiveCompany), new FixedClock(Now));
 
+    private readonly ListExpiringItemsQueryHandler _expiringHandler =
+        new(connectionFactory: null!, new StubTenantContext(ActiveCompany), new FixedClock(Now));
+
+    private readonly GetExpirySummaryQueryHandler _expirySummaryHandler =
+        new(connectionFactory: null!, new StubTenantContext(ActiveCompany), new FixedClock(Now));
+
     [Fact]
     public void List_query_takes_the_company_from_the_tenant_context()
     {
@@ -110,6 +116,93 @@ public sealed class StockReadQueryParametersTests
 
         Assert.Equal(DateOnly.FromDateTime(Now), parameters.Today);
         Assert.Equal("Controlled", parameters.ControlledType);
+    }
+
+    [Fact]
+    public void Expiring_query_takes_the_company_from_the_tenant_context()
+    {
+        ExpiringItemsQueryParameters parameters = _expiringHandler.BuildParameters(new ListExpiringItemsQuery());
+
+        Assert.Equal(ActiveCompany, parameters.CompanyId);
+    }
+
+    [Fact]
+    public void Expiring_query_derives_today_and_defaults_to_the_shared_window_including_expired()
+    {
+        ExpiringItemsQueryParameters parameters = _expiringHandler.BuildParameters(new ListExpiringItemsQuery());
+
+        Assert.Equal(DateOnly.FromDateTime(Now), parameters.Today);
+        Assert.Equal(ExpectedWarningWindowDays, parameters.WarningWindowDays);
+        Assert.True(parameters.IncludeExpired);
+    }
+
+    [Fact]
+    public void Expiring_query_carries_the_status_ordinals_for_the_sql_filter()
+    {
+        ExpiringItemsQueryParameters parameters = _expiringHandler.BuildParameters(new ListExpiringItemsQuery());
+
+        Assert.Equal((int)ExpiryStatusView.Ok, parameters.Ok);
+        Assert.Equal((int)ExpiryStatusView.ExpiringSoon, parameters.ExpiringSoon);
+        Assert.Equal((int)ExpiryStatusView.Expired, parameters.Expired);
+    }
+
+    [Fact]
+    public void Expiring_query_passes_a_positive_window_and_the_expired_flag_through()
+    {
+        ExpiringItemsQueryParameters parameters = _expiringHandler.BuildParameters(
+            new ListExpiringItemsQuery { WarningWindowDays = 7, IncludeExpired = false });
+
+        Assert.Equal(7, parameters.WarningWindowDays);
+        Assert.False(parameters.IncludeExpired);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public void Expiring_query_collapses_a_non_positive_window_to_the_shared_default(int window)
+    {
+        ExpiringItemsQueryParameters parameters = _expiringHandler.BuildParameters(
+            new ListExpiringItemsQuery { WarningWindowDays = window });
+
+        Assert.Equal(ExpectedWarningWindowDays, parameters.WarningWindowDays);
+    }
+
+    [Fact]
+    public void Expiring_query_maps_pagination_bounds()
+    {
+        ExpiringItemsQueryParameters parameters =
+            _expiringHandler.BuildParameters(new ListExpiringItemsQuery { Page = 2, PageSize = 50 });
+
+        Assert.Equal(51, parameters.FirstResult); // (2-1)*50 + 1
+        Assert.Equal(100, parameters.LastResult); // 2*50
+    }
+
+    [Fact]
+    public void Expiring_query_passes_the_storage_location_filter_through()
+    {
+        Guid location = Guid.NewGuid();
+
+        ExpiringItemsQueryParameters parameters =
+            _expiringHandler.BuildParameters(new ListExpiringItemsQuery { StorageLocationId = location });
+
+        Assert.Equal(location, parameters.StorageLocationId);
+    }
+
+    [Fact]
+    public void Expiry_summary_query_takes_the_company_from_the_tenant_context()
+    {
+        ExpirySummaryQueryParameters parameters = _expirySummaryHandler.BuildParameters();
+
+        Assert.Equal(ActiveCompany, parameters.CompanyId);
+    }
+
+    [Fact]
+    public void Expiry_summary_query_derives_today_and_uses_the_shared_window()
+    {
+        ExpirySummaryQueryParameters parameters = _expirySummaryHandler.BuildParameters();
+
+        Assert.Equal(DateOnly.FromDateTime(Now), parameters.Today);
+        Assert.Equal(ExpectedWarningWindowDays, parameters.WarningWindowDays);
     }
 
     private const int ExpectedWarningWindowDays = 30;
