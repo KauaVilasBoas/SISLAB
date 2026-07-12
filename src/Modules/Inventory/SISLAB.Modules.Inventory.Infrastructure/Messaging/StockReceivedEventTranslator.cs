@@ -24,5 +24,7 @@ internal sealed class StockReceivedEventTranslator
             unit: domainEvent.ResultingQuantity.Unit.Symbol,
             lotCode: domainEvent.Lot?.Code,
             expiryYear: domainEvent.Expiry?.Year,
-            expiryMonth: domainEvent.Expiry?.Month);
+            expiryMonth: domainEvent.Expiry?.Month,
+            occurredOn: domainEvent.OccurredOn,
+            supplierPartnerId: domainEvent.SupplierPartnerId);
 }

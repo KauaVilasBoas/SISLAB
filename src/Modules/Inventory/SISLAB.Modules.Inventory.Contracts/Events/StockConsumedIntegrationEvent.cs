@@ -17,7 +17,9 @@ public sealed record StockConsumedIntegrationEvent : IIntegrationEvent
         Guid stockItemId,
         decimal consumedQuantity,
         decimal resultingQuantity,
-        string unit)
+        string unit,
+        DateOnly? occurredOn = null,
+        Guid? experimentId = null)
     {
         EventId = eventId;
         OccurredOnUtc = occurredOnUtc;
@@ -26,6 +28,8 @@ public sealed record StockConsumedIntegrationEvent : IIntegrationEvent
         ConsumedQuantity = consumedQuantity;
         ResultingQuantity = resultingQuantity;
         Unit = unit;
+        OccurredOn = occurredOn;
+        ExperimentId = experimentId;
     }
 
     /// <inheritdoc />
@@ -47,4 +51,17 @@ public sealed record StockConsumedIntegrationEvent : IIntegrationEvent
 
     /// <summary>Symbol of the item's unit of measure (e.g. "mL", "g").</summary>
     public string Unit { get; }
+
+    /// <summary>
+    /// Business date the consumption occurred on (operator-supplied), or <see langword="null"/> when not
+    /// informed — consumers fall back to <see cref="OccurredOnUtc"/>. Origin/traceability metadata for the
+    /// movements read model (card [E4] #33) and the consumption report (card #31).
+    /// </summary>
+    public DateOnly? OccurredOn { get; }
+
+    /// <summary>
+    /// Experiment the consumption fed, held <b>by value</b> (Guid), or <see langword="null"/> when not
+    /// informed. No FK/navigation to the Experiment module — a cross-reference for reporting only.
+    /// </summary>
+    public Guid? ExperimentId { get; }
 }
