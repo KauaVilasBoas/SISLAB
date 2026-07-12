@@ -9,13 +9,23 @@ namespace SISLAB.Modules.Inventory.Domain.StockItems.Events;
 /// react without reloading the aggregate. <see cref="CompanyId"/> is carried so the Outbox translation
 /// (card [E3] #26) can flatten it into the cross-tenant integration contract.
 /// </summary>
+/// <remarks>
+/// <see cref="OccurredOn"/> and <see cref="SupplierPartnerId"/> are origin/traceability metadata supplied
+/// by the operator (never inferred from the aggregate state). They travel on the event so the movements
+/// read model (card [E4] #33) can record <c>when</c> the entry happened and <c>which supplier</c> it came
+/// from. When the operator does not inform them, <see cref="OccurredOn"/> falls back to the emission
+/// instant and <see cref="SupplierPartnerId"/> stays <see langword="null"/>. Neither is a domain
+/// invariant: the aggregate carries them purely for the projection/audit trail.
+/// </remarks>
 public sealed record StockReceivedEvent(
     Guid CompanyId,
     Guid StockItemId,
     Quantity ReceivedQuantity,
     Quantity ResultingQuantity,
     Lot? Lot,
-    ExpiryDate? Expiry) : IDomainEvent
+    ExpiryDate? Expiry,
+    DateOnly? OccurredOn = null,
+    Guid? SupplierPartnerId = null) : IDomainEvent
 {
     public DateTime OccurredOnUtc { get; } = DateTime.UtcNow;
 }

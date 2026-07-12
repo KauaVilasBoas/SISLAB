@@ -14,9 +14,11 @@ namespace SISLAB.Modules.Inventory.Application.StockMovements;
 /// <remarks>
 /// <paramref name="ExperimentId"/> is a cross-module reference held <b>by value</b> (Guid), with no FK or
 /// navigation to the Experiment module (which is out of the current backlog) — decision recorded on card
-/// [E3] #24. It is carried on the command as a structured reference for the consumption report (card #31)
-/// and is not folded into the aggregate here. The operator is the authenticated user (audit trail #57),
-/// never taken from the payload.
+/// [E3] #24. It is not folded into the aggregate state, but is handed to
+/// <see cref="StockItem.RegisterConsumption"/> together with <paramref name="OccurredOn"/> so they travel
+/// on <c>StockConsumedEvent</c> and feed the movements read model (card [E4] #33) and the consumption
+/// report (card #31). The operator is the authenticated user (audit trail #57), never taken from the
+/// payload.
 /// </remarks>
 public sealed record RegisterConsumptionCommand(
     Guid StockItemId,
@@ -56,7 +58,7 @@ internal sealed class RegisterConsumptionCommandHandler : ICommandHandler<Regist
 
         Quantity consumed = Quantity.Of(request.Quantity, UnitOfMeasure.FromSymbol(request.Unit));
 
-        item.RegisterConsumption(consumed);
+        item.RegisterConsumption(consumed, request.OccurredOn, request.ExperimentId);
 
         await _stockItems.UpdateAsync(item, cancellationToken);
 

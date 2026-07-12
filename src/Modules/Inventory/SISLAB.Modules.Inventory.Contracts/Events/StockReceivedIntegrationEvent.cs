@@ -22,7 +22,9 @@ public sealed record StockReceivedIntegrationEvent : IIntegrationEvent
         string unit,
         string? lotCode,
         int? expiryYear,
-        int? expiryMonth)
+        int? expiryMonth,
+        DateOnly? occurredOn = null,
+        Guid? supplierPartnerId = null)
     {
         EventId = eventId;
         OccurredOnUtc = occurredOnUtc;
@@ -34,6 +36,8 @@ public sealed record StockReceivedIntegrationEvent : IIntegrationEvent
         LotCode = lotCode;
         ExpiryYear = expiryYear;
         ExpiryMonth = expiryMonth;
+        OccurredOn = occurredOn;
+        SupplierPartnerId = supplierPartnerId;
     }
 
     /// <inheritdoc />
@@ -64,4 +68,17 @@ public sealed record StockReceivedIntegrationEvent : IIntegrationEvent
 
     /// <summary>Expiry month (1-12) of the received quantity, or <see langword="null"/> when it has no expiry.</summary>
     public int? ExpiryMonth { get; }
+
+    /// <summary>
+    /// Business date the entry occurred on (operator-supplied), or <see langword="null"/> when not
+    /// informed — consumers fall back to <see cref="OccurredOnUtc"/>. Origin/traceability metadata for
+    /// the movements read model (card [E4] #33).
+    /// </summary>
+    public DateOnly? OccurredOn { get; }
+
+    /// <summary>
+    /// Supplier partner the entry came from, held <b>by value</b> (Guid), or <see langword="null"/> when
+    /// not informed. No FK/navigation to the Partner aggregate — a cross-reference for reporting only.
+    /// </summary>
+    public Guid? SupplierPartnerId { get; }
 }

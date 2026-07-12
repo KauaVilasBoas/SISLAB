@@ -19,5 +19,7 @@ internal sealed class StockConsumedEventTranslator
             stockItemId: domainEvent.StockItemId,
             consumedQuantity: domainEvent.ConsumedQuantity.Value,
             resultingQuantity: domainEvent.ResultingQuantity.Value,
-            unit: domainEvent.ResultingQuantity.Unit.Symbol);
+            unit: domainEvent.ResultingQuantity.Unit.Symbol,
+            occurredOn: domainEvent.OccurredOn,
+            experimentId: domainEvent.ExperimentId);
 }

@@ -48,8 +48,10 @@ public sealed class InventoryModule : IModule
     /// <inheritdoc />
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
-        // Stock-movement endpoints are MVC controllers (attribute-routed), mapped by the host's
-        // MapControllers. E4 maps the read-side (Dapper) query endpoints.
+        // Both the write-side (StockItemsController, Partners/Equipment) and the E4 read-side
+        // (StockReadController — Dapper query endpoints for the inventory master-detail #46) are MVC
+        // controllers (attribute-routed), discovered via AddApplicationPart and mapped by the host's
+        // MapControllers. No per-endpoint wiring is needed here.
     }
 
     private static void RegisterValidators(IServiceCollection services, Assembly assembly)
