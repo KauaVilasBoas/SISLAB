@@ -5,6 +5,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SISLAB.Infrastructure.DependencyInjection;
 using SISLAB.Infrastructure.Modules;
+using SISLAB.Modules.Inventory.Application.PublicApi;
+using SISLAB.Modules.Inventory.Contracts;
 using SISLAB.Modules.Inventory.Infrastructure.DependencyInjection;
 
 namespace SISLAB.Modules.Inventory.Application;
@@ -43,6 +45,13 @@ public sealed class InventoryModule : IModule
         // IStorageLocationRepository), the unit of work + Outbox wiring, and the schema migrations
         // hosted service. Symmetric to how IdentityModule delegates to AddIdentityModule.
         services.AddInventoryModule(configuration);
+
+        // Public boundary (card [E5] #35): the adapter that implements IInventoryApi by delegating to
+        // this module's read-side queries via the mediator. It is registered here (Application), not in
+        // AddInventoryModule (Infrastructure), because the adapter and the queries it delegates to both
+        // live in Application, and Infrastructure must not reference Application (keeps the module
+        // acyclic). Scoped mirrors the mediator/query-handler lifetime.
+        services.AddScoped<IInventoryApi, InventoryApi>();
     }
 
     /// <inheritdoc />

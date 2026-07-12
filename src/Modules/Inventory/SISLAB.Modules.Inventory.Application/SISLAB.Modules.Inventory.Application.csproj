@@ -10,6 +10,14 @@
   <ItemGroup>
     <ProjectReference Include="..\SISLAB.Modules.Inventory.Domain\SISLAB.Modules.Inventory.Domain.csproj" />
     <ProjectReference Include="..\SISLAB.Modules.Inventory.Infrastructure\SISLAB.Modules.Inventory.Infrastructure.csproj" />
+    <!--
+      Contracts: the module's public boundary (IInventoryApi + DTOs). The InventoryApi adapter
+      (Application/PublicApi) implements it here, delegating to the E4/E5 read-side queries via the
+      mediator. The adapter lives in Application (not Infrastructure) because Infrastructure must not
+      reference Application — the queries it delegates to live in Application — so wiring it here is the
+      only placement that keeps the module acyclic (E5 design note).
+    -->
+    <ProjectReference Include="..\SISLAB.Modules.Inventory.Contracts\SISLAB.Modules.Inventory.Contracts.csproj" />
     <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
   </ItemGroup>
 
