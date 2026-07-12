@@ -28,6 +28,9 @@ public sealed class ModuleIsolationTests
     // Nomes de assembly (exatamente como declarados no AssemblyName do projeto)
     private const string IdentityDomainAssembly = "SISLAB.Modules.Identity.Domain";
     private const string InventoryDomainAssembly = "SISLAB.Modules.Inventory.Domain";
+    private const string InventoryApplicationAssembly = "SISLAB.Modules.Inventory.Application";
+    private const string InventoryInfrastructureAssembly = "SISLAB.Modules.Inventory.Infrastructure";
+    private const string InventoryContractsAssembly = "SISLAB.Modules.Inventory.Contracts";
     private const string SharedKernelAssembly = "SISLAB.SharedKernel";
     private const string InfrastructureAssembly = "SISLAB.Infrastructure";
 
@@ -224,6 +227,78 @@ public sealed class ModuleIsolationTests
             .Types().That().ResideInAssembly(InventoryDomainAssembly)
             .Should().NotDependOnAnyTypesThat()
             .ResideInNamespace("Microsoft.AspNetCore")
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // (b) Public boundary of the Inventory module (card [E5] #35).
+    //
+    // Other modules may depend ONLY on SISLAB.Modules.Inventory.Contracts (IInventoryApi + DTOs),
+    // never on the module's Domain/Application/Infrastructure internals. Since there is no external
+    // consumer yet, we enforce the necessary condition that makes such a consumer safe: the Contracts
+    // assembly itself must not reach into the module's internals — so referencing it never transitively
+    // drags in Domain/Application/Infrastructure. If Contracts stays clean, an external module that
+    // references only Contracts cannot touch the internals through it.
+    // ---------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// (b) O boundary público (Contracts) do Inventory não deve depender do Domain interno do módulo.
+    /// </summary>
+    [Fact]
+    public void InventoryContracts_ShouldNotDependOn_InventoryDomain()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(InventoryContractsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(InventoryDomainAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>
+    /// (b) O boundary público (Contracts) do Inventory não deve depender da Application do módulo.
+    /// </summary>
+    [Fact]
+    public void InventoryContracts_ShouldNotDependOn_InventoryApplication()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(InventoryContractsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(InventoryApplicationAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>
+    /// (b) O boundary público (Contracts) do Inventory não deve depender da Infrastructure do módulo.
+    /// </summary>
+    [Fact]
+    public void InventoryContracts_ShouldNotDependOn_InventoryInfrastructure()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(InventoryContractsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(InventoryInfrastructureAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>
+    /// (b) O boundary público (Contracts) do Inventory não deve depender de EF Core — DTOs são
+    /// primitivos, sem tipos de persistência vazando pela fronteira pública.
+    /// </summary>
+    [Fact]
+    public void InventoryContracts_ShouldNotDependOn_EntityFramework()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(InventoryContractsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInNamespace("Microsoft.EntityFrameworkCore")
             .WithoutRequiringPositiveResults();
 
         rule.Check(Architecture);
