@@ -89,15 +89,10 @@ internal sealed class GetConsumptionReportQueryHandler
     /// <summary>The persisted <c>movement_type</c> discriminator for a consumption (see the projection).</summary>
     private const string ConsumedMovementType = "Consumed";
 
-    // Two result sets in one round-trip (Dapper QueryMultiple):
-    //   1) the paginated per-(item, unit) rows — aggregated in the "aggregated" CTE, then windowed with
-    //      ROW_NUMBER()/COUNT(*) OVER() and sliced by @FirstResult/@LastResult;
-    //   2) the per-unit grand totals over EVERY movement in the filtered period (not just the page).
-    // Both read the same filtered ledger (the "consumption" CTE): consumption movements only, the tenant
-    // company, the [@From, @To] window over occurred_on, and the optional experiment/category filters. The
-    // JOIN to stock_items (also tenant-scoped) brings name/category the ledger does not store. Grain is
-    // (item, unit) — the read side never converts between units, so amounts are summed within a unit only.
-    private const string Sql =
+    // The filtered consumption ledger, shared verbatim by both statements below. A PostgreSQL WITH clause
+    // is scoped to the single statement it prefixes, so the CTE is defined once here and prepended to each
+    // statement (the parameters are identical, so the two derivations read the exact same filtered set).
+    private const string ConsumptionCte =
         """
         WITH consumption AS (
             SELECT
@@ -116,7 +111,22 @@ internal sealed class GetConsumptionReportQueryHandler
               AND m.occurred_on BETWEEN @From AND @To
               AND (@ExperimentId IS NULL OR m.experiment_id = @ExperimentId)
               AND (@Category IS NULL OR si.category = @Category)
-        ),
+        )
+        """;
+
+    // Two result sets in one round-trip (Dapper QueryMultiple):
+    //   1) the paginated per-(item, unit) rows — aggregated in the "aggregated" CTE, then windowed with
+    //      ROW_NUMBER()/COUNT(*) OVER() and sliced by @FirstResult/@LastResult;
+    //   2) the per-unit grand totals over EVERY movement in the filtered period (not just the page).
+    // Both read the same filtered ledger (the shared ConsumptionCte): consumption movements only, the tenant
+    // company, the [@From, @To] window over occurred_on, and the optional experiment/category filters. The
+    // JOIN to stock_items (also tenant-scoped) brings name/category the ledger does not store. Grain is
+    // (item, unit) — the read side never converts between units, so amounts are summed within a unit only.
+    // Counts are cast to int: PostgreSQL COUNT is bigint, but the read models expose them as int.
+    private const string Sql =
+        ConsumptionCte +
+        """
+        ,
         aggregated AS (
             SELECT
                 stock_item_id,
@@ -139,25 +149,29 @@ internal sealed class GetConsumptionReportQueryHandler
                 ROW_NUMBER() OVER (
                     ORDER BY quantity_unit ASC, total_consumed DESC, name ASC, stock_item_id ASC
                 ) AS row_number,
-                COUNT(*) OVER () AS total_rows
+                (COUNT(*) OVER ())::int AS total_rows
             FROM aggregated
         )
         SELECT
-            stock_item_id  AS stockitemid,
+            stock_item_id       AS stockitemid,
             name,
             category,
-            total_consumed AS totalconsumed,
-            quantity_unit  AS unit,
-            movement_count AS movementcount,
-            total_rows     AS totalrows
+            total_consumed      AS totalconsumed,
+            quantity_unit       AS unit,
+            movement_count::int AS movementcount,
+            total_rows          AS totalrows
         FROM records
         WHERE row_number BETWEEN @FirstResult AND @LastResult
         ORDER BY row_number;
 
+        """ +
+        ConsumptionCte +
+        """
+
         SELECT
             quantity_unit        AS unit,
             SUM(quantity_amount) AS totalconsumed,
-            COUNT(*)             AS movementcount
+            COUNT(*)::int        AS movementcount
         FROM consumption
         GROUP BY quantity_unit
         ORDER BY quantity_unit ASC;

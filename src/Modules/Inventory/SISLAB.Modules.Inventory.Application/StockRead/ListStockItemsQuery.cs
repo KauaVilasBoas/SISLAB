@@ -122,7 +122,7 @@ internal sealed class ListStockItemsQueryHandler
                 v.storage_location_type,
                 v.application,
                 ROW_NUMBER() OVER (ORDER BY v.name ASC, v.id ASC) AS row_number,
-                COUNT(*)     OVER ()                              AS total_rows
+                (COUNT(*)    OVER ())::int                        AS total_rows
             FROM inventory.stock_view AS v
             WHERE v.company_id = @CompanyId
               AND (@StorageLocationId IS NULL OR v.storage_location_id = @StorageLocationId)
@@ -154,7 +154,7 @@ internal sealed class ListStockItemsQueryHandler
             storage_location_name   AS storagelocationname,
             storage_location_type   AS storagelocationtype,
             application,
-            total_rows
+            total_rows              AS totalrows
         FROM records
         WHERE row_number BETWEEN @FirstResult AND @LastResult
         ORDER BY row_number;
