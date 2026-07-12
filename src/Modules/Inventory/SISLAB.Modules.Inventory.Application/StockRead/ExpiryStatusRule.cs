@@ -43,6 +43,21 @@ internal static class ExpiryStatusRule
             : ExpiryStatusView.Ok;
     }
 
+    /// <summary>
+    /// Decides whether a classified item is "at risk" for the expiry listing (card [E4] #30): an
+    /// <see cref="ExpiryStatusView.ExpiringSoon"/> item always is, an <see cref="ExpiryStatusView.Expired"/>
+    /// one only when <paramref name="includeExpired"/> is set, and <see cref="ExpiryStatusView.Ok"/> /
+    /// <see cref="ExpiryStatusView.NotApplicable"/> items never are. This is the single C# statement of the
+    /// inclusion predicate the listing SQL's outer <c>WHERE</c> mirrors, so both agree without duplicating
+    /// the 30-day window (which lives only in <see cref="Classify"/>). Reusable by the E6 validity job (#41).
+    /// </summary>
+    internal static bool IsAtRisk(ExpiryStatusView status, bool includeExpired) => status switch
+    {
+        ExpiryStatusView.ExpiringSoon => true,
+        ExpiryStatusView.Expired => includeExpired,
+        _ => false
+    };
+
     private static DateOnly LastDayOfMonth(int year, int month)
         => new(year, month, DateTime.DaysInMonth(year, month));
 }
