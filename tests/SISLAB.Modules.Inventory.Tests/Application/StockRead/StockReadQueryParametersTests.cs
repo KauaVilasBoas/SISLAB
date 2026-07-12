@@ -29,6 +29,12 @@ public sealed class StockReadQueryParametersTests
     private readonly GetExpirySummaryQueryHandler _expirySummaryHandler =
         new(connectionFactory: null!, new StubTenantContext(ActiveCompany), new FixedClock(Now));
 
+    private readonly ListItemsBelowMinimumQueryHandler _belowMinimumHandler =
+        new(connectionFactory: null!, new StubTenantContext(ActiveCompany));
+
+    private readonly GetBelowMinimumSummaryQueryHandler _belowMinimumSummaryHandler =
+        new(connectionFactory: null!, new StubTenantContext(ActiveCompany));
+
     [Fact]
     public void List_query_takes_the_company_from_the_tenant_context()
     {
@@ -203,6 +209,53 @@ public sealed class StockReadQueryParametersTests
 
         Assert.Equal(DateOnly.FromDateTime(Now), parameters.Today);
         Assert.Equal(ExpectedWarningWindowDays, parameters.WarningWindowDays);
+    }
+
+    [Fact]
+    public void Below_minimum_query_takes_the_company_from_the_tenant_context()
+    {
+        BelowMinimumQueryParameters parameters =
+            _belowMinimumHandler.BuildParameters(new ListItemsBelowMinimumQuery());
+
+        Assert.Equal(ActiveCompany, parameters.CompanyId);
+    }
+
+    [Fact]
+    public void Below_minimum_query_passes_the_storage_location_filter_through()
+    {
+        Guid location = Guid.NewGuid();
+
+        BelowMinimumQueryParameters parameters =
+            _belowMinimumHandler.BuildParameters(new ListItemsBelowMinimumQuery { StorageLocationId = location });
+
+        Assert.Equal(location, parameters.StorageLocationId);
+    }
+
+    [Fact]
+    public void Below_minimum_query_leaves_the_storage_location_filter_null_by_default()
+    {
+        BelowMinimumQueryParameters parameters =
+            _belowMinimumHandler.BuildParameters(new ListItemsBelowMinimumQuery());
+
+        Assert.Null(parameters.StorageLocationId);
+    }
+
+    [Fact]
+    public void Below_minimum_query_maps_pagination_bounds()
+    {
+        BelowMinimumQueryParameters parameters =
+            _belowMinimumHandler.BuildParameters(new ListItemsBelowMinimumQuery { Page = 4, PageSize = 10 });
+
+        Assert.Equal(31, parameters.FirstResult); // (4-1)*10 + 1
+        Assert.Equal(40, parameters.LastResult);  // 4*10
+    }
+
+    [Fact]
+    public void Below_minimum_summary_query_takes_the_company_from_the_tenant_context()
+    {
+        BelowMinimumSummaryQueryParameters parameters = _belowMinimumSummaryHandler.BuildParameters();
+
+        Assert.Equal(ActiveCompany, parameters.CompanyId);
     }
 
     private const int ExpectedWarningWindowDays = 30;
