@@ -118,4 +118,45 @@ public sealed class StockReadController : SislabControllerBase
 
         return Ok(new ApiResult<ExpirySummary>(true, "Expiry summary retrieved.", summary));
     }
+
+    /// <summary>
+    /// Lists the active company's stock items whose on-hand quantity is below the configured minimum,
+    /// optionally filtered by storage location, ordered by criticality (largest deficit first) and
+    /// paginated. Each row carries its current quantity, minimum and derived deficit. Backs the low-stock
+    /// list and the reposition-alert job.
+    /// </summary>
+    [HttpGet("stock-items/below-minimum")]
+    [ProducesResponseType(typeof(ApiResult<PagedResult<BelowMinimumItem>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ListItemsBelowMinimum(
+        [FromQuery] Guid? storageLocationId = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        PagedResult<BelowMinimumItem> result = await _mediator.SendAsync(
+            new ListItemsBelowMinimumQuery
+            {
+                StorageLocationId = storageLocationId,
+                Page = page,
+                PageSize = pageSize
+            },
+            ct);
+
+        return Ok(new ApiResult<PagedResult<BelowMinimumItem>>(true, "Items below minimum retrieved.", result));
+    }
+
+    /// <summary>
+    /// Returns the single "reposição" KPI for the active company: how many stock items are currently below
+    /// their minimum stock. Feeds the dashboard KPI and the reposition-alert job without pulling the list.
+    /// </summary>
+    [HttpGet("stock-items/below-minimum/summary")]
+    [ProducesResponseType(typeof(ApiResult<BelowMinimumSummary>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetBelowMinimumSummary(CancellationToken ct)
+    {
+        BelowMinimumSummary summary = await _mediator.SendAsync(new GetBelowMinimumSummaryQuery(), ct);
+
+        return Ok(new ApiResult<BelowMinimumSummary>(true, "Below-minimum summary retrieved.", summary));
+    }
 }
