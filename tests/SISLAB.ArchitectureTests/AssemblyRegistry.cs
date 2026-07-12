@@ -14,7 +14,11 @@ internal static class AssemblyRegistry
             typeof(SharedKernel.Domain.Entity<Guid>).Assembly,                       // SISLAB.SharedKernel
             typeof(Infrastructure.Persistence.SislabDbContextBase).Assembly,         // SISLAB.Infrastructure
             typeof(Modules.Identity.Application.IdentityModule).Assembly,            // Identity.Application
-            typeof(Modules.Inventory.Application.InventoryModule).Assembly           // Inventory.Application
+            typeof(Modules.Inventory.Application.InventoryModule).Assembly,          // Inventory.Application
+            // Loaded explicitly so the module-isolation rules (E5 #35) can evaluate the module's public
+            // Contracts boundary and its internal Infrastructure against real types, not zero types.
+            typeof(Modules.Inventory.Contracts.IInventoryApi).Assembly,             // Inventory.Contracts
+            typeof(Modules.Inventory.Infrastructure.Persistence.InventoryDbContext).Assembly // Inventory.Infrastructure
         )
         .Build();
 
