@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SISLAB.Modules.Inventory.Infrastructure.Persistence;
@@ -12,9 +13,11 @@ using SISLAB.Modules.Inventory.Infrastructure.Persistence;
 namespace SISLAB.Modules.Inventory.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(InventoryDbContext))]
-    partial class InventoryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260711232123_AddPartners")]
+    partial class AddPartners
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -68,57 +71,6 @@ namespace SISLAB.Modules.Inventory.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_outbox_messages_processed_at_utc");
 
                     b.ToTable("outbox_messages", "inventory");
-                });
-
-            modelBuilder.Entity("SISLAB.Modules.Inventory.Domain.Equipments.Equipment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("AssetTag")
-                        .IsRequired()
-                        .HasMaxLength(60)
-                        .HasColumnType("character varying(60)")
-                        .HasColumnName("asset_tag");
-
-                    b.Property<string>("Brand")
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)")
-                        .HasColumnName("brand");
-
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("company_id");
-
-                    b.Property<string>("Model")
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)")
-                        .HasColumnName("model");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("name");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("status");
-
-                    b.Property<Guid?>("StorageLocationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("storage_location_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_equipment");
-
-                    b.HasIndex("CompanyId", "Id")
-                        .HasDatabaseName("ix_equipment_company_id_id");
-
-                    b.ToTable("equipment", "inventory");
                 });
 
             modelBuilder.Entity("SISLAB.Modules.Inventory.Domain.Partners.Partner", b =>
@@ -299,70 +251,6 @@ namespace SISLAB.Modules.Inventory.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_storage_locations_company_id_id");
 
                     b.ToTable("storage_locations", "inventory");
-                });
-
-            modelBuilder.Entity("SISLAB.Modules.Inventory.Domain.Equipments.Equipment", b =>
-                {
-                    b.OwnsOne("SISLAB.Modules.Inventory.Domain.Equipments.CalibrationSchedule", "Calibration", b1 =>
-                        {
-                            b1.Property<Guid>("EquipmentId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<DateOnly>("LastCalibration")
-                                .HasColumnType("date")
-                                .HasColumnName("last_calibration");
-
-                            b1.Property<DateOnly?>("NextCalibration")
-                                .HasColumnType("date")
-                                .HasColumnName("next_calibration");
-
-                            b1.HasKey("EquipmentId");
-
-                            b1.ToTable("equipment", "inventory");
-
-                            b1.WithOwner()
-                                .HasForeignKey("EquipmentId");
-                        });
-
-                    b.OwnsMany("SISLAB.Modules.Inventory.Domain.Equipments.MaintenanceRecord", "MaintenanceRecords", b1 =>
-                        {
-                            b1.Property<long>("id")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("bigint");
-
-                            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b1.Property<long>("id"));
-
-                            b1.Property<DateOnly>("Date")
-                                .HasColumnType("date")
-                                .HasColumnName("date");
-
-                            b1.Property<string>("Notes")
-                                .HasMaxLength(1000)
-                                .HasColumnType("character varying(1000)")
-                                .HasColumnName("notes");
-
-                            b1.Property<string>("Type")
-                                .IsRequired()
-                                .HasMaxLength(20)
-                                .HasColumnType("character varying(20)")
-                                .HasColumnName("type");
-
-                            b1.Property<Guid>("equipment_id")
-                                .HasColumnType("uuid");
-
-                            b1.HasKey("id");
-
-                            b1.HasIndex("equipment_id");
-
-                            b1.ToTable("equipment_maintenances", "inventory");
-
-                            b1.WithOwner()
-                                .HasForeignKey("equipment_id");
-                        });
-
-                    b.Navigation("Calibration");
-
-                    b.Navigation("MaintenanceRecords");
                 });
 
             modelBuilder.Entity("SISLAB.Modules.Inventory.Domain.Partners.Partner", b =>

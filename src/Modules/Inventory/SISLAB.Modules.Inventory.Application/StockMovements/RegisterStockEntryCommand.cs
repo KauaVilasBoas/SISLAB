@@ -1,4 +1,5 @@
 using FluentValidation;
+using SISLAB.Modules.Inventory.Domain.Partners;
 using SISLAB.Modules.Inventory.Domain.StockItems;
 using SISLAB.Modules.Inventory.Domain.ValueObjects;
 using SISLAB.SharedKernel.Exceptions;
@@ -14,9 +15,10 @@ namespace SISLAB.Modules.Inventory.Application.StockMovements;
 /// </summary>
 /// <remarks>
 /// The operator (responsável) is never taken from the payload: it is the authenticated user, captured
-/// by the audit trail (card #57) — decision recorded on card [E3] #24. <paramref name="SupplierPartnerId"/>
-/// and <paramref name="OccurredOn"/> are origin/traceability metadata for that same audit trail; they are
-/// carried on the command but not folded into the aggregate here (owned by cards #28/#57).
+/// by the audit trail (card #57) — decision recorded on card [E3] #24. <paramref name="OccurredOn"/> is
+/// origin/traceability metadata for that same audit trail; it is carried on the command but not folded
+/// into the aggregate here (owned by card #57). When <paramref name="SupplierPartnerId"/> is supplied,
+/// the handler verifies the partner exists and may supply (card [E3] #28) before applying the entry.
 /// </remarks>
 public sealed record RegisterStockEntryCommand(
     Guid StockItemId,
@@ -52,9 +54,15 @@ internal sealed class RegisterStockEntryCommandValidator : AbstractValidator<Reg
 internal sealed class RegisterStockEntryCommandHandler : ICommandHandler<RegisterStockEntryCommand, Guid>
 {
     private readonly IStockItemRepository _stockItems;
+    private readonly IPartnerRepository _partners;
 
-    public RegisterStockEntryCommandHandler(IStockItemRepository stockItems)
-        => _stockItems = stockItems;
+    public RegisterStockEntryCommandHandler(
+        IStockItemRepository stockItems,
+        IPartnerRepository partners)
+    {
+        _stockItems = stockItems;
+        _partners = partners;
+    }
 
     public async Task<Guid> HandleAsync(
         RegisterStockEntryCommand request,
@@ -62,6 +70,8 @@ internal sealed class RegisterStockEntryCommandHandler : ICommandHandler<Registe
     {
         StockItem item = await _stockItems.FindByIdAsync(request.StockItemId, cancellationToken)
             ?? throw new NotFoundException("StockItem", request.StockItemId);
+
+        await EnsureSupplierCanSupplyAsync(request.SupplierPartnerId, cancellationToken);
 
         Quantity received = Quantity.Of(request.Quantity, UnitOfMeasure.FromSymbol(request.Unit));
         Lot? lot = Lot.FromCode(request.LotCode);
@@ -74,5 +84,24 @@ internal sealed class RegisterStockEntryCommandHandler : ICommandHandler<Registe
         await _stockItems.UpdateAsync(item, cancellationToken);
 
         return item.Id;
+    }
+
+    /// <summary>
+    /// When a supplier is informed, loads the partner and asks it whether it may be the origin of the
+    /// entry. The supply invariant lives with the <see cref="Partner"/> aggregate (card [E3] #28); an
+    /// unknown id is a <see cref="NotFoundException"/>, a non-supplier/inactive partner a
+    /// <see cref="BusinessException"/> (raised by <see cref="Partner.EnsureCanSupply"/>).
+    /// </summary>
+    private async Task EnsureSupplierCanSupplyAsync(
+        Guid? supplierPartnerId,
+        CancellationToken cancellationToken)
+    {
+        if (supplierPartnerId is not { } partnerId)
+            return;
+
+        Partner supplier = await _partners.FindByIdAsync(partnerId, cancellationToken)
+            ?? throw new NotFoundException("Partner", partnerId);
+
+        supplier.EnsureCanSupply();
     }
 }
