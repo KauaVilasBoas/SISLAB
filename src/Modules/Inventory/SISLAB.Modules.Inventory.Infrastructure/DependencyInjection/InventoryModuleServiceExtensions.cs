@@ -5,6 +5,7 @@ using SISLAB.Infrastructure.Messaging;
 using SISLAB.Infrastructure.Messaging.Behaviors;
 using SISLAB.Infrastructure.Outbox;
 using SISLAB.Infrastructure.Persistence;
+using SISLAB.Modules.Inventory.Contracts.Events;
 using SISLAB.Modules.Inventory.Domain.Equipments;
 using SISLAB.Modules.Inventory.Domain.Partners;
 using SISLAB.Modules.Inventory.Domain.StockItems;
@@ -12,6 +13,7 @@ using SISLAB.Modules.Inventory.Domain.StockItems.Events;
 using SISLAB.Modules.Inventory.Domain.StorageLocations;
 using SISLAB.Modules.Inventory.Infrastructure.Messaging;
 using SISLAB.Modules.Inventory.Infrastructure.Persistence;
+using SISLAB.Modules.Inventory.Infrastructure.ReadModels;
 using SISLAB.Modules.Inventory.Infrastructure.Repositories;
 using SISLAB.SharedKernel.Messaging;
 
@@ -82,7 +84,17 @@ public static class InventoryModuleServiceExtensions
         services.AddScoped<IDomainEventToIntegrationEventTranslator<StockConsumedEvent>, StockConsumedEventTranslator>();
         services.AddScoped<IDomainEventToIntegrationEventTranslator<StockBelowMinimumEvent>, StockBelowMinimumEventTranslator>();
 
-        // 5. Applies schema "inventory" migrations at startup (mirrors the Identity pattern).
+        // 5. Read-model projection (card [E4] #33). The single StockMovementProjectionHandler consumes
+        //    the movement integration events published from the Outbox (post-commit, via IEventBus) and
+        //    writes one idempotent row per movement into inventory.stock_movements. Registered against
+        //    each closed IIntegrationEventHandler<T> so the InMemoryEventBus resolves it per event type.
+        //    It writes via IStockMovementStore (Dapper/DbConnectionFactory, ON CONFLICT DO NOTHING for
+        //    idempotency), on the read-model side — not through the write DbContext.
+        services.AddScoped<IStockMovementStore, StockMovementStore>();
+        services.AddScoped<IIntegrationEventHandler<StockReceivedIntegrationEvent>, StockMovementProjectionHandler>();
+        services.AddScoped<IIntegrationEventHandler<StockConsumedIntegrationEvent>, StockMovementProjectionHandler>();
+
+        // 6. Applies schema "inventory" migrations at startup (mirrors the Identity pattern).
         services.AddHostedService<InventorySchemaMigrationsHostedService>();
 
         return services;
