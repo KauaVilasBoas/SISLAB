@@ -159,4 +159,68 @@ public sealed class StockReadController : SislabControllerBase
 
         return Ok(new ApiResult<BelowMinimumSummary>(true, "Below-minimum summary retrieved.", summary));
     }
+
+    /// <summary>
+    /// Returns the active company's consumption report over <paramref name="from"/>..<paramref name="to"/>:
+    /// per-item consumed amounts (aggregated per unit, joined with the item's name and category), optionally
+    /// narrowed to one experiment and/or category, paginated, plus the per-unit grand totals over the whole
+    /// period.
+    /// </summary>
+    [HttpGet("consumption-report")]
+    [ProducesResponseType(typeof(ApiResult<ConsumptionReport>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> GetConsumptionReport(
+        [FromQuery] DateOnly from,
+        [FromQuery] DateOnly to,
+        [FromQuery] Guid? experimentId = null,
+        [FromQuery] string? category = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        ConsumptionReport report = await _mediator.SendAsync(
+            new GetConsumptionReportQuery
+            {
+                From = from,
+                To = to,
+                ExperimentId = experimentId,
+                Category = category,
+                Page = page,
+                PageSize = pageSize
+            },
+            ct);
+
+        return Ok(new ApiResult<ConsumptionReport>(true, "Consumption report retrieved.", report));
+    }
+
+    /// <summary>
+    /// Returns the active company's consumption time series over <paramref name="from"/>..<paramref name="to"/>:
+    /// total consumption bucketed by day or month (derived from the window when <paramref name="bucket"/> is
+    /// omitted), optionally narrowed to one experiment, plus the per-unit period totals and the % delta versus
+    /// the same-length preceding period. Feeds the dashboard chart.
+    /// </summary>
+    [HttpGet("consumption-series")]
+    [ProducesResponseType(typeof(ApiResult<ConsumptionSeries>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> GetConsumptionSeries(
+        [FromQuery] DateOnly from,
+        [FromQuery] DateOnly to,
+        [FromQuery] ConsumptionBucket? bucket = null,
+        [FromQuery] Guid? experimentId = null,
+        CancellationToken ct = default)
+    {
+        ConsumptionSeries series = await _mediator.SendAsync(
+            new GetConsumptionSeriesQuery
+            {
+                From = from,
+                To = to,
+                Bucket = bucket,
+                ExperimentId = experimentId
+            },
+            ct);
+
+        return Ok(new ApiResult<ConsumptionSeries>(true, "Consumption series retrieved.", series));
+    }
 }
