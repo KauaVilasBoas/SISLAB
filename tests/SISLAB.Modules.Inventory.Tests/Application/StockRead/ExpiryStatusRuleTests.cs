@@ -62,6 +62,47 @@ public sealed class ExpiryStatusRuleTests
         Assert.Equal(MapToView(domainStatus), readStatus);
     }
 
+    [Theory]
+    [InlineData(2027, 6, false)]  // ok — never at risk
+    [InlineData(2027, 6, true)]   // ok — never at risk, even including expired
+    public void Comfortably_valid_items_are_never_at_risk(int year, int month, bool includeExpired)
+    {
+        ExpiryStatusView status = ExpiryStatusRule.Classify(year, month, Today);
+
+        Assert.False(ExpiryStatusRule.IsAtRisk(status, includeExpired));
+    }
+
+    [Fact]
+    public void Items_with_no_validity_are_never_at_risk()
+    {
+        ExpiryStatusView status = ExpiryStatusRule.Classify(null, null, Today);
+
+        Assert.False(ExpiryStatusRule.IsAtRisk(status, includeExpired: true));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Expiring_soon_items_are_always_at_risk(bool includeExpired)
+    {
+        // Card [E4] #30: an item expiring within the window is at risk regardless of the expired flag.
+        ExpiryStatusView status = ExpiryStatusRule.Classify(2026, 7, Today); // last valid day within 30 days
+
+        Assert.Equal(ExpiryStatusView.ExpiringSoon, status);
+        Assert.True(ExpiryStatusRule.IsAtRisk(status, includeExpired));
+    }
+
+    [Theory]
+    [InlineData(true, true)]    // include expired -> listed
+    [InlineData(false, false)] // exclude expired -> not listed
+    public void Expired_items_are_at_risk_only_when_included(bool includeExpired, bool expectedAtRisk)
+    {
+        ExpiryStatusView status = ExpiryStatusRule.Classify(2025, 1, Today); // past its last valid day
+
+        Assert.Equal(ExpiryStatusView.Expired, status);
+        Assert.Equal(expectedAtRisk, ExpiryStatusRule.IsAtRisk(status, includeExpired));
+    }
+
     private static ExpiryStatusView MapToView(ExpiryStatus status) => status switch
     {
         ExpiryStatus.Ok => ExpiryStatusView.Ok,
