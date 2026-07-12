@@ -137,9 +137,17 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
 
     /// <summary>
     /// Registers an incoming stock entry, increasing the balance and updating the traceability data
-    /// (lot and expiry) of the newly received batch.
+    /// (lot and expiry) of the newly received batch. The optional <paramref name="occurredOn"/> and
+    /// <paramref name="supplierPartnerId"/> are origin/traceability metadata: they are not folded into
+    /// the aggregate state, only carried on <see cref="StockReceivedEvent"/> so the movements read model
+    /// (card [E4] #33) can record when the entry happened and which supplier it came from.
     /// </summary>
-    public void RegisterEntry(Quantity quantity, Lot? lot = null, ExpiryDate? expiry = null)
+    public void RegisterEntry(
+        Quantity quantity,
+        Lot? lot = null,
+        ExpiryDate? expiry = null,
+        DateOnly? occurredOn = null,
+        Guid? supplierPartnerId = null)
     {
         Quantity received = EnsurePositiveOperationQuantity(quantity, "register an entry of");
 
@@ -147,14 +155,22 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
         Lot = lot ?? Lot;
         Expiry = expiry ?? Expiry;
 
-        RaiseDomainEvent(new StockReceivedEvent(CompanyId, Id, received, _quantity, Lot, Expiry));
+        RaiseDomainEvent(new StockReceivedEvent(
+            CompanyId, Id, received, _quantity, Lot, Expiry, occurredOn, supplierPartnerId));
     }
 
     /// <summary>
     /// Registers a consumption, decreasing the balance. Fails if the amount exceeds the balance. An
-    /// expired item is <b>not</b> blocked from being consumed (see the aggregate remarks).
+    /// expired item is <b>not</b> blocked from being consumed (see the aggregate remarks). The optional
+    /// <paramref name="occurredOn"/> and <paramref name="experimentId"/> are origin/traceability
+    /// metadata: they are not folded into the aggregate state, only carried on
+    /// <see cref="StockConsumedEvent"/> so the movements read model (card [E4] #33) and the consumption
+    /// report (card #31) can record when the consumption happened and which experiment it fed.
     /// </summary>
-    public void RegisterConsumption(Quantity quantity)
+    public void RegisterConsumption(
+        Quantity quantity,
+        DateOnly? occurredOn = null,
+        Guid? experimentId = null)
     {
         Quantity consumed = EnsurePositiveOperationQuantity(quantity, "consume");
         EnsureBalanceCovers(consumed, "consume");
@@ -162,7 +178,7 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
         bool wasBelowMinimum = IsBelowMinimum;
         _quantity = _quantity.Subtract(consumed);
 
-        RaiseDomainEvent(new StockConsumedEvent(CompanyId, Id, consumed, _quantity));
+        RaiseDomainEvent(new StockConsumedEvent(CompanyId, Id, consumed, _quantity, occurredOn, experimentId));
 
         // Emit the low-stock signal only on the crossing (not-below → below), so the alert (E6)
         // fires once per breach instead of on every consumption while already depleted.

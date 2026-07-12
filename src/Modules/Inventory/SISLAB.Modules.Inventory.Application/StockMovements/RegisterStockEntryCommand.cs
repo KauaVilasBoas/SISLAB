@@ -15,10 +15,12 @@ namespace SISLAB.Modules.Inventory.Application.StockMovements;
 /// </summary>
 /// <remarks>
 /// The operator (responsável) is never taken from the payload: it is the authenticated user, captured
-/// by the audit trail (card #57) — decision recorded on card [E3] #24. <paramref name="OccurredOn"/> is
-/// origin/traceability metadata for that same audit trail; it is carried on the command but not folded
-/// into the aggregate here (owned by card #57). When <paramref name="SupplierPartnerId"/> is supplied,
-/// the handler verifies the partner exists and may supply (card [E3] #28) before applying the entry.
+/// by the audit trail (card #57) — decision recorded on card [E3] #24. <paramref name="OccurredOn"/> and
+/// <paramref name="SupplierPartnerId"/> are origin/traceability metadata: they are not folded into the
+/// aggregate state, but are handed to <see cref="StockItem.RegisterEntry"/> so they travel on
+/// <c>StockReceivedEvent</c> and feed the movements read model (card [E4] #33). When
+/// <paramref name="SupplierPartnerId"/> is supplied, the handler verifies the partner exists and may
+/// supply (card [E3] #28) before applying the entry.
 /// </remarks>
 public sealed record RegisterStockEntryCommand(
     Guid StockItemId,
@@ -79,7 +81,7 @@ internal sealed class RegisterStockEntryCommandHandler : ICommandHandler<Registe
             ? ExpiryDate.FromYearMonth(request.ExpiryYear.Value, request.ExpiryMonth.Value)
             : null;
 
-        item.RegisterEntry(received, lot, expiry);
+        item.RegisterEntry(received, lot, expiry, request.OccurredOn, request.SupplierPartnerId);
 
         await _stockItems.UpdateAsync(item, cancellationToken);
 
