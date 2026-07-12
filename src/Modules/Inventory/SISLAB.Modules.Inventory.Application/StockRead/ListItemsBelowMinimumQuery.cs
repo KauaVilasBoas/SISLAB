@@ -86,7 +86,7 @@ internal sealed class ListItemsBelowMinimumQueryHandler
                 ROW_NUMBER() OVER (
                     ORDER BY (v.minimum_quantity_amount - v.quantity_amount) DESC, v.name ASC, v.id ASC
                 ) AS row_number,
-                COUNT(*) OVER () AS total_rows
+                (COUNT(*) OVER ())::int AS total_rows
             FROM inventory.stock_view AS v
             WHERE v.company_id = @CompanyId
               AND v.is_below_minimum
@@ -106,7 +106,7 @@ internal sealed class ListItemsBelowMinimumQueryHandler
             storage_location_id     AS storagelocationid,
             storage_location_name   AS storagelocationname,
             storage_location_type   AS storagelocationtype,
-            total_rows
+            total_rows              AS totalrows
         FROM records
         WHERE row_number BETWEEN @FirstResult AND @LastResult
         ORDER BY row_number;

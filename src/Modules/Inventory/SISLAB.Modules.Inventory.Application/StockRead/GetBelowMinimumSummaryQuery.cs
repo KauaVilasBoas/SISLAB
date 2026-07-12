@@ -40,7 +40,7 @@ internal sealed class GetBelowMinimumSummaryQueryHandler
     // mandatory tenant scoping (the read side has no EF global query filter).
     private const string Sql =
         """
-        SELECT COUNT(*) AS belowminimumcount
+        SELECT COUNT(*)::int AS belowminimumcount
         FROM inventory.stock_view AS v
         WHERE v.company_id = @CompanyId
           AND v.is_below_minimum;

@@ -66,13 +66,13 @@ internal sealed class GetLocationsSummaryQueryHandler
             sl.name                                      AS name,
             sl.type                                      AS type,
             sl.is_active                                 AS isactive,
-            COUNT(si.id)                                 AS itemcount,
+            COUNT(si.id)::int                            AS itemcount,
             COUNT(si.id) FILTER (
                 WHERE si.expiry_year IS NOT NULL
                   AND si.expiry_month IS NOT NULL
                   AND @Today > (make_date(si.expiry_year, si.expiry_month, 1)
                                 + INTERVAL '1 month' - INTERVAL '1 day')::date
-            )                                            AS expireditemcount,
+            )::int                                       AS expireditemcount,
             (sl.type = @ControlledType)                  AS iscritical
         FROM inventory.storage_locations AS sl
         LEFT JOIN inventory.stock_items AS si

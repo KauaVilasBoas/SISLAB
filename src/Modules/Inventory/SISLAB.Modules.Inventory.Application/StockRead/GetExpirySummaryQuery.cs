@@ -61,7 +61,7 @@ internal sealed class GetExpirySummaryQueryHandler
                   AND v.expiry_month IS NOT NULL
                   AND @Today > (make_date(v.expiry_year, v.expiry_month, 1)
                                 + INTERVAL '1 month' - INTERVAL '1 day')::date
-            ) AS expired,
+            )::int AS expired,
             COUNT(*) FILTER (
                 WHERE v.expiry_year IS NOT NULL
                   AND v.expiry_month IS NOT NULL
@@ -70,14 +70,14 @@ internal sealed class GetExpirySummaryQueryHandler
                   AND (make_date(v.expiry_year, v.expiry_month, 1)
                        + INTERVAL '1 month' - INTERVAL '1 day')::date
                       <= (@Today + (@WarningWindowDays || ' days')::interval)::date
-            ) AS expiringsoon,
+            )::int AS expiringsoon,
             COUNT(*) FILTER (
                 WHERE v.expiry_year IS NOT NULL
                   AND v.expiry_month IS NOT NULL
                   AND (make_date(v.expiry_year, v.expiry_month, 1)
                        + INTERVAL '1 month' - INTERVAL '1 day')::date
                       > (@Today + (@WarningWindowDays || ' days')::interval)::date
-            ) AS ok
+            )::int AS ok
         FROM inventory.stock_view AS v
         WHERE v.company_id = @CompanyId;
         """;
