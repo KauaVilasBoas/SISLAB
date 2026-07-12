@@ -73,4 +73,49 @@ public sealed class StockReadController : SislabControllerBase
 
         return Ok(new ApiResult<IReadOnlyList<LocationSummaryItem>>(true, "Locations summary retrieved.", summary));
     }
+
+    /// <summary>
+    /// Lists the active company's stock items whose validity is at risk — expiring within the given window
+    /// (default 30 days) and, unless <paramref name="includeExpired"/> is false, already expired — ordered
+    /// by validity ascending and paginated, each carrying its signed days-remaining. Feeds the expiry screen
+    /// and the validity job (which passes 30/15/7-day windows).
+    /// </summary>
+    [HttpGet("stock-items/expiring")]
+    [ProducesResponseType(typeof(ApiResult<PagedResult<ExpiringItem>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ListExpiringItems(
+        [FromQuery] int warningWindowDays = ExpiryStatusRule.DefaultWarningWindowDays,
+        [FromQuery] bool includeExpired = true,
+        [FromQuery] Guid? storageLocationId = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        PagedResult<ExpiringItem> result = await _mediator.SendAsync(
+            new ListExpiringItemsQuery
+            {
+                WarningWindowDays = warningWindowDays,
+                IncludeExpired = includeExpired,
+                StorageLocationId = storageLocationId,
+                Page = page,
+                PageSize = pageSize
+            },
+            ct);
+
+        return Ok(new ApiResult<PagedResult<ExpiringItem>>(true, "Expiring items retrieved.", result));
+    }
+
+    /// <summary>
+    /// Returns the three "Situação de validade" donut totals for the active company — expired, expiring
+    /// within 30 days and comfortably valid — over items that carry a validity (dashboard #49).
+    /// </summary>
+    [HttpGet("stock-items/expiry-summary")]
+    [ProducesResponseType(typeof(ApiResult<ExpirySummary>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetExpirySummary(CancellationToken ct)
+    {
+        ExpirySummary summary = await _mediator.SendAsync(new GetExpirySummaryQuery(), ct);
+
+        return Ok(new ApiResult<ExpirySummary>(true, "Expiry summary retrieved.", summary));
+    }
 }
