@@ -36,7 +36,8 @@ public sealed class StockReadTenantFilterGuardTests
         "ListItemsBelowMinimumQueryHandler", // #32 below-minimum list
         "GetBelowMinimumSummaryQueryHandler",// #32 below-minimum KPI
         "GetConsumptionReportQueryHandler",  // #31 consumption report
-        "GetConsumptionSeriesQueryHandler"   // #31 consumption series
+        "GetConsumptionSeriesQueryHandler",  // #31 consumption series
+        "GetStockItemDetailQueryHandler"     // #35 single-item detail (public IInventoryApi boundary)
     };
 
     private static readonly Assembly ApplicationAssembly = typeof(InventoryModule).Assembly;
