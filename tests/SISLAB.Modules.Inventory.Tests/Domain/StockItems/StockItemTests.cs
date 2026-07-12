@@ -92,6 +92,20 @@ public sealed class StockItemTests
     }
 
     [Fact]
+    public void RegisterEntry_carries_occurred_on_and_supplier_on_StockReceived_for_the_read_model()
+    {
+        StockItem item = NewItem(initial: 100m);
+        Guid supplier = Guid.NewGuid();
+        var occurredOn = new DateOnly(2026, 7, 10);
+
+        item.RegisterEntry(Quantity.Of(20m, Ml), occurredOn: occurredOn, supplierPartnerId: supplier);
+
+        StockReceivedEvent received = Assert.IsType<StockReceivedEvent>(Assert.Single(item.DomainEvents));
+        Assert.Equal(occurredOn, received.OccurredOn);
+        Assert.Equal(supplier, received.SupplierPartnerId);
+    }
+
+    [Fact]
     public void RegisterConsumption_decreases_the_balance_and_raises_StockConsumed()
     {
         StockItem item = NewItem(initial: 100m);
@@ -101,6 +115,20 @@ public sealed class StockItemTests
         Assert.Equal(Quantity.Of(70m, Ml), item.Quantity);
         StockConsumedEvent consumed = Assert.IsType<StockConsumedEvent>(Assert.Single(item.DomainEvents));
         Assert.Equal(Quantity.Of(70m, Ml), consumed.ResultingQuantity);
+    }
+
+    [Fact]
+    public void RegisterConsumption_carries_occurred_on_and_experiment_on_StockConsumed_for_the_read_model()
+    {
+        StockItem item = NewItem(initial: 100m);
+        Guid experiment = Guid.NewGuid();
+        var occurredOn = new DateOnly(2026, 7, 9);
+
+        item.RegisterConsumption(Quantity.Of(30m, Ml), occurredOn, experiment);
+
+        StockConsumedEvent consumed = Assert.IsType<StockConsumedEvent>(Assert.Single(item.DomainEvents));
+        Assert.Equal(occurredOn, consumed.OccurredOn);
+        Assert.Equal(experiment, consumed.ExperimentId);
     }
 
     [Fact]

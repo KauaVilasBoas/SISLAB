@@ -17,6 +17,11 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IMediator, Mediator>();
         services.AddScoped<DbConnectionFactory>();
 
+        // Teach Dapper (the read-side) to bind DateOnly/TimeOnly parameters and columns. Dapper 2.1.x does
+        // not map these types natively, so without this every read query that passes a DateOnly parameter
+        // (expiry @Today, consumption @From/@To) would throw NotSupportedException before reaching Npgsql.
+        DapperDateOnlyTypeHandlers.Register();
+
         // Auditable tenant-isolation escape hatch for system/background work (Scoped so a
         // bypass opened inside one unit of work never leaks into another). ITenantContext
         // itself is contributed by the Identity module (it owns the tenant source).
