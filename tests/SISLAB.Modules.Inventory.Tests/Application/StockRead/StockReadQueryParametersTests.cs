@@ -1,0 +1,130 @@
+using SISLAB.Modules.Inventory.Application.StockRead;
+using SISLAB.SharedKernel.Multitenancy;
+using SISLAB.SharedKernel.Time;
+
+namespace SISLAB.Modules.Inventory.Tests.Application.StockRead;
+
+/// <summary>
+/// Covers the tenant guard and filter normalization of the E4 #29 read-side query handlers, without a live
+/// database: the Dapper parameter set they build is asserted directly. The mandatory
+/// <c>WHERE company_id = @CompanyId</c> is only as safe as its parameter, so the tests pin that the company
+/// id always comes from <see cref="ITenantContext"/> (never the request) and that blank filters collapse to
+/// null. The SQL body itself was validated against PostgreSQL by a smoke test.
+/// </summary>
+public sealed class StockReadQueryParametersTests
+{
+    private static readonly Guid ActiveCompany = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private static readonly DateTime Now = new(2026, 7, 12, 8, 0, 0, DateTimeKind.Utc);
+
+    // BuildParameters does not touch the connection factory, so a null factory is never dereferenced here.
+    private readonly ListStockItemsQueryHandler _itemsHandler =
+        new(connectionFactory: null!, new StubTenantContext(ActiveCompany), new FixedClock(Now));
+
+    private readonly GetLocationsSummaryQueryHandler _summaryHandler =
+        new(connectionFactory: null!, new StubTenantContext(ActiveCompany), new FixedClock(Now));
+
+    [Fact]
+    public void List_query_takes_the_company_from_the_tenant_context()
+    {
+        StockItemsQueryParameters parameters = _itemsHandler.BuildParameters(new ListStockItemsQuery());
+
+        Assert.Equal(ActiveCompany, parameters.CompanyId);
+    }
+
+    [Fact]
+    public void List_query_derives_today_from_the_clock()
+    {
+        StockItemsQueryParameters parameters = _itemsHandler.BuildParameters(new ListStockItemsQuery());
+
+        Assert.Equal(DateOnly.FromDateTime(Now), parameters.Today);
+        Assert.Equal(ExpectedWarningWindowDays, parameters.WarningWindowDays);
+    }
+
+    [Fact]
+    public void List_query_carries_the_expiry_status_ordinals_for_the_sql_case()
+    {
+        StockItemsQueryParameters parameters = _itemsHandler.BuildParameters(new ListStockItemsQuery());
+
+        Assert.Equal((int)ExpiryStatusView.NotApplicable, parameters.NotApplicable);
+        Assert.Equal((int)ExpiryStatusView.Ok, parameters.Ok);
+        Assert.Equal((int)ExpiryStatusView.ExpiringSoon, parameters.ExpiringSoon);
+        Assert.Equal((int)ExpiryStatusView.Expired, parameters.Expired);
+    }
+
+    [Fact]
+    public void List_query_maps_pagination_bounds()
+    {
+        StockItemsQueryParameters parameters =
+            _itemsHandler.BuildParameters(new ListStockItemsQuery { Page = 3, PageSize = 25 });
+
+        Assert.Equal(51, parameters.FirstResult); // (3-1)*25 + 1
+        Assert.Equal(75, parameters.LastResult);  // 3*25
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void List_query_collapses_blank_filters_to_null(string? blank)
+    {
+        StockItemsQueryParameters parameters = _itemsHandler.BuildParameters(
+            new ListStockItemsQuery { Category = blank, Search = blank });
+
+        Assert.Null(parameters.Category);
+        Assert.Null(parameters.Search);
+    }
+
+    [Fact]
+    public void List_query_trims_populated_filters()
+    {
+        StockItemsQueryParameters parameters = _itemsHandler.BuildParameters(
+            new ListStockItemsQuery { Category = "  Solvent  ", Search = "  eta  " });
+
+        Assert.Equal("Solvent", parameters.Category);
+        Assert.Equal("eta", parameters.Search);
+    }
+
+    [Fact]
+    public void List_query_passes_the_storage_location_filter_through()
+    {
+        Guid location = Guid.NewGuid();
+
+        StockItemsQueryParameters parameters =
+            _itemsHandler.BuildParameters(new ListStockItemsQuery { StorageLocationId = location });
+
+        Assert.Equal(location, parameters.StorageLocationId);
+    }
+
+    [Fact]
+    public void Summary_query_takes_the_company_from_the_tenant_context()
+    {
+        LocationsSummaryQueryParameters parameters = _summaryHandler.BuildParameters();
+
+        Assert.Equal(ActiveCompany, parameters.CompanyId);
+    }
+
+    [Fact]
+    public void Summary_query_derives_today_from_the_clock_and_flags_controlled_storage()
+    {
+        LocationsSummaryQueryParameters parameters = _summaryHandler.BuildParameters();
+
+        Assert.Equal(DateOnly.FromDateTime(Now), parameters.Today);
+        Assert.Equal("Controlled", parameters.ControlledType);
+    }
+
+    private const int ExpectedWarningWindowDays = 30;
+
+    private sealed class StubTenantContext : ITenantContext
+    {
+        public StubTenantContext(Guid companyId) => CompanyId = companyId;
+
+        public Guid CompanyId { get; }
+    }
+
+    private sealed class FixedClock : IClock
+    {
+        public FixedClock(DateTime utcNow) => UtcNow = utcNow;
+
+        public DateTime UtcNow { get; }
+    }
+}
