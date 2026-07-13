@@ -2,7 +2,7 @@ using FluentValidation;
 using SISLAB.Modules.Inventory.Domain.Partners;
 using SISLAB.SharedKernel.Messaging;
 
-namespace SISLAB.Modules.Inventory.Application.Partners;
+namespace SISLAB.Modules.Inventory.Application.Partners.Commands;
 
 /// <summary>
 /// Registers a new partner (supplier/client/both) for the active company. The contact e-mail and

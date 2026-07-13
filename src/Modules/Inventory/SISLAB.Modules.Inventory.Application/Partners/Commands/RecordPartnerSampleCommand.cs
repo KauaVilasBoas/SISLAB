@@ -3,7 +3,7 @@ using SISLAB.Modules.Inventory.Domain.Partners;
 using SISLAB.SharedKernel.Exceptions;
 using SISLAB.SharedKernel.Messaging;
 
-namespace SISLAB.Modules.Inventory.Application.Partners;
+namespace SISLAB.Modules.Inventory.Application.Partners.Commands;
 
 /// <summary>
 /// Records a sample/compound a partner sent for testing (for example "GDA-92 · pendente"). This is the

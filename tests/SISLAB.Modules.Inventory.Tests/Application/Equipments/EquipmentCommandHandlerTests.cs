@@ -1,4 +1,4 @@
-using SISLAB.Modules.Inventory.Application.Equipments;
+using SISLAB.Modules.Inventory.Application.Equipments.Commands;
 using SISLAB.Modules.Inventory.Domain.Equipments;
 using SISLAB.SharedKernel.Exceptions;
 

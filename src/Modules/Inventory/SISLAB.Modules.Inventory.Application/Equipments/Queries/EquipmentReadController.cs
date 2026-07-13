@@ -6,7 +6,7 @@ using SISLAB.SharedKernel.Exceptions;
 using SISLAB.SharedKernel.Http;
 using SISLAB.SharedKernel.Messaging;
 
-namespace SISLAB.Modules.Inventory.Application.EquipmentRead;
+namespace SISLAB.Modules.Inventory.Application.Equipments.Queries;
 
 /// <summary>
 /// Read-side (CQRS query) HTTP boundary for the "Equipamentos" screen (#48) of the <b>active company</b>: the

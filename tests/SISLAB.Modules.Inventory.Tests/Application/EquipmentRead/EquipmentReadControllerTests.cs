@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using SISLAB.Modules.Inventory.Application.EquipmentRead;
+using SISLAB.Modules.Inventory.Application.Equipments.Queries;
 using SISLAB.Modules.Inventory.Domain.Equipments;
 using SISLAB.SharedKernel.Exceptions;
 using SISLAB.SharedKernel.Http;

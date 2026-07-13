@@ -5,7 +5,7 @@ using SISLAB.SharedKernel.Messaging;
 using SISLAB.SharedKernel.Multitenancy;
 using SISLAB.SharedKernel.Time;
 
-namespace SISLAB.Modules.Inventory.Application.EquipmentRead;
+namespace SISLAB.Modules.Inventory.Application.Equipments.Queries;
 
 /// <summary>
 /// Read-side query (card [E6] #66) that lists the equipment of the <b>active company</b> whose calibration is

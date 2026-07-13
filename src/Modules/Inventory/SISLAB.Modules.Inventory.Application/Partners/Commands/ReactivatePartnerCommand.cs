@@ -3,7 +3,7 @@ using SISLAB.Modules.Inventory.Domain.Partners;
 using SISLAB.SharedKernel.Exceptions;
 using SISLAB.SharedKernel.Messaging;
 
-namespace SISLAB.Modules.Inventory.Application.Partners;
+namespace SISLAB.Modules.Inventory.Application.Partners.Commands;
 
 /// <summary>Puts a deactivated partner back in service. Idempotent at the aggregate level.</summary>
 public sealed record ReactivatePartnerCommand(Guid PartnerId) : ICommand;

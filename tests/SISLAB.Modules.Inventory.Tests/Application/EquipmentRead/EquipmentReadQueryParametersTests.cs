@@ -1,4 +1,4 @@
-using SISLAB.Modules.Inventory.Application.EquipmentRead;
+using SISLAB.Modules.Inventory.Application.Equipments.Queries;
 using SISLAB.Modules.Inventory.Domain.Equipments;
 using SISLAB.TestSupport;
 
