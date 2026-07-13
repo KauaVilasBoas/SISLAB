@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using SISLAB.SharedKernel.Exceptions;
+using SISLAB.SharedKernel.Http;
 using SISLAB.SharedKernel.Observability;
 
 namespace SISLAB.Api.Middleware;
@@ -27,8 +28,6 @@ namespace SISLAB.Api.Middleware;
 /// </summary>
 public sealed class ExceptionHandlingMiddleware
 {
-    private const string ErrorTypeBaseUri = "https://sislab.app/errors/";
-
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;
     private readonly IHostEnvironment _environment;
@@ -58,7 +57,7 @@ public sealed class ExceptionHandlingMiddleware
         {
             ProblemDetails problem = Build(
                 StatusCodes.Status422UnprocessableEntity,
-                "business-rule-violation",
+                ProblemDetailsTypes.BusinessRuleViolation,
                 "Business Rule Violation",
                 ex.Message);
             await WriteAsync(context, problem, correlationIdAccessor);
@@ -67,7 +66,7 @@ public sealed class ExceptionHandlingMiddleware
         {
             ProblemDetails problem = Build(
                 StatusCodes.Status404NotFound,
-                "not-found",
+                ProblemDetailsTypes.NotFound,
                 "Not Found",
                 ex.Message);
             await WriteAsync(context, problem, correlationIdAccessor);
@@ -76,7 +75,7 @@ public sealed class ExceptionHandlingMiddleware
         {
             ProblemDetails problem = Build(
                 StatusCodes.Status409Conflict,
-                "conflict",
+                ProblemDetailsTypes.Conflict,
                 "Conflict",
                 ex.Message);
             await WriteAsync(context, problem, correlationIdAccessor);
@@ -85,7 +84,7 @@ public sealed class ExceptionHandlingMiddleware
         {
             ProblemDetails problem = Build(
                 StatusCodes.Status403Forbidden,
-                "forbidden",
+                ProblemDetailsTypes.Forbidden,
                 "Forbidden",
                 ex.Message);
             await WriteAsync(context, problem, correlationIdAccessor);
@@ -102,16 +101,16 @@ public sealed class ExceptionHandlingMiddleware
 
             ProblemDetails problem = Build(
                 StatusCodes.Status500InternalServerError,
-                "internal-error",
+                ProblemDetailsTypes.InternalError,
                 "Internal Server Error",
                 detail);
             await WriteAsync(context, problem, correlationIdAccessor);
         }
     }
 
-    private static ProblemDetails Build(int status, string typeSlug, string title, string detail) => new()
+    private static ProblemDetails Build(int status, string type, string title, string detail) => new()
     {
-        Type = ErrorTypeBaseUri + typeSlug,
+        Type = type,
         Title = title,
         Status = status,
         Detail = detail
@@ -127,7 +126,7 @@ public sealed class ExceptionHandlingMiddleware
 
         return new ValidationProblemDetails(errors)
         {
-            Type = ErrorTypeBaseUri + "validation-error",
+            Type = ProblemDetailsTypes.ValidationError,
             Title = "Validation Error",
             Status = StatusCodes.Status400BadRequest,
             Detail = "One or more validation errors occurred."
@@ -145,9 +144,9 @@ public sealed class ExceptionHandlingMiddleware
         problem.Instance = context.Request.Path;
 
         context.Response.StatusCode = problem.Status ?? StatusCodes.Status500InternalServerError;
-        context.Response.ContentType = "application/problem+json";
+        context.Response.ContentType = HttpConstants.ContentTypes.ProblemJson;
 
         return context.Response.WriteAsJsonAsync(
-            problem, problem.GetType(), options: null, contentType: "application/problem+json");
+            problem, problem.GetType(), options: null, contentType: HttpConstants.ContentTypes.ProblemJson);
     }
 }

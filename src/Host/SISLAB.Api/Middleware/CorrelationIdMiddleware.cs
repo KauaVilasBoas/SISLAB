@@ -22,7 +22,7 @@ namespace SISLAB.Api.Middleware;
 public sealed class CorrelationIdMiddleware
 {
     /// <summary>Inbound/outbound header carrying the correlation id.</summary>
-    public const string HeaderName = "X-Correlation-Id";
+    public const string HeaderName = ObservabilityConstants.CorrelationIdHeader;
 
     private readonly RequestDelegate _next;
 

@@ -1,3 +1,5 @@
+using SISLAB.SharedKernel.Http;
+
 namespace SISLAB.Api.Middleware;
 
 /// <summary>
@@ -28,11 +30,16 @@ public sealed class SecurityHeadersMiddleware
         {
             var response = ((HttpContext)state).Response;
 
-            response.Headers["X-Content-Type-Options"] = "nosniff";
-            response.Headers["X-Frame-Options"] = "DENY";
-            response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-            response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
-            response.Headers["X-XSS-Protection"] = "0";
+            response.Headers[HttpConstants.SecurityHeaders.ContentTypeOptions] =
+                HttpConstants.SecurityHeaders.ContentTypeOptionsValue;
+            response.Headers[HttpConstants.SecurityHeaders.FrameOptions] =
+                HttpConstants.SecurityHeaders.FrameOptionsValue;
+            response.Headers[HttpConstants.SecurityHeaders.ReferrerPolicy] =
+                HttpConstants.SecurityHeaders.ReferrerPolicyValue;
+            response.Headers[HttpConstants.SecurityHeaders.PermissionsPolicy] =
+                HttpConstants.SecurityHeaders.PermissionsPolicyValue;
+            response.Headers[HttpConstants.SecurityHeaders.XssProtection] =
+                HttpConstants.SecurityHeaders.XssProtectionValue;
 
             return Task.CompletedTask;
         }, context);

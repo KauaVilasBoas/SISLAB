@@ -82,6 +82,6 @@ public sealed class AuditController : SislabControllerBase
         string fileName =
             $"audit-{DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}.csv";
 
-        return File(bytes, "text/csv", fileName);
+        return File(bytes, HttpConstants.ContentTypes.Csv, fileName);
     }
 }

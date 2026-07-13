@@ -13,7 +13,7 @@ namespace SISLAB.Api.Tests.Observability;
 /// </summary>
 public sealed class CorrelationIdMiddlewareTests
 {
-    private const string HeaderName = "X-Correlation-Id";
+    private const string HeaderName = ObservabilityConstants.CorrelationIdHeader;
 
     [Fact]
     public async Task WhenHeaderAbsent_GeneratesId_PublishesAndEchoesIt()
