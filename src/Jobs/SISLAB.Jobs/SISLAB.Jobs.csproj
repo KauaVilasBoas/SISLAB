@@ -18,15 +18,27 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Shared infrastructure: OutboxDispatcher, InMemoryEventBus, TenantBypass, IClock. -->
+    <!-- Shared infrastructure: OutboxDispatcher, InMemoryEventBus, TenantBypass, IClock, tenant-override seam. -->
     <ProjectReference Include="..\..\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
     <!--
-      Notifications public boundary (card #64a, Option A). The future alert jobs (#41/#42/#66) resolve
+      Notifications public boundary (card #64a, Option A). The alert jobs (#41/#42/#66) resolve
       INotificationPublisher from the shared container and raise notifications through it. Jobs references
       ONLY the module's Contracts — never its Domain/Application/Infrastructure (module-isolation rule,
-      enforced by ArchRules). No job is added now; this reference just makes the port reachable when they are.
+      enforced by ArchRules).
     -->
     <ProjectReference Include="..\..\Modules\Notifications\SISLAB.Modules.Notifications.Contracts\SISLAB.Modules.Notifications.Contracts.csproj" />
+    <!--
+      Inventory Application (E4 read queries): the alert jobs dispatch ListExpiringItemsQuery (#41),
+      ListItemsBelowMinimumQuery (#42) and ListOverdueCalibrationEquipmentQuery (#66) via IMediator. A host
+      may reference a module's public Application entry point (same rule as SISLAB.Api); it must NEVER reach
+      into the module's internal Domain — enforced by the Jobs→Domain ArchRules.
+    -->
+    <ProjectReference Include="..\..\Modules\Inventory\SISLAB.Modules.Inventory.Application\SISLAB.Modules.Inventory.Application.csproj" />
+    <!--
+      Identity Application (E1 enumeration): the alert jobs dispatch ListAllCompanyIdsQuery via IMediator to
+      enumerate the active companies they scan. Public Application entry point only — never Identity's Domain.
+    -->
+    <ProjectReference Include="..\..\Modules\Identity\SISLAB.Modules.Identity.Application\SISLAB.Modules.Identity.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
