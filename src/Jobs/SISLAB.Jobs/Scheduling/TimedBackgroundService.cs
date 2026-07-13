@@ -36,14 +36,19 @@ namespace SISLAB.Jobs.Scheduling;
 /// </summary>
 public abstract class TimedBackgroundService : BackgroundService
 {
-    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger _logger;
 
     protected TimedBackgroundService(IServiceScopeFactory scopeFactory, ILogger logger)
     {
-        _scopeFactory = scopeFactory;
+        ScopeFactory = scopeFactory;
         _logger = logger;
     }
+
+    /// <summary>
+    /// The DI scope factory shared by the whole job hierarchy. Subclasses that need to open child scopes
+    /// (e.g. the per-company scan) use this instead of holding their own duplicate reference.
+    /// </summary>
+    protected IServiceScopeFactory ScopeFactory { get; }
 
     /// <summary>Human-readable job name used in logs (defaults to the concrete type name).</summary>
     protected virtual string JobName => GetType().Name;
@@ -97,7 +102,7 @@ public abstract class TimedBackgroundService : BackgroundService
         {
             // Fresh scope per tick: scoped services (DbContext, OutboxDispatcher, tenant context) are
             // resolved and disposed within the iteration, never captured across ticks.
-            using IServiceScope scope = _scopeFactory.CreateScope();
+            using IServiceScope scope = ScopeFactory.CreateScope();
             await ExecuteTickAsync(scope, cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
