@@ -5,9 +5,10 @@ namespace SISLAB.Infrastructure.Outbox;
 
 /// <summary>
 /// EF Core configuration for <see cref="OutboxMessage"/>.
-/// Indexes optimize the dispatcher query:
-/// - ix_outbox_messages_processed_at_utc: filters pending messages (IS NULL).
-/// - ix_outbox_messages_occurred_on_utc: temporal ordering for FIFO processing.
+/// A single partial index (ix_outbox_messages_pending) covers the dispatcher's exact predicate
+/// (processed_at_utc IS NULL AND dead_lettered_at_utc IS NULL) ordered by occurred_on_utc, so both the
+/// pending scan and the FIFO Take() are served by one lean index that automatically excludes processed
+/// and dead-lettered rows (a Postgres partial index).
 /// </summary>
 public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<OutboxMessage>
 {
@@ -34,14 +35,23 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
         builder.Property(m => m.ProcessedAtUtc)
             .IsRequired(false);
 
+        builder.Property(m => m.AttemptCount)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(m => m.DeadLetteredAtUtc)
+            .IsRequired(false);
+
         builder.Property(m => m.Error)
             .HasMaxLength(2048)
             .IsRequired(false);
 
-        builder.HasIndex(m => m.ProcessedAtUtc)
-            .HasDatabaseName("ix_outbox_messages_processed_at_utc");
-
+        // Partial index matching the dispatcher's pending predicate. It replaces the previous pair of
+        // indexes (processed_at_utc + occurred_on_utc): now that "pending" means BOTH not-processed AND
+        // not-dead-lettered, one filtered index ordered by occurred_on_utc serves the WHERE clause and
+        // the FIFO Take() together, and shrinks as messages leave the pending set.
         builder.HasIndex(m => m.OccurredOnUtc)
-            .HasDatabaseName("ix_outbox_messages_occurred_on_utc");
+            .HasDatabaseName("ix_outbox_messages_pending")
+            .HasFilter("processed_at_utc IS NULL AND dead_lettered_at_utc IS NULL");
     }
 }
