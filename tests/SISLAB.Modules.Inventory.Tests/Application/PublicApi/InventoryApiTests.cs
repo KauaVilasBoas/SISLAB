@@ -1,5 +1,5 @@
 using SISLAB.Modules.Inventory.Application.PublicApi;
-using SISLAB.Modules.Inventory.Application.StockRead;
+using SISLAB.Modules.Inventory.Application.StockMovements.Queries;
 using SISLAB.Modules.Inventory.Contracts.Dtos;
 using SISLAB.SharedKernel.Messaging;
 
