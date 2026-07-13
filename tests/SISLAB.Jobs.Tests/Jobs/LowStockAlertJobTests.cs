@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using SISLAB.Jobs.Configuration;
 using SISLAB.Jobs.Jobs;
 using SISLAB.Jobs.Tests.Jobs.TestSupport;
-using SISLAB.Modules.Inventory.Application.StockRead;
+using SISLAB.Modules.Inventory.Application.StockMovements.Queries;
 using SISLAB.Modules.Notifications.Contracts;
 
 namespace SISLAB.Jobs.Tests.Jobs;

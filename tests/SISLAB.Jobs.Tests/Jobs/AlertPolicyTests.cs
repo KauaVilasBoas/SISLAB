@@ -1,6 +1,6 @@
 using SISLAB.Jobs.Jobs;
-using SISLAB.Modules.Inventory.Application.EquipmentRead;
-using SISLAB.Modules.Inventory.Application.StockRead;
+using SISLAB.Modules.Inventory.Application.Equipments.Queries;
+using SISLAB.Modules.Inventory.Application.StockMovements.Queries;
 using SISLAB.Modules.Notifications.Contracts;
 
 namespace SISLAB.Jobs.Tests.Jobs;
