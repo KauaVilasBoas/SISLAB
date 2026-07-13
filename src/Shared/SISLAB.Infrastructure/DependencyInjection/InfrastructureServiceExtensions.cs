@@ -1,10 +1,13 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using SISLAB.Infrastructure.Data;
 using SISLAB.Infrastructure.Messaging;
 using SISLAB.Infrastructure.Messaging.Behaviors;
 using SISLAB.Infrastructure.Multitenancy;
+using SISLAB.Infrastructure.Observability;
 using SISLAB.SharedKernel.Messaging;
 using SISLAB.SharedKernel.Multitenancy;
+using SISLAB.SharedKernel.Observability;
 using SISLAB.SharedKernel.Time;
 
 namespace SISLAB.Infrastructure.DependencyInjection;
@@ -16,6 +19,11 @@ public static class InfrastructureServiceExtensions
         services.AddSingleton<IClock, SystemClock>();
         services.AddScoped<IMediator, Mediator>();
         services.AddScoped<DbConnectionFactory>();
+
+        // Correlation id accessor (card [E9] #56). The LoggingBehavior stamps every log line with it.
+        // TryAdd so the Host can override with its request-aware accessor (populated from the
+        // X-Correlation-Id header); background jobs and tests fall back to this ambient per-scope id.
+        services.TryAddScoped<ICorrelationIdAccessor, AmbientCorrelationIdAccessor>();
 
         // Teach Dapper (the read-side) to bind DateOnly/TimeOnly parameters and columns. Dapper 2.1.x does
         // not map these types natively, so without this every read query that passes a DateOnly parameter

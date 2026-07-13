@@ -1,19 +1,40 @@
 using System.Reflection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Serilog;
 using SISLAB.Api.Csrf;
 using SISLAB.Api.Middleware;
+using SISLAB.Api.Observability;
 using SISLAB.Infrastructure.DependencyInjection;
 using SISLAB.Infrastructure.Modules;
 using SISLAB.Jobs.DependencyInjection;
 using SISLAB.Modules.Identity.Application;
 using SISLAB.Modules.Inventory.Application;
 using SISLAB.Modules.Notifications.Application;
+using SISLAB.SharedKernel.Observability;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+// ---------------------------------------------------------------------------
+// Structured logging (card [E9] #56) — Serilog with the CorrelationId enricher.
+// Console JSON always; ships to Coralogix over HTTP when Coralogix:ApiKey is set
+// (absent in dev → Console only). Replaces the default Microsoft logger.
+// ---------------------------------------------------------------------------
+builder.Host.UseSerilog(SerilogConfiguration.Configure);
 
 // ---------------------------------------------------------------------------
 // Shared infrastructure (lightweight mediator, IClock, DbConnectionFactory)
 // ---------------------------------------------------------------------------
 builder.Services.AddSislabInfrastructure();
+
+// ---------------------------------------------------------------------------
+// Request correlation (card [E9] #56). The Host owns the request-aware accessor,
+// populated by CorrelationIdMiddleware from the X-Correlation-Id header; it
+// overrides the ambient fallback registered by AddSislabInfrastructure. Registered
+// as the concrete type too so the middleware can set the resolved id.
+// ---------------------------------------------------------------------------
+builder.Services.AddScoped<CorrelationIdAccessor>();
+builder.Services.Replace(
+    ServiceDescriptor.Scoped<ICorrelationIdAccessor>(sp => sp.GetRequiredService<CorrelationIdAccessor>()));
 
 // ---------------------------------------------------------------------------
 // Composition Root — module discovery and registration via assembly scanning.
@@ -109,8 +130,21 @@ WebApplication app = builder.Build();
 // ---------------------------------------------------------------------------
 
 // First in the pipeline so it wraps every downstream middleware and endpoint,
-// translating domain/application exceptions into the uniform ApiResult envelope.
+// translating domain/application exceptions into the RFC 7807 ProblemDetails response.
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+// Correlation id (card [E9] #56) — resolves X-Correlation-Id (or generates one), stores it on the
+// scoped accessor for the LoggingBehavior/ProblemDetails traceId, and echoes it on the response. Runs
+// right after the exception boundary so every downstream log line and error carries the id.
+app.UseMiddleware<CorrelationIdMiddleware>();
+
+// Serilog request logging — one structured summary line per request (method, path, status, elapsed),
+// enriched with the CorrelationId pushed onto the LogContext below.
+app.UseSerilogRequestLogging(options =>
+    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+        diagnosticContext.Set(
+            "CorrelationId",
+            httpContext.RequestServices.GetRequiredService<ICorrelationIdAccessor>().CorrelationId));
 
 if (app.Environment.IsDevelopment())
 {
