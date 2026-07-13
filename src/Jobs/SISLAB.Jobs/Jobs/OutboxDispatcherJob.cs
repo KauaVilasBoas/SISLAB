@@ -52,6 +52,6 @@ public sealed class OutboxDispatcherJob : TimedBackgroundService
         // the global company_id query filter is lifted for this unit of work only.
         using IDisposable _ = tenantBypass.BeginScope(BypassReason);
 
-        await dispatcher.ProcessPendingAsync(_options.BatchSize, cancellationToken);
+        await dispatcher.ProcessPendingAsync(_options.BatchSize, _options.MaxAttempts, cancellationToken);
     }
 }

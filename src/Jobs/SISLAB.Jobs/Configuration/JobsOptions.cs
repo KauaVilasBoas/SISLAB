@@ -21,9 +21,10 @@ public sealed class JobsOptions
 }
 
 /// <summary>
-/// Settings for the Outbox dispatcher job: how often it runs and how many pending messages it drains
-/// per tick. The defaults (5s cadence, 50 messages) keep integration events near-real-time without
-/// hammering the database.
+/// Settings for the Outbox dispatcher job: how often it runs, how many pending messages it drains per
+/// tick, and how many times a failing message is retried before being dead-lettered. The defaults
+/// (5s cadence, 50 messages, 5 attempts) keep integration events near-real-time without hammering the
+/// database and stop a poison message from blocking the loop forever.
 /// </summary>
 public sealed class OutboxDispatcherOptions
 {
@@ -32,4 +33,10 @@ public sealed class OutboxDispatcherOptions
 
     /// <summary>Maximum pending messages published per tick. Default: 50.</summary>
     public int BatchSize { get; init; } = 50;
+
+    /// <summary>
+    /// How many failed delivery attempts a message tolerates before it is dead-lettered and no longer
+    /// retried. Default: 5.
+    /// </summary>
+    public int MaxAttempts { get; init; } = 5;
 }

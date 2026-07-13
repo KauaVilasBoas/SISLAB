@@ -10,10 +10,12 @@ namespace SISLAB.Infrastructure.Outbox;
 /// Reads pending Outbox messages and publishes them via <see cref="IEventBus"/>.
 /// Invoked by the background worker in SISLAB.Jobs on a configurable interval.
 ///
-/// Idempotency: checks <see cref="OutboxMessage.ProcessedAtUtc"/> == null before publishing.
-/// After publishing, marks <see cref="OutboxMessage.MarkProcessed"/> and saves.
-/// On failure, records the error via <see cref="OutboxMessage.RecordError"/> and continues
-/// with remaining messages — the failed message is retried on the next run.
+/// Pending = <see cref="OutboxMessage.ProcessedAtUtc"/> is null AND the message has not been
+/// dead-lettered (<see cref="OutboxMessage.DeadLetteredAtUtc"/> is null). After publishing, marks
+/// <see cref="OutboxMessage.MarkProcessed"/> and saves. On failure, records the error via
+/// <see cref="OutboxMessage.RecordError"/> (which increments the attempt count and dead-letters the
+/// message once the limit is reached) and continues with the remaining messages — a failed message is
+/// retried on the next run until it is dead-lettered, so one poison message never blocks the batch.
 ///
 /// The host worker (SISLAB.Jobs) is responsible for creating the DI scope and invoking
 /// <see cref="ProcessPendingAsync"/>. This component is stateless and thread-safe.
@@ -43,13 +45,18 @@ public sealed class OutboxDispatcher
     }
 
     /// <param name="batchSize">Maximum messages processed per invocation.</param>
+    /// <param name="maxAttempts">
+    /// Failed-delivery attempts a message tolerates before it is dead-lettered and dropped from the
+    /// pending set.
+    /// </param>
     /// <returns>Number of messages successfully published in this run.</returns>
     public async Task<int> ProcessPendingAsync(
         int batchSize = 50,
+        int maxAttempts = 5,
         CancellationToken cancellationToken = default)
     {
         List<OutboxMessage> pending = await _outboxContext.OutboxMessages
-            .Where(m => m.ProcessedAtUtc == null)
+            .Where(m => m.ProcessedAtUtc == null && m.DeadLetteredAtUtc == null)
             .OrderBy(m => m.OccurredOnUtc)
             .Take(batchSize)
             .ToListAsync(cancellationToken);
@@ -58,6 +65,8 @@ public sealed class OutboxDispatcher
             return 0;
 
         int published = 0;
+        int failed = 0;
+        int deadLettered = 0;
 
         foreach (OutboxMessage message in pending)
         {
@@ -71,7 +80,8 @@ public sealed class OutboxDispatcher
                         "Outbox: type '{EventType}' could not be deserialized. MessageId={MessageId}",
                         message.EventType, message.Id);
 
-                    message.RecordError($"Type not found: {message.EventType}");
+                    RecordFailure(message, $"Type not found: {message.EventType}", maxAttempts,
+                        ref failed, ref deadLettered);
                     continue;
                 }
 
@@ -91,15 +101,51 @@ public sealed class OutboxDispatcher
                     "Outbox: failed to publish {EventType} | MessageId={MessageId}",
                     message.EventType, message.Id);
 
-                message.RecordError(ex.Message);
+                RecordFailure(message, ex.Message, maxAttempts, ref failed, ref deadLettered);
             }
         }
 
-        // Persist ProcessedAtUtc / Error marks in the same context scope.
+        // Persist ProcessedAtUtc / AttemptCount / DeadLetteredAtUtc / Error marks in the same context scope.
         if (_outboxContext is DbContext dbContext)
             await dbContext.SaveChangesAsync(cancellationToken);
 
+        int backlog = await CountPendingAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Outbox tick: read {Read}, published {Published}, failed {Failed}, dead-lettered {DeadLettered}, backlog {Backlog}.",
+            pending.Count, published, failed, deadLettered, backlog);
+
         return published;
+    }
+
+    /// <summary>
+    /// Records a failed delivery on the message (increment + possible dead-letter) and updates the
+    /// per-tick counters used for the structured tick log.
+    /// </summary>
+    private void RecordFailure(
+        OutboxMessage message,
+        string error,
+        int maxAttempts,
+        ref int failed,
+        ref int deadLettered)
+    {
+        message.RecordError(error, maxAttempts, _clock);
+        failed++;
+
+        if (message.IsDeadLettered)
+        {
+            deadLettered++;
+            _logger.LogWarning(
+                "Outbox: message dead-lettered after {AttemptCount} attempts. MessageId={MessageId}, EventType={EventType}",
+                message.AttemptCount, message.Id, message.EventType);
+        }
+    }
+
+    private async Task<int> CountPendingAsync(CancellationToken cancellationToken)
+    {
+        return await _outboxContext.OutboxMessages
+            .Where(m => m.ProcessedAtUtc == null && m.DeadLetteredAtUtc == null)
+            .CountAsync(cancellationToken);
     }
 
     private static object? DeserializeEvent(OutboxMessage message)
