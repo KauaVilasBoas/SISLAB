@@ -1,6 +1,5 @@
 using SISLAB.Infrastructure.Data;
 using SISLAB.Modules.Notifications.Application.NotificationsRead;
-using SISLAB.Modules.Notifications.Tests.TestSupport;
 using Microsoft.Extensions.Configuration;
 
 namespace SISLAB.Modules.Notifications.Tests.Application;

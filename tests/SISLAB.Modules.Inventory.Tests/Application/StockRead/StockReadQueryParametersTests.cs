@@ -1,7 +1,5 @@
 using SISLAB.Modules.Inventory.Application.StockRead;
 using SISLAB.SharedKernel.Exceptions;
-using SISLAB.SharedKernel.Multitenancy;
-using SISLAB.SharedKernel.Time;
 
 namespace SISLAB.Modules.Inventory.Tests.Application.StockRead;
 
@@ -448,18 +446,4 @@ public sealed class StockReadQueryParametersTests
         new() { From = WindowFrom, To = WindowTo };
 
     private const int ExpectedWarningWindowDays = 30;
-
-    private sealed class StubTenantContext : ITenantContext
-    {
-        public StubTenantContext(Guid companyId) => CompanyId = companyId;
-
-        public Guid CompanyId { get; }
-    }
-
-    private sealed class FixedClock : IClock
-    {
-        public FixedClock(DateTime utcNow) => UtcNow = utcNow;
-
-        public DateTime UtcNow { get; }
-    }
 }

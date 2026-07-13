@@ -1,6 +1,5 @@
 using SISLAB.Modules.Notifications.Application.Notifications;
 using SISLAB.Modules.Notifications.Domain.Notifications;
-using SISLAB.Modules.Notifications.Tests.TestSupport;
 using SISLAB.SharedKernel.Exceptions;
 
 namespace SISLAB.Modules.Notifications.Tests.Application;

@@ -6,7 +6,6 @@ using SISLAB.Modules.Notifications.Application.NotificationsRead;
 using SISLAB.Modules.Notifications.Contracts;
 using SISLAB.Modules.Notifications.Infrastructure.Messaging;
 using SISLAB.Modules.Notifications.Infrastructure.Persistence;
-using SISLAB.Modules.Notifications.Tests.TestSupport;
 using SISLAB.SharedKernel.Messaging;
 using SISLAB.SharedKernel.Multitenancy;
 using Testcontainers.PostgreSql;

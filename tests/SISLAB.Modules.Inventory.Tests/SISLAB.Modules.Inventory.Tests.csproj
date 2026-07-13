@@ -24,10 +24,12 @@
     <ProjectReference Include="..\..\src\Modules\Inventory\SISLAB.Modules.Inventory.Infrastructure\SISLAB.Modules.Inventory.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Modules\Inventory\SISLAB.Modules.Inventory.Contracts\SISLAB.Modules.Inventory.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Shared\SISLAB.SharedKernel\SISLAB.SharedKernel.csproj" />
+    <ProjectReference Include="..\SISLAB.TestSupport\SISLAB.TestSupport.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="SISLAB.TestSupport" />
   </ItemGroup>
 
 </Project>
