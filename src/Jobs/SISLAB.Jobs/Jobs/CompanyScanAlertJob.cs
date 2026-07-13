@@ -42,6 +42,12 @@ namespace SISLAB.Jobs.Jobs;
 /// </summary>
 public abstract class CompanyScanAlertJob : TimedBackgroundService
 {
+    /// <summary>
+    /// Page size used when draining a company's at-risk set — the read side clamps this to its own maximum.
+    /// The scans are low-volume (a lab's at-risk set is small), so paging only bounds each round-trip.
+    /// </summary>
+    protected const int ScanPageSize = 200;
+
     private readonly IClock _clock;
     private readonly ILogger _logger;
 

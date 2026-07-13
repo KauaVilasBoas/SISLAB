@@ -54,12 +54,12 @@ public sealed class CalibrationOverdueAlertJob : CompanyScanAlertJob
         INotificationPublisher publisher = companyScope.ServiceProvider.GetRequiredService<INotificationPublisher>();
 
         IReadOnlyList<OverdueCalibrationEquipment> overdueEquipment = await PagedQueryDrainer.DrainAsync(
+            mediator,
             queryForPage: page => new ListOverdueCalibrationEquipmentQuery
             {
                 Page = page,
-                PageSize = PagedQueryDrainer.PageSize
+                PageSize = ScanPageSize
             },
-            send: (query, ct) => mediator.SendAsync(query, ct),
             cancellationToken);
 
         foreach (OverdueCalibrationEquipment equipment in overdueEquipment)

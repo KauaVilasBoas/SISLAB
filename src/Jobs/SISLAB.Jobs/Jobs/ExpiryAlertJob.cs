@@ -65,14 +65,14 @@ public sealed class ExpiryAlertJob : CompanyScanAlertJob
         INotificationPublisher publisher = companyScope.ServiceProvider.GetRequiredService<INotificationPublisher>();
 
         IReadOnlyList<ExpiringItem> atRiskItems = await PagedQueryDrainer.DrainAsync(
+            mediator,
             queryForPage: page => new ListExpiringItemsQuery
             {
                 WarningWindowDays = WidestWindowDays,
                 IncludeExpired = true,
                 Page = page,
-                PageSize = PagedQueryDrainer.PageSize
+                PageSize = ScanPageSize
             },
-            send: (query, ct) => mediator.SendAsync(query, ct),
             cancellationToken);
 
         foreach (ExpiringItem item in atRiskItems)
