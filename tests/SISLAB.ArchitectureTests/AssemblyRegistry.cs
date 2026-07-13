@@ -25,6 +25,13 @@ internal static class AssemblyRegistry
             typeof(Modules.Notifications.Application.NotificationsModule).Assembly,        // Notifications.Application
             typeof(Modules.Notifications.Contracts.INotificationPublisher).Assembly,       // Notifications.Contracts
             typeof(Modules.Notifications.Infrastructure.Persistence.NotificationsDbContext).Assembly, // Notifications.Infrastructure
+            // Audit module (card [E9] #57): the append-only compliance trail. It has no Domain project
+            // (Dapper-only, write-once), so only its public Contracts boundary and its Application +
+            // Infrastructure are loaded, letting the isolation rules keep the Contracts surface clean and
+            // ensure the trail never leaks a business module's internals.
+            typeof(Modules.Audit.Contracts.IAuditWriter).Assembly,                  // Audit.Contracts
+            typeof(Modules.Audit.Application.AuditModule).Assembly,                  // Audit.Application
+            typeof(Modules.Audit.Infrastructure.DependencyInjection.AuditModuleServiceExtensions).Assembly, // Audit.Infrastructure
             // Jobs host library (E6 #39): loaded so the Host-style isolation rules can be evaluated
             // against real types — it must depend only on shared Infrastructure/module Application,
             // never on a module's internal Domain.

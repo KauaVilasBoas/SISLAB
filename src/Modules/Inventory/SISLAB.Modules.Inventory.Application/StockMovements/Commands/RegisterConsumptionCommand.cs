@@ -1,4 +1,6 @@
 using FluentValidation;
+using SISLAB.Modules.Audit.Contracts;
+using SISLAB.Modules.Inventory.Application.Audit;
 using SISLAB.Modules.Inventory.Domain.StockItems;
 using SISLAB.Modules.Inventory.Domain.ValueObjects;
 using SISLAB.SharedKernel.Exceptions;
@@ -45,9 +47,15 @@ internal sealed class RegisterConsumptionCommandValidator : AbstractValidator<Re
 internal sealed class RegisterConsumptionCommandHandler : ICommandHandler<RegisterConsumptionCommand>
 {
     private readonly IStockItemRepository _stockItems;
+    private readonly InventoryAuditRecorder _audit;
 
-    public RegisterConsumptionCommandHandler(IStockItemRepository stockItems)
-        => _stockItems = stockItems;
+    public RegisterConsumptionCommandHandler(
+        IStockItemRepository stockItems,
+        InventoryAuditRecorder audit)
+    {
+        _stockItems = stockItems;
+        _audit = audit;
+    }
 
     public async Task<Unit> HandleAsync(
         RegisterConsumptionCommand request,
@@ -61,6 +69,24 @@ internal sealed class RegisterConsumptionCommandHandler : ICommandHandler<Regist
         item.RegisterConsumption(consumed, request.OccurredOn, request.ExperimentId);
 
         await _stockItems.UpdateAsync(item, cancellationToken);
+
+        // Controlled substances leave a compliance trail (card #57); ordinary items do not.
+        if (item.IsControlled)
+        {
+            await _audit.RecordStockItemAsync(
+                item.CompanyId,
+                item.Id,
+                InventoryAuditActions.Consumption,
+                new
+                {
+                    request.Quantity,
+                    request.Unit,
+                    request.ExperimentId,
+                    request.OccurredOn,
+                    RemainingBalance = item.Quantity.Value
+                },
+                cancellationToken);
+        }
 
         return Unit.Value;
     }
