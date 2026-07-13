@@ -19,6 +19,12 @@ internal static class AssemblyRegistry
             // Contracts boundary and its internal Infrastructure against real types, not zero types.
             typeof(Modules.Inventory.Contracts.IInventoryApi).Assembly,             // Inventory.Contracts
             typeof(Modules.Inventory.Infrastructure.Persistence.InventoryDbContext).Assembly, // Inventory.Infrastructure
+            // Notifications module (card #64a): all four projects loaded so the module-isolation rules can
+            // evaluate the Domain internals and the public Contracts boundary against real types.
+            typeof(Modules.Notifications.Domain.Notifications.Notification).Assembly,      // Notifications.Domain
+            typeof(Modules.Notifications.Application.NotificationsModule).Assembly,        // Notifications.Application
+            typeof(Modules.Notifications.Contracts.INotificationPublisher).Assembly,       // Notifications.Contracts
+            typeof(Modules.Notifications.Infrastructure.Persistence.NotificationsDbContext).Assembly, // Notifications.Infrastructure
             // Jobs host library (E6 #39): loaded so the Host-style isolation rules can be evaluated
             // against real types — it must depend only on shared Infrastructure/module Application,
             // never on a module's internal Domain.
