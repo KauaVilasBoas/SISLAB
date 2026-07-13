@@ -1,3 +1,6 @@
+using SISLAB.SharedKernel.Guards;
+using SISLAB.SharedKernel.Time;
+
 namespace SISLAB.Infrastructure.Outbox;
 
 /// <summary>
@@ -9,6 +12,10 @@ namespace SISLAB.Infrastructure.Outbox;
 /// 2. Read by <see cref="OutboxDispatcher"/> (background) after commit.
 /// 3. Published via <see cref="SISLAB.SharedKernel.Messaging.IEventBus"/>.
 /// 4. Marked as ProcessedAtUtc (idempotency: never reprocessed).
+///
+/// Delivery is retried on failure. Each failed attempt increments <see cref="AttemptCount"/>; once it
+/// reaches the configured limit the message is dead-lettered (<see cref="DeadLetteredAtUtc"/> is set)
+/// and the dispatcher stops retrying it, so a poison message never blocks or endlessly re-runs the loop.
 ///
 /// Consumers should also be idempotent, using <see cref="Id"/> as the deduplication key.
 /// </summary>
@@ -28,16 +35,31 @@ public sealed class OutboxMessage
     public DateTime CreatedAtUtc { get; private set; }
 
     /// <summary>
-    /// When the message was successfully published. Null = pending.
+    /// When the message was successfully published. Null = not yet delivered.
     /// Processed messages are NOT reprocessed by the dispatcher.
     /// </summary>
     public DateTime? ProcessedAtUtc { get; private set; }
 
     /// <summary>
+    /// Number of failed delivery attempts so far. Incremented by <see cref="RecordError"/>;
+    /// drives the dead-letter decision.
+    /// </summary>
+    public int AttemptCount { get; private set; }
+
+    /// <summary>
+    /// When the message was dead-lettered (attempts exhausted). Null = still eligible for retry.
+    /// A dead-lettered message is excluded from the pending set and never retried.
+    /// </summary>
+    public DateTime? DeadLetteredAtUtc { get; private set; }
+
+    /// <summary>
     /// Error from the last failed delivery attempt.
-    /// Preserved for diagnostics; does not block retries.
+    /// Preserved for diagnostics; does not by itself block retries.
     /// </summary>
     public string? Error { get; private set; }
+
+    /// <summary>True once delivery has been given up on (attempts exhausted).</summary>
+    public bool IsDeadLettered => DeadLetteredAtUtc is not null;
 
     // Private constructor for EF Core reconstitution.
     private OutboxMessage() { }
@@ -57,10 +79,16 @@ public sealed class OutboxMessage
             OccurredOnUtc = occurredOnUtc,
             CreatedAtUtc = createdAtUtc,
             ProcessedAtUtc = null,
+            AttemptCount = 0,
+            DeadLetteredAtUtc = null,
             Error = null
         };
     }
 
+    /// <summary>
+    /// Marks the message as successfully published. Clears the last error and, being terminal,
+    /// leaves the message out of the pending set forever.
+    /// </summary>
     public void MarkProcessed(DateTime processedAtUtc)
     {
         ProcessedAtUtc = processedAtUtc;
@@ -68,11 +96,28 @@ public sealed class OutboxMessage
     }
 
     /// <summary>
-    /// Records a failed delivery attempt.
-    /// Does not mark as processed — the dispatcher will retry.
+    /// Records a failed delivery attempt: stores the error and increments <see cref="AttemptCount"/>.
+    /// When the attempt count reaches <paramref name="maxAttempts"/>, the message is dead-lettered
+    /// (see <see cref="DeadLetteredAtUtc"/>) so the dispatcher stops retrying it. Timestamps come from
+    /// <paramref name="clock"/> to keep time deterministic and testable.
     /// </summary>
-    public void RecordError(string error)
+    /// <param name="error">Diagnostic message from the failed delivery.</param>
+    /// <param name="maxAttempts">Attempt limit before dead-lettering (must be positive).</param>
+    /// <param name="clock">Time source for the dead-letter timestamp.</param>
+    public void RecordError(string error, int maxAttempts, IClock clock)
     {
+        Guard.AgainstNonPositive(maxAttempts, nameof(maxAttempts));
+        Guard.AgainstNull(clock, nameof(clock));
+
         Error = error;
+        AttemptCount++;
+
+        if (AttemptCount >= maxAttempts)
+            MarkDeadLettered(clock.UtcNow);
+    }
+
+    private void MarkDeadLettered(DateTime deadLetteredAtUtc)
+    {
+        DeadLetteredAtUtc = deadLetteredAtUtc;
     }
 }

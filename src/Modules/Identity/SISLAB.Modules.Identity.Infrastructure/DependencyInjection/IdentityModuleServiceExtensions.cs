@@ -7,6 +7,7 @@ using Lumen.Modularity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SISLAB.Infrastructure.Multitenancy;
 using SISLAB.Modules.Identity.Domain.Companies;
 using SISLAB.Modules.Identity.Infrastructure.Multitenancy;
 using SISLAB.SharedKernel.Multitenancy;
@@ -152,11 +153,18 @@ public static class IdentityModuleServiceExtensions
         services.AddLumenAuthorizationDiscovery();
 
         // 10. SISLAB tenant context (Scoped — one instance per request).
-        //     The concrete TenantContext is registered AND exposed as ITenantContext so that
-        //     TenantResolutionMiddleware (resolves the concrete) and consumers (depend on the
-        //     abstraction) share the same instance within the request scope.
+        //     The concrete TenantContext is the REQUEST tenant source: TenantResolutionMiddleware resolves
+        //     it directly and populates it from the httpOnly cookie. Consumers depend on the abstraction
+        //     ITenantContext, which is composed as OverridableTenantContext — a Decorator that reports the
+        //     background ITenantContextOverride when a job has set one, and otherwise falls back to this
+        //     request context. On the HTTP path no override is ever set, so the effective context is
+        //     behaviourally identical to the raw request TenantContext: the seam is invisible to requests
+        //     and adds only the cross-tenant scan capability the E6 jobs need (#41/#42/#66). The override
+        //     itself is registered by AddSislabInfrastructure (shared by request and job scopes).
         services.AddScoped<TenantContext>();
-        services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<TenantContext>());
+        services.AddScoped<ITenantContext>(sp => new OverridableTenantContext(
+            sp.GetRequiredService<TenantContext>(),
+            sp.GetRequiredService<ITenantContextOverride>()));
 
         // 11. Tenant bridge: overrides Lumen's no-op ITenantScopeAccessor with SISLAB's impl.
         //     Lumen registers its no-op via TryAdd; this AddScoped wins as the last registration.

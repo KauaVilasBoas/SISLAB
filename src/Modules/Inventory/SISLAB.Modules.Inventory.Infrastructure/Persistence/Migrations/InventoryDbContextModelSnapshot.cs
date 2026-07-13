@@ -30,9 +30,19 @@ namespace SISLAB.Modules.Inventory.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<int>("AttemptCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("attempt_count");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc");
+
+                    b.Property<DateTime?>("DeadLetteredAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dead_lettered_at_utc");
 
                     b.Property<string>("Error")
                         .HasMaxLength(2048)
@@ -62,10 +72,8 @@ namespace SISLAB.Modules.Inventory.Infrastructure.Persistence.Migrations
                         .HasName("pk_outbox_messages");
 
                     b.HasIndex("OccurredOnUtc")
-                        .HasDatabaseName("ix_outbox_messages_occurred_on_utc");
-
-                    b.HasIndex("ProcessedAtUtc")
-                        .HasDatabaseName("ix_outbox_messages_processed_at_utc");
+                        .HasDatabaseName("ix_outbox_messages_pending")
+                        .HasFilter("processed_at_utc IS NULL AND dead_lettered_at_utc IS NULL");
 
                     b.ToTable("outbox_messages", "inventory");
                 });

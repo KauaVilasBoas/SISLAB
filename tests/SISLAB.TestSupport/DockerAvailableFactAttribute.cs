@@ -2,13 +2,13 @@ using System.IO.Pipes;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 
-namespace SISLAB.Modules.Inventory.Tests.Application.StockRead;
+namespace SISLAB.TestSupport;
 
 /// <summary>
 /// A <see cref="FactAttribute"/> that skips the test (rather than failing it) when no Docker daemon is
-/// reachable. The Testcontainers-backed tenant-isolation tests need a live Docker to spin up PostgreSQL;
-/// on a machine/CI leg without Docker the test is reported as skipped, not red, so the suite stays green
-/// (card [E4] #34 requirement: skip gracefully when Docker is unavailable).
+/// reachable. The Testcontainers-backed integration tests need a live Docker to spin up PostgreSQL; on a
+/// machine/CI leg without Docker the test is reported as skipped, not red, so the suite stays green
+/// (section 10 DoD note about no guaranteed DB). Shared by every test project.
 /// </summary>
 /// <remarks>
 /// The probe is dependency-free (no Docker.DotNet coupling): it checks the platform's default Docker
@@ -24,7 +24,7 @@ public sealed class DockerAvailableFactAttribute : FactAttribute
     {
         if (!IsDockerAvailable)
         {
-            Skip = "Docker is not available on this machine; the Testcontainers PostgreSQL isolation test is skipped.";
+            Skip = "Docker is not available on this machine; the Testcontainers PostgreSQL test is skipped.";
         }
     }
 

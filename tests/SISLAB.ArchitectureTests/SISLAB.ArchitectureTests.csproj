@@ -24,6 +24,15 @@
     <ProjectReference Include="..\..\src\Modules\Inventory\SISLAB.Modules.Inventory.Domain\SISLAB.Modules.Inventory.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Inventory\SISLAB.Modules.Inventory.Application\SISLAB.Modules.Inventory.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Inventory\SISLAB.Modules.Inventory.Contracts\SISLAB.Modules.Inventory.Contracts.csproj" />
+    <!-- Notifications module (card #64a): all four projects loaded so the isolation rules evaluate the
+         module's public Contracts boundary and its internal Domain/Infrastructure against real types. -->
+    <ProjectReference Include="..\..\src\Modules\Notifications\SISLAB.Modules.Notifications.Domain\SISLAB.Modules.Notifications.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Notifications\SISLAB.Modules.Notifications.Application\SISLAB.Modules.Notifications.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Notifications\SISLAB.Modules.Notifications.Contracts\SISLAB.Modules.Notifications.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Notifications\SISLAB.Modules.Notifications.Infrastructure\SISLAB.Modules.Notifications.Infrastructure.csproj" />
+    <!-- Jobs host library (E6 #39): loaded so the isolation rules can assert it never reaches into a
+         module's internal Domain. It follows the Host rules — Infrastructure + Application only. -->
+    <ProjectReference Include="..\..\src\Jobs\SISLAB.Jobs\SISLAB.Jobs.csproj" />
   </ItemGroup>
 
   <ItemGroup>

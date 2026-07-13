@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
+    <ProjectReference Include="..\SISLAB.TestSupport\SISLAB.TestSupport.csproj" />
   </ItemGroup>
 
   <ItemGroup>

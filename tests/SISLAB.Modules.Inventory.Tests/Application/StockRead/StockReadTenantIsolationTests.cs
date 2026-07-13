@@ -423,18 +423,4 @@ public sealed class StockReadTenantIsolationTests : IAsyncLifetime
                 ["ConnectionStrings:SislabDb"] = connectionString
             })
             .Build();
-
-    private sealed class StubTenantContext : ITenantContext
-    {
-        public StubTenantContext(Guid companyId) => CompanyId = companyId;
-
-        public Guid CompanyId { get; }
-    }
-
-    private sealed class FixedClock : IClock
-    {
-        public FixedClock(DateTime utcNow) => UtcNow = utcNow;
-
-        public DateTime UtcNow { get; }
-    }
 }

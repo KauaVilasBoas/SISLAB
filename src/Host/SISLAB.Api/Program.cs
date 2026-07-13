@@ -3,8 +3,10 @@ using SISLAB.Api.Csrf;
 using SISLAB.Api.Middleware;
 using SISLAB.Infrastructure.DependencyInjection;
 using SISLAB.Infrastructure.Modules;
+using SISLAB.Jobs.DependencyInjection;
 using SISLAB.Modules.Identity.Application;
 using SISLAB.Modules.Inventory.Application;
+using SISLAB.Modules.Notifications.Application;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -16,15 +18,25 @@ builder.Services.AddSislabInfrastructure();
 // ---------------------------------------------------------------------------
 // Composition Root — module discovery and registration via assembly scanning.
 // Load order is determined by IModule.Order (lower = first).
-// Convention: Identity = 10, Inventory = 20.
+// Convention: Identity = 10, Inventory = 20, Notifications = 30.
 // ---------------------------------------------------------------------------
 Assembly[] moduleAssemblies =
 [
     typeof(IdentityModule).Assembly,
-    typeof(InventoryModule).Assembly
+    typeof(InventoryModule).Assembly,
+    typeof(NotificationsModule).Assembly
 ];
 
 ModuleLoader.RegisterModules(builder.Services, builder.Configuration, moduleAssemblies);
+
+// ---------------------------------------------------------------------------
+// Background jobs (E6 #39) — run in-process with the API (Fork #1 → C).
+// Registered AFTER the modules because the Outbox dispatcher job depends on the
+// module-contributed IOutboxDbContext / write-side DbContext. Registers the
+// scheduled IHostedService(s), the SISLAB IEventBus, the Outbox dispatcher and
+// the settable ambient tenant context for background work.
+// ---------------------------------------------------------------------------
+builder.Services.AddSislabJobs(builder.Configuration);
 
 // ---------------------------------------------------------------------------
 // Swagger / OpenAPI (development only)
