@@ -5,7 +5,6 @@ using SISLAB.Infrastructure.Messaging;
 using SISLAB.Infrastructure.Outbox;
 using SISLAB.Jobs.Configuration;
 using SISLAB.Jobs.Jobs;
-using SISLAB.Jobs.Multitenancy;
 using SISLAB.SharedKernel.Messaging;
 
 namespace SISLAB.Jobs.DependencyInjection;
@@ -46,18 +45,23 @@ public static class JobsServiceExtensions
         //    because it is host/background infrastructure, not a module concern.
         services.TryAddScoped<OutboxDispatcher>();
 
-        // 4. Settable ambient tenant context for the jobs host (Fork #2 → A). Registered as its own
-        //    concrete type ONLY — it deliberately does NOT rebind the global ITenantContext, which in
-        //    the shared API container is the request-scoped Identity TenantContext populated by the
-        //    tenant-resolution middleware. Rebinding it globally would make every HTTP request resolve
-        //    this empty ambient context instead, breaking request tenant isolation. The future
-        //    per-company alert jobs (#41/#42/#66) set the company on this instance inside a tenant
-        //    bypass scope; wiring the E4 read queries to resolve it within a tick scope is their call.
-        services.TryAddScoped<AmbientTenantContext>();
+        // 4. Tenant-override seam for the per-company alert scans (Fork #1 → A). It is contributed by
+        //    AddSislabInfrastructure (ITenantContextOverride → TenantContextOverride, Scoped) and read by
+        //    the effective ITenantContext (OverridableTenantContext, composed in the Identity module). This
+        //    host adds NO ITenantContext registration of its own: on the HTTP path the request tenant is
+        //    intact, and in a job the alert base sets this override per company inside a bypass scope. The
+        //    settable seam therefore needs no wiring here beyond what the shared infrastructure already did.
 
         // 5. The scheduled jobs. Registered as IHostedService so the host's generic-host lifetime
-        //    starts/stops them. OutboxDispatcherJob is the E6 #39 example job (and the core of #40).
+        //    starts/stops them.
+        //    - OutboxDispatcherJob: the E6 #39 example job (and the core of #40).
+        //    - The three alert jobs (#41/#42/#66): each a CompanyScanAlertJob that enumerates the active
+        //      companies (ListAllCompanyIdsQuery) under a tenant bypass and, per company, runs its E4/E6
+        //      read query behind the tenant-override seam and raises notifications via INotificationPublisher.
         services.AddHostedService<OutboxDispatcherJob>();
+        services.AddHostedService<ExpiryAlertJob>();
+        services.AddHostedService<LowStockAlertJob>();
+        services.AddHostedService<CalibrationOverdueAlertJob>();
 
         return services;
     }

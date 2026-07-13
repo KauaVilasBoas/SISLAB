@@ -7,7 +7,6 @@ using SISLAB.Infrastructure.Outbox;
 using SISLAB.Jobs.Configuration;
 using SISLAB.Jobs.DependencyInjection;
 using SISLAB.Jobs.Jobs;
-using SISLAB.Jobs.Multitenancy;
 using SISLAB.Modules.Inventory.Application;
 using SISLAB.SharedKernel.Messaging;
 using SISLAB.SharedKernel.Multitenancy;
@@ -61,32 +60,41 @@ public sealed class AddSislabJobsCompositionTests
     }
 
     [Fact]
-    public void The_outbox_dispatcher_job_is_registered_as_a_hosted_service()
+    public void The_scheduled_jobs_are_registered_as_hosted_services()
     {
         using ServiceProvider provider = BuildHostGraph();
 
         IHostedService[] hostedServices = provider.GetServices<IHostedService>().ToArray();
 
         Assert.Contains(hostedServices, service => service is OutboxDispatcherJob);
+        Assert.Contains(hostedServices, service => service is ExpiryAlertJob);
+        Assert.Contains(hostedServices, service => service is LowStockAlertJob);
+        Assert.Contains(hostedServices, service => service is CalibrationOverdueAlertJob);
     }
 
     [Fact]
-    public void Ambient_tenant_context_is_available_and_settable_but_does_not_hijack_the_global_context()
+    public void Tenant_override_seam_is_available_and_settable_but_the_jobs_host_registers_no_global_tenant_context()
     {
         using ServiceProvider provider = BuildHostGraph();
         using IServiceScope scope = provider.CreateScope();
         IServiceProvider sp = scope.ServiceProvider;
 
-        // The settable ambient context is available for the future per-company scan jobs.
-        AmbientTenantContext ambient = sp.GetRequiredService<AmbientTenantContext>();
-        Guid company = Guid.NewGuid();
-        ambient.SetCompany(company);
-        Assert.Equal(company, ambient.CompanyId);
+        // The settable tenant-override seam is available for the per-company scan jobs. It comes from
+        // AddSislabInfrastructure (shared), reachable by both HTTP request and job scopes.
+        ITenantContextOverride tenantOverride = sp.GetRequiredService<ITenantContextOverride>();
+        Assert.Null(tenantOverride.CompanyId);
 
-        // Critically, AddSislabJobs must NOT rebind the global ITenantContext: in the shared API
-        // container that is the request-scoped Identity TenantContext. Here Identity is not
-        // registered, so resolving ITenantContext must NOT return the ambient one either — it must
-        // be absent, confirming the jobs wiring never touched the global registration.
+        Guid company = Guid.NewGuid();
+        tenantOverride.SetCompany(company);
+        Assert.Equal(company, tenantOverride.CompanyId);
+
+        tenantOverride.Clear();
+        Assert.Null(tenantOverride.CompanyId);
+
+        // Critically, neither AddSislabJobs nor the shared infrastructure may register the global
+        // ITenantContext here: in the API that binding is Identity's request-scoped effective context.
+        // Identity is not registered in this graph, so ITenantContext must be absent — proving the jobs
+        // wiring never touched the request tenant path (the override is a separate abstraction).
         Assert.Null(sp.GetService<ITenantContext>());
     }
 

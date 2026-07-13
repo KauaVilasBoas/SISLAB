@@ -27,8 +27,12 @@
     <ProjectReference Include="..\..\src\Jobs\SISLAB.Jobs\SISLAB.Jobs.csproj" />
     <!-- The Inventory Application module entry point: the composition test wires the real host
          graph (infrastructure + module + jobs), exactly as Program.cs does, to prove that the
-         Outbox dispatcher job and its collaborators resolve end to end. -->
+         Outbox dispatcher job and its collaborators resolve end to end. The alert-job tests also
+         use its E4/E6 read-query DTOs (ExpiringItem, BelowMinimumItem, OverdueCalibrationEquipment). -->
     <ProjectReference Include="..\..\src\Modules\Inventory\SISLAB.Modules.Inventory.Application\SISLAB.Modules.Inventory.Application.csproj" />
+    <!-- Identity Application: the alert-job tests reference ListAllCompanyIdsQuery/Result directly to
+         drive the multi-company enumeration fake. -->
+    <ProjectReference Include="..\..\src\Modules\Identity\SISLAB.Modules.Identity.Application\SISLAB.Modules.Identity.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
