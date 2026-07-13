@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Application: orquestra casos de uso (read-side Dapper, MarkAsRead command, controller do sino).
+    É o ponto de entrada público (IModule), exposto ao Host. Depende de Domain + Infrastructure
+    (do MESMO módulo, para delegar o wiring de DI) + Contracts + SharedKernel. Simétrico ao Inventory.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\SISLAB.Modules.Notifications.Domain\SISLAB.Modules.Notifications.Domain.csproj" />
+    <ProjectReference Include="..\SISLAB.Modules.Notifications.Infrastructure\SISLAB.Modules.Notifications.Infrastructure.csproj" />
+    <ProjectReference Include="..\SISLAB.Modules.Notifications.Contracts\SISLAB.Modules.Notifications.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Expõe handlers CQRS internos (queries/command) aos testes do módulo. -->
+    <InternalsVisibleTo Include="SISLAB.Modules.Notifications.Tests" />
+  </ItemGroup>
+
+</Project>

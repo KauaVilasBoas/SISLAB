@@ -181,11 +181,4 @@ public sealed class StockMovementProjectionHandlerTests
             return Task.CompletedTask;
         }
     }
-
-    private sealed class FixedClock : IClock
-    {
-        public FixedClock(DateTime utcNow) => UtcNow = utcNow;
-
-        public DateTime UtcNow { get; }
-    }
 }

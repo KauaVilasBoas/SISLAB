@@ -5,6 +5,7 @@ using SISLAB.Infrastructure.Persistence;
 using SISLAB.SharedKernel.Domain;
 using SISLAB.SharedKernel.Messaging;
 using SISLAB.SharedKernel.Time;
+using SISLAB.TestSupport;
 
 namespace SISLAB.Infrastructure.Tests;
 
@@ -124,9 +125,28 @@ public sealed class TestOutboxDbContext : DbContext, IOutboxDbContext
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 }
 
-public sealed class FixedClock : IClock
+/// <summary>Event bus that records every published event — the "happy path" for dispatcher tests.</summary>
+public sealed class RecordingEventBus : IEventBus
 {
-    public FixedClock(DateTime utcNow) => UtcNow = utcNow;
+    public List<object> Published { get; } = new();
 
-    public DateTime UtcNow { get; }
+    public Task PublishAsync<TEvent>(TEvent integrationEvent, CancellationToken cancellationToken = default)
+        where TEvent : class
+    {
+        Published.Add(integrationEvent);
+        return Task.CompletedTask;
+    }
+}
+
+/// <summary>Event bus that always throws — drives the failure/retry/dead-letter dispatcher tests.</summary>
+public sealed class ThrowingEventBus : IEventBus
+{
+    public int PublishCallCount { get; private set; }
+
+    public Task PublishAsync<TEvent>(TEvent integrationEvent, CancellationToken cancellationToken = default)
+        where TEvent : class
+    {
+        PublishCallCount++;
+        throw new InvalidOperationException("event bus failed on purpose");
+    }
 }

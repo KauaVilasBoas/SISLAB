@@ -25,8 +25,9 @@ namespace SISLAB.Modules.Inventory.Application.PublicApi;
 /// </para>
 /// <para>
 /// <b>Unpaged listings.</b> The alert operations return the whole at-risk/below-minimum set (the E6 jobs
-/// want every item, not a page), so the adapter walks the paginated E4 queries to exhaustion — capped by
-/// each page's <c>TotalCount</c>, so it never issues an unbounded number of round-trips.
+/// want every item, not a page), so the adapter walks the paginated E4 queries to exhaustion via the
+/// shared <see cref="PagedQueryDrainer"/> — bounded by the first page's <c>TotalPages</c>, so it never
+/// issues an unbounded number of round-trips.
 /// </para>
 /// </remarks>
 internal sealed class InventoryApi : IInventoryApi
@@ -70,7 +71,8 @@ internal sealed class InventoryApi : IInventoryApi
     {
         List<ExpiringItemDto> results = new();
 
-        await foreach (ExpiringItem item in DrainPagesAsync(
+        await foreach (ExpiringItem item in PagedQueryDrainer.StreamAsync(
+            _mediator,
             page => new ListExpiringItemsQuery
             {
                 WarningWindowDays = daysAhead,
@@ -91,7 +93,8 @@ internal sealed class InventoryApi : IInventoryApi
     {
         List<BelowMinimumItemDto> results = new();
 
-        await foreach (BelowMinimumItem item in DrainPagesAsync(
+        await foreach (BelowMinimumItem item in PagedQueryDrainer.StreamAsync(
+            _mediator,
             page => new ListItemsBelowMinimumQuery
             {
                 Page = page,
@@ -103,29 +106,6 @@ internal sealed class InventoryApi : IInventoryApi
         }
 
         return results;
-    }
-
-    /// <summary>
-    /// Dispatches the paged query for successive pages (built by <paramref name="queryForPage"/>) and
-    /// yields every item across all pages. The first page's <see cref="PagedResult{T}.TotalPages"/> bounds
-    /// the walk, so the number of round-trips is <c>ceil(total / pageSize)</c> — never unbounded.
-    /// </summary>
-    private async IAsyncEnumerable<TItem> DrainPagesAsync<TItem>(
-        Func<int, IRequest<PagedResult<TItem>>> queryForPage,
-        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
-    {
-        PagedResult<TItem> firstPage = await _mediator.SendAsync(queryForPage(1), ct);
-
-        foreach (TItem item in firstPage.Items)
-            yield return item;
-
-        for (int page = 2; page <= firstPage.TotalPages; page++)
-        {
-            PagedResult<TItem> next = await _mediator.SendAsync(queryForPage(page), ct);
-
-            foreach (TItem item in next.Items)
-                yield return item;
-        }
     }
 
     private static StockItemSummaryDto ToSummaryDto(StockItemDetail detail) => new(

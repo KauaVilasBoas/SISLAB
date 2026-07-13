@@ -1,13 +1,48 @@
-<Project Sdk="Microsoft.NET.Sdk.Worker">
+<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>dotnet-SISLAB.Jobs-99239f22-3d68-4ae3-8686-0ff0e79a17ac</UserSecretsId>
-  </PropertyGroup>
+  <!--
+    SISLAB.Jobs is a CLASS LIBRARY, not a standalone worker executable (E6 #39, Fork #1 → C).
+    The background jobs run IN-PROCESS with the API: the host references this library and calls
+    AddSislabJobs(configuration) to register the IHostedService(s). This honours the E8/#51
+    decision (worker on the same host — fits the free tier) and avoids a second composition root.
+
+    The classes are deliberately host-agnostic: promoting them to a standalone worker process later
+    (Host.CreateApplicationBuilder + AddSislabJobs) needs no rewrite.
+
+    Microsoft.AspNetCore.App is referenced because SISLAB.Infrastructure targets that shared
+    framework (IServiceCollection, IHostedService, ILogger), and the scheduling base + jobs here
+    build on Microsoft.Extensions.Hosting (BackgroundService, IServiceScopeFactory).
+  -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <!-- Shared infrastructure: OutboxDispatcher, InMemoryEventBus, TenantBypass, IClock, tenant-override seam. -->
+    <ProjectReference Include="..\..\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
+    <!--
+      Notifications public boundary (card #64a, Option A). The alert jobs (#41/#42/#66) resolve
+      INotificationPublisher from the shared container and raise notifications through it. Jobs references
+      ONLY the module's Contracts — never its Domain/Application/Infrastructure (module-isolation rule,
+      enforced by ArchRules).
+    -->
+    <ProjectReference Include="..\..\Modules\Notifications\SISLAB.Modules.Notifications.Contracts\SISLAB.Modules.Notifications.Contracts.csproj" />
+    <!--
+      Inventory Application (E4 read queries): the alert jobs dispatch ListExpiringItemsQuery (#41),
+      ListItemsBelowMinimumQuery (#42) and ListOverdueCalibrationEquipmentQuery (#66) via IMediator. A host
+      may reference a module's public Application entry point (same rule as SISLAB.Api); it must NEVER reach
+      into the module's internal Domain — enforced by the Jobs→Domain ArchRules.
+    -->
+    <ProjectReference Include="..\..\Modules\Inventory\SISLAB.Modules.Inventory.Application\SISLAB.Modules.Inventory.Application.csproj" />
+    <!--
+      Identity Application (E1 enumeration): the alert jobs dispatch ListAllCompanyIdsQuery via IMediator to
+      enumerate the active companies they scan. Public Application entry point only — never Identity's Domain.
+    -->
+    <ProjectReference Include="..\..\Modules\Identity\SISLAB.Modules.Identity.Application\SISLAB.Modules.Identity.Application.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="SISLAB.Jobs.Tests" />
+  </ItemGroup>
+
 </Project>
