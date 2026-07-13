@@ -316,3 +316,84 @@ curl -i -X POST http://localhost:5121/api/companies/10000000-0000-0000-0000-0000
 > `login` = `{ identifier, password }` (the field is `identifier`, not `email`). Password rules:
 > minimum 12 chars with uppercase, lowercase, digit, special character, different from
 > email/username and not breached (HIBP).
+
+## 6. Inventory event pipeline — domain event → integration event → read model
+
+This is the reference implementation of the project's **hybrid event strategy** (see the README
+*Engineering decisions* table). It is documented here as the reusable pattern for any future module
+that needs to publish across bounded-context boundaries. All types below are already in the repo
+(delivered in E3–E4); this section is the map.
+
+### The three moving parts
+
+```
+Aggregate (write-side)                Infrastructure (same tx)                 Read-side / other modules
+──────────────────────                ────────────────────────                 ─────────────────────────
+StockItem.RegisterEntry(...)          DomainEventDispatcher                     StockMovementProjectionHandler
+  └─ RaiseDomainEvent(                  ├─ resolves translator by type            (IIntegrationEventHandler<T>)
+       StockReceivedEvent)             │    IDomainEventToIntegrationEvent          └─ IStockMovementStore.AppendAsync
+                                       │    Translator<StockReceivedEvent>              (ON CONFLICT (id) DO NOTHING)
+  DomainEvent = internal, rich,        ├─ Translate() → StockReceived-           IntegrationEvent = public, flattened,
+  value objects, discarded after tx    │    IntegrationEvent (Contracts)          primitives only, serialized JSON
+                                       └─ OutboxWriter.Enqueue()  ── outbox.* ──►  IEventBus (dispatched post-commit)
+```
+
+1. **`IDomainEventToIntegrationEventTranslator<TDomainEvent>`** (SharedKernel) — one concrete
+   translator per domain event that must leave the module. It maps the internal, rich `DomainEvent`
+   (holding `Quantity`/`Lot`/`ExpiryDate` value objects) into the public, flattened `IIntegrationEvent`
+   defined in the module's **Contracts** project (primitives only — consumers never depend on the
+   Inventory domain). Inventory ships three: `StockReceivedEventTranslator`,
+   `StockConsumedEventTranslator`, `StockBelowMinimumEventTranslator` (in `Infrastructure/Messaging`).
+
+2. **`DomainEventDispatcher`** (Shared/Infrastructure) — invoked by `EfUnitOfWork.SaveChangesAsync`
+   inside the aggregate's transaction. For each raised domain event it:
+   - runs any `ITransactionalDomainEventHandler<T>` first (in-transaction invariant; failure = rollback);
+   - then, in `DispatchToOutboxAsync`, resolves `IDomainEventToIntegrationEventTranslator<T>` **from DI
+     by the event's runtime type** (reflection over the closed generic interface). If a translator is
+     registered it calls `Translate(...)` and hands the result to `OutboxWriter.Enqueue`, which stages
+     an `OutboxMessage` in `outbox.*` **in the same EF transaction** (at-least-once delivery guarantee).
+     A domain event with **no** registered translator is module-internal and simply stays off the
+     Outbox — this is how `ItemExpiring` is kept internal (its integration event is emitted later by the
+     E6 job, not by the aggregate).
+   - clears the aggregates' domain events once staged.
+
+3. **`StockMovementProjectionHandler`** (Inventory/Infrastructure/ReadModels) — the **single
+   per-domain aggregator** for the module's movement projections (not one handler per event). It
+   implements `IIntegrationEventHandler<StockReceivedIntegrationEvent>` **and**
+   `IIntegrationEventHandler<StockConsumedIntegrationEvent>`, and the `IEventBus` delivers each
+   integration event to it **after** the Outbox is dispatched (post-commit, eventual). It appends one
+   row per movement to `inventory.stock_movements` via `IStockMovementStore`. **Idempotency**: the row
+   identity is the integration event's `EventId`, and the insert is `ON CONFLICT (id) DO NOTHING`, so
+   Outbox redelivery of the same event never duplicates a movement. Keeping the read model updated is an
+   eventual side effect, never a business invariant — so it lives on the Outbox path, and a projection
+   failure never rolls back the operation that produced the movement.
+
+### Adding a new translator (checklist)
+
+To publish a new cross-boundary event from any module:
+
+1. **Define the integration event** in the emitting module's **Contracts** project (e.g.
+   `Inventory.Contracts/Events/XyzIntegrationEvent.cs`) — implement `IIntegrationEvent`, expose only
+   primitives / `Guid`-by-value (no domain value objects, no FK/navigation), and carry `CompanyId` so
+   consumers can scope their reaction.
+
+2. **Create the translator** in the module's **Infrastructure/Messaging** as an `internal sealed class`
+   implementing `IDomainEventToIntegrationEventTranslator<TDomainEvent>`, flattening the domain event's
+   value objects into the contract's primitives (mint a fresh `EventId = Guid.NewGuid()`).
+
+3. **Register it in DI** in the module's `Add<Module>Module(...)` (e.g.
+   `InventoryModuleServiceExtensions`), alongside the existing translators:
+   ```csharp
+   services.AddScoped<IDomainEventToIntegrationEventTranslator<XyzEvent>, XyzEventTranslator>();
+   ```
+   From this point the `DomainEventDispatcher` picks it up automatically by type — no dispatcher change
+   needed. If a read model or another module must react, register the consumer against the closed
+   `IIntegrationEventHandler<XyzIntegrationEvent>` (add the interface to the module's per-domain
+   projection handler rather than creating a new handler per event).
+
+> The pattern is intentionally symmetric across modules: **Contracts** owns the public event, the
+> emitting module's **Infrastructure** owns the translation and the consumer handlers, and the shared
+> `DomainEventDispatcher` owns the routing. No module ever references another module's internals — only
+> its `*.Contracts` assembly. Coverage lives in `Infrastructure/Messaging/StockEventTranslatorTests`
+> (mapping + Outbox write) and `Infrastructure/ReadModels/StockMovementProjectionHandlerTests`
+> (routing + idempotency) in `SISLAB.Modules.Inventory.Tests`.

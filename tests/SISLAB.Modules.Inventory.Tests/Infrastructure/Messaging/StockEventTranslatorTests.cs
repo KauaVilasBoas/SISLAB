@@ -153,7 +153,7 @@ public sealed class StockEventTranslatorTests
         OutboxMessage staged = Assert.Single(context.ChangeTracker.Entries<OutboxMessage>().Select(e => e.Entity));
         Assert.Contains(nameof(StockBelowMinimumIntegrationEvent), staged.EventType);
 
-        StockBelowMinimumIntegrationEvent payload = Deserialize(staged.Payload);
+        StockBelowMinimumIntegrationEvent payload = Deserialize<StockBelowMinimumIntegrationEvent>(staged.Payload);
         Assert.Equal(staged.Id, payload.EventId);
         Assert.Equal(Company, payload.CompanyId);
         Assert.Equal(Item, payload.StockItemId);
@@ -164,8 +164,71 @@ public sealed class StockEventTranslatorTests
         Assert.Empty(aggregate.DomainEvents);
     }
 
-    private static StockBelowMinimumIntegrationEvent Deserialize(string payload) =>
-        JsonSerializer.Deserialize<StockBelowMinimumIntegrationEvent>(
+    [Fact]
+    public async Task Dispatcher_routes_each_domain_event_to_its_own_translator_by_type()
+    {
+        // Both movement translators registered — the dispatcher must resolve the translator by the
+        // event's runtime type, never by registration order. A received event must yield the received
+        // contract and a consumed event the consumed contract, each in its own OutboxMessage.
+        using InMemoryOutboxDbContext context = CreateInMemoryContext();
+        var writer = new OutboxWriter(context, new FixedClock(new DateTime(2026, 7, 11, 12, 0, 0, DateTimeKind.Utc)));
+
+        ServiceCollection services = new();
+        services.AddSingleton<IDomainEventToIntegrationEventTranslator<StockReceivedEvent>, StockReceivedEventTranslator>();
+        services.AddSingleton<IDomainEventToIntegrationEventTranslator<StockConsumedEvent>, StockConsumedEventTranslator>();
+        using ServiceProvider provider = services.BuildServiceProvider();
+
+        var dispatcher = new DomainEventDispatcher(provider, writer, NullLogger<DomainEventDispatcher>.Instance);
+
+        var aggregate = new StubAggregate();
+        aggregate.Raise(new StockReceivedEvent(
+            Company, Item, Quantity.Of(20m, Ml), Quantity.Of(120m, Ml), Lot: null, Expiry: null));
+        aggregate.Raise(new StockConsumedEvent(
+            Company, Item, Quantity.Of(30m, Ml), Quantity.Of(90m, Ml)));
+
+        await dispatcher.DispatchToOutboxAsync(new IHasDomainEvents[] { aggregate });
+
+        List<OutboxMessage> staged = context.ChangeTracker.Entries<OutboxMessage>()
+            .Select(e => e.Entity)
+            .ToList();
+        Assert.Equal(2, staged.Count);
+
+        OutboxMessage received = Assert.Single(
+            staged, m => m.EventType.Contains(nameof(StockReceivedIntegrationEvent)));
+        StockReceivedIntegrationEvent receivedPayload = Deserialize<StockReceivedIntegrationEvent>(received.Payload);
+        Assert.Equal(20m, receivedPayload.ReceivedQuantity);
+        Assert.Equal(120m, receivedPayload.ResultingQuantity);
+
+        OutboxMessage consumed = Assert.Single(
+            staged, m => m.EventType.Contains(nameof(StockConsumedIntegrationEvent)));
+        StockConsumedIntegrationEvent consumedPayload = Deserialize<StockConsumedIntegrationEvent>(consumed.Payload);
+        Assert.Equal(30m, consumedPayload.ConsumedQuantity);
+        Assert.Equal(90m, consumedPayload.ResultingQuantity);
+    }
+
+    [Fact]
+    public async Task Dispatcher_keeps_a_domain_event_with_no_translator_off_the_outbox()
+    {
+        // StockCounted is a module-internal audit signal with no translator registered — the dispatcher
+        // must leave it off the Outbox (never crossing the boundary) while still clearing it from the
+        // aggregate so it is not re-raised.
+        using InMemoryOutboxDbContext context = CreateInMemoryContext();
+        var writer = new OutboxWriter(context, new FixedClock(new DateTime(2026, 7, 11, 12, 0, 0, DateTimeKind.Utc)));
+
+        using ServiceProvider provider = new ServiceCollection().BuildServiceProvider();
+        var dispatcher = new DomainEventDispatcher(provider, writer, NullLogger<DomainEventDispatcher>.Instance);
+
+        var aggregate = new StubAggregate();
+        aggregate.Raise(new StockCountedEvent(Item, Quantity.Of(100m, Ml), Quantity.Of(98m, Ml), Divergence: -2m));
+
+        await dispatcher.DispatchToOutboxAsync(new IHasDomainEvents[] { aggregate });
+
+        Assert.Empty(context.ChangeTracker.Entries<OutboxMessage>());
+        Assert.Empty(aggregate.DomainEvents);
+    }
+
+    private static TIntegrationEvent Deserialize<TIntegrationEvent>(string payload) =>
+        JsonSerializer.Deserialize<TIntegrationEvent>(
             payload, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })!;
 
     private static InMemoryOutboxDbContext CreateInMemoryContext()
