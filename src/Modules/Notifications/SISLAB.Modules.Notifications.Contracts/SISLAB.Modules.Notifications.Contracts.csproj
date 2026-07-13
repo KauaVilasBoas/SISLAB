@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Contracts: fronteira pública do módulo (INotificationPublisher + DTO de comando). -->
+  <!-- POCO/interface puro: sem referência ao Domain interno, sem EF/Dapper/ASP.NET. -->
+  <!-- Os jobs (#41/#42/#66) e outros módulos referenciam APENAS este projeto, nunca o Domain. -->
+
+  <!-- Deliberadamente sem ProjectReference: a porta (INotificationPublisher) e o DTO
+       (RaiseNotificationRequest) usam apenas primitivos do BCL, então nem o SharedKernel
+       é necessário. Isso mantém a fronteira pública o mais leve e blindada possível. -->
+
+</Project>
