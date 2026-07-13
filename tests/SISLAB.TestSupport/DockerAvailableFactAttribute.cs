@@ -2,14 +2,20 @@ using System.IO.Pipes;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 
-namespace SISLAB.Modules.Notifications.Tests.TestSupport;
+namespace SISLAB.TestSupport;
 
 /// <summary>
 /// A <see cref="FactAttribute"/> that skips the test (rather than failing it) when no Docker daemon is
-/// reachable. The Testcontainers-backed idempotency/read-side tests need a live Docker to spin up PostgreSQL;
-/// on a machine/CI leg without Docker the test is reported as skipped, not red, so the suite stays green
-/// (section 10 DoD note about no guaranteed DB).
+/// reachable. The Testcontainers-backed integration tests need a live Docker to spin up PostgreSQL; on a
+/// machine/CI leg without Docker the test is reported as skipped, not red, so the suite stays green
+/// (section 10 DoD note about no guaranteed DB). Shared by every test project.
 /// </summary>
+/// <remarks>
+/// The probe is dependency-free (no Docker.DotNet coupling): it checks the platform's default Docker
+/// endpoint — the <c>\\.\pipe\docker_engine</c> named pipe on Windows, the <c>/var/run/docker.sock</c> Unix
+/// socket elsewhere — honouring a <c>DOCKER_HOST</c> override when present. The result is evaluated once and
+/// cached (a static, lazily-evaluated flag) so every decorated test shares a single cheap check.
+/// </remarks>
 public sealed class DockerAvailableFactAttribute : FactAttribute
 {
     private static readonly Lazy<bool> DockerReachable = new(ProbeDocker);
@@ -27,6 +33,7 @@ public sealed class DockerAvailableFactAttribute : FactAttribute
 
     private static bool ProbeDocker()
     {
+        // An explicit DOCKER_HOST (e.g. a TCP endpoint) means someone configured Docker access — trust it.
         if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DOCKER_HOST")))
         {
             return true;

@@ -1,6 +1,4 @@
 using SISLAB.Modules.Inventory.Application.EquipmentRead;
-using SISLAB.SharedKernel.Multitenancy;
-using SISLAB.SharedKernel.Time;
 
 namespace SISLAB.Modules.Inventory.Tests.Application.EquipmentRead;
 
@@ -20,7 +18,7 @@ public sealed class OverdueCalibrationQueryParametersTests
 
     // BuildParameters never touches the connection factory, so a null factory is safe here.
     private readonly ListOverdueCalibrationEquipmentQueryHandler _handler =
-        new(connectionFactory: null!, new StubTenantContext(ActiveCompany), new StubClock(Now));
+        new(connectionFactory: null!, new StubTenantContext(ActiveCompany), new FixedClock(Now));
 
     [Fact]
     public void Takes_the_company_from_the_tenant_context_never_the_request()
@@ -57,17 +55,5 @@ public sealed class OverdueCalibrationQueryParametersTests
 
         Assert.Equal(51, parameters.FirstResult);
         Assert.Equal(100, parameters.LastResult);
-    }
-
-    private sealed class StubTenantContext : ITenantContext
-    {
-        public StubTenantContext(Guid companyId) => CompanyId = companyId;
-        public Guid CompanyId { get; }
-    }
-
-    private sealed class StubClock : IClock
-    {
-        public StubClock(DateTime utcNow) => UtcNow = utcNow;
-        public DateTime UtcNow { get; }
     }
 }

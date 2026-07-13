@@ -33,6 +33,7 @@
     <!-- Identity Application: the alert-job tests reference ListAllCompanyIdsQuery/Result directly to
          drive the multi-company enumeration fake. -->
     <ProjectReference Include="..\..\src\Modules\Identity\SISLAB.Modules.Identity.Application\SISLAB.Modules.Identity.Application.csproj" />
+    <ProjectReference Include="..\SISLAB.TestSupport\SISLAB.TestSupport.csproj" />
   </ItemGroup>
 
   <ItemGroup>

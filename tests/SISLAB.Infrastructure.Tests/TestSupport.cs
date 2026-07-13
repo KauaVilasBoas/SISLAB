@@ -5,6 +5,7 @@ using SISLAB.Infrastructure.Persistence;
 using SISLAB.SharedKernel.Domain;
 using SISLAB.SharedKernel.Messaging;
 using SISLAB.SharedKernel.Time;
+using SISLAB.TestSupport;
 
 namespace SISLAB.Infrastructure.Tests;
 
@@ -122,13 +123,6 @@ public sealed class TestOutboxDbContext : DbContext, IOutboxDbContext
     public TestOutboxDbContext(DbContextOptions<TestOutboxDbContext> options) : base(options) { }
 
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
-}
-
-public sealed class FixedClock : IClock
-{
-    public FixedClock(DateTime utcNow) => UtcNow = utcNow;
-
-    public DateTime UtcNow { get; }
 }
 
 /// <summary>Event bus that records every published event — the "happy path" for dispatcher tests.</summary>
