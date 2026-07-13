@@ -35,6 +35,9 @@ public sealed class ModuleIsolationTests
     private const string NotificationsApplicationAssembly = "SISLAB.Modules.Notifications.Application";
     private const string NotificationsInfrastructureAssembly = "SISLAB.Modules.Notifications.Infrastructure";
     private const string NotificationsContractsAssembly = "SISLAB.Modules.Notifications.Contracts";
+    private const string AuditContractsAssembly = "SISLAB.Modules.Audit.Contracts";
+    private const string AuditApplicationAssembly = "SISLAB.Modules.Audit.Application";
+    private const string AuditInfrastructureAssembly = "SISLAB.Modules.Audit.Infrastructure";
     private const string SharedKernelAssembly = "SISLAB.SharedKernel";
     private const string InfrastructureAssembly = "SISLAB.Infrastructure";
     private const string JobsAssembly = "SISLAB.Jobs";
@@ -533,6 +536,81 @@ public sealed class ModuleIsolationTests
             .Types().That().ResideInAssembly(JobsAssembly)
             .Should().NotDependOnAnyTypesThat()
             .ResideInAssembly(NotificationsDomainAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Audit module (card [E9] #57). The append-only compliance trail has no Domain project (it is
+    // Dapper-only, write-once), so the rules focus on keeping its public Contracts boundary clean —
+    // the boundary that other modules (Inventory) reference to record entries — and on ensuring the
+    // trail never reaches into a business module's internal Domain.
+    // (b) Contracts must not depend on the module's Application/Infrastructure, nor on EF Core, so a
+    //     consumer that references only Audit.Contracts (Inventory) cannot reach the internals through it.
+    // (a) The Audit module must not depend on any business module's Domain (Inventory/Identity).
+    // ---------------------------------------------------------------------------------------------
+
+    /// <summary>(b) O boundary público (Contracts) do Audit não deve depender da Application do módulo.</summary>
+    [Fact]
+    public void AuditContracts_ShouldNotDependOn_AuditApplication()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(AuditContractsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(AuditApplicationAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(b) O boundary público (Contracts) do Audit não deve depender da Infrastructure do módulo.</summary>
+    [Fact]
+    public void AuditContracts_ShouldNotDependOn_AuditInfrastructure()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(AuditContractsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(AuditInfrastructureAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(b) O boundary público (Contracts) do Audit não deve depender de EF Core.</summary>
+    [Fact]
+    public void AuditContracts_ShouldNotDependOn_EntityFramework()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(AuditContractsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInNamespace("Microsoft.EntityFrameworkCore")
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(a) O módulo Audit (Infrastructure) não deve depender do Domain interno do Inventory.</summary>
+    [Fact]
+    public void AuditInfrastructure_ShouldNotDependOn_InventoryDomain()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(AuditInfrastructureAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(InventoryDomainAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(a) O módulo Audit (Application) não deve depender do Domain interno do Inventory.</summary>
+    [Fact]
+    public void AuditApplication_ShouldNotDependOn_InventoryDomain()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(AuditApplicationAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(InventoryDomainAssembly)
             .WithoutRequiringPositiveResults();
 
         rule.Check(Architecture);

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Contracts: fronteira pública do módulo Audit (IAuditWriter + AuditEntry DTO). -->
+  <!-- POCO/interface puro: apenas primitivos do BCL, sem Domain, EF, Dapper ou ASP.NET. -->
+  <!-- Outros módulos (Inventory) referenciam APENAS este projeto para gravar a trilha de auditoria. -->
+
+  <!-- Deliberadamente sem ProjectReference: a porta (IAuditWriter) e o DTO (AuditEntry) usam
+       apenas primitivos do BCL, então nem o SharedKernel é necessário — mantém a fronteira
+       pública leve e blindada, como em Notifications.Contracts. -->
+
+</Project>

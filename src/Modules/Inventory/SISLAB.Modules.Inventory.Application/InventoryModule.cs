@@ -52,6 +52,12 @@ public sealed class InventoryModule : IModule
         // live in Application, and Infrastructure must not reference Application (keeps the module
         // acyclic). Scoped mirrors the mediator/query-handler lifetime.
         services.AddScoped<IInventoryApi, InventoryApi>();
+
+        // Audit trail collaborator (card [E9] #57): records controlled-item movements and equipment
+        // interventions into the Audit module via its public IAuditWriter/IAuditActorAccessor ports
+        // (contributed by the Audit module's own registration). Scoped mirrors the command-handler
+        // lifetime that depends on it.
+        services.AddScoped<Audit.InventoryAuditRecorder>();
     }
 
     /// <inheritdoc />

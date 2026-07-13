@@ -1,4 +1,5 @@
 using FluentValidation;
+using SISLAB.Modules.Inventory.Application.Audit;
 using SISLAB.Modules.Inventory.Domain.Equipments;
 using SISLAB.SharedKernel.Exceptions;
 using SISLAB.SharedKernel.Messaging;
@@ -32,9 +33,15 @@ internal sealed class RecordEquipmentMaintenanceCommandHandler
     : ICommandHandler<RecordEquipmentMaintenanceCommand>
 {
     private readonly IEquipmentRepository _equipments;
+    private readonly InventoryAuditRecorder _audit;
 
-    public RecordEquipmentMaintenanceCommandHandler(IEquipmentRepository equipments)
-        => _equipments = equipments;
+    public RecordEquipmentMaintenanceCommandHandler(
+        IEquipmentRepository equipments,
+        InventoryAuditRecorder audit)
+    {
+        _equipments = equipments;
+        _audit = audit;
+    }
 
     public async Task<Unit> HandleAsync(
         RecordEquipmentMaintenanceCommand request,
@@ -47,6 +54,19 @@ internal sealed class RecordEquipmentMaintenanceCommandHandler
             MaintenanceRecord.Create(request.Date, request.Type, request.Notes));
 
         await _equipments.UpdateAsync(equipment, cancellationToken);
+
+        // Equipment interventions are always audited (card #57).
+        await _audit.RecordEquipmentAsync(
+            equipment.CompanyId,
+            equipment.Id,
+            InventoryAuditActions.EquipmentMaintenance,
+            new
+            {
+                request.Date,
+                Type = request.Type.ToString(),
+                request.Notes
+            },
+            cancellationToken);
 
         return Unit.Value;
     }

@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit" Version="2.5.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Modules\Audit\SISLAB.Modules.Audit.Application\SISLAB.Modules.Audit.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Audit\SISLAB.Modules.Audit.Contracts\SISLAB.Modules.Audit.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Audit\SISLAB.Modules.Audit.Infrastructure\SISLAB.Modules.Audit.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Shared\SISLAB.SharedKernel\SISLAB.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
+    <ProjectReference Include="..\SISLAB.TestSupport\SISLAB.TestSupport.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="SISLAB.TestSupport" />
+  </ItemGroup>
+
+</Project>

@@ -19,11 +19,17 @@
       process — the classes stay promotable to one later without a rewrite.
     -->
     <ProjectReference Include="..\..\Jobs\SISLAB.Jobs\SISLAB.Jobs.csproj" />
+    <ProjectReference Include="..\..\Modules\Audit\SISLAB.Modules.Audit.Application\SISLAB.Modules.Audit.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.2" />
+    <!-- Structured logging (card [E9] #56). Console JSON in dev; ships to Coralogix via the generic
+         HTTP sink (no first-party Coralogix sink for Serilog 8) when Coralogix:ApiKey is set. -->
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.Http" Version="9.1.0" />
   </ItemGroup>
 
   <ItemGroup>

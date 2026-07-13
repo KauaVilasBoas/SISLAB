@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Application do módulo Audit: read-side Dapper (listagem paginada + export CSV) e o controller HTTP.
+    É o ponto de entrada público (IModule), exposto ao Host. Depende de Contracts + Infrastructure
+    (do MESMO módulo, para delegar o wiring de DI) + Shared Infrastructure. Simétrico ao Notifications.
+    Não referencia Domain: o módulo Audit não tem Domain (é uma trilha append-only, não um aggregate).
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\SISLAB.Modules.Audit.Contracts\SISLAB.Modules.Audit.Contracts.csproj" />
+    <ProjectReference Include="..\SISLAB.Modules.Audit.Infrastructure\SISLAB.Modules.Audit.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Expõe handlers CQRS internos (queries) aos testes do módulo. -->
+    <InternalsVisibleTo Include="SISLAB.Modules.Audit.Tests" />
+  </ItemGroup>
+
+</Project>

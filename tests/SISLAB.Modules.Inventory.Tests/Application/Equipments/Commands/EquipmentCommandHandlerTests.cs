@@ -1,5 +1,7 @@
+using SISLAB.Modules.Inventory.Application.Audit;
 using SISLAB.Modules.Inventory.Application.Equipments.Commands;
 using SISLAB.Modules.Inventory.Domain.Equipments;
+using SISLAB.Modules.Inventory.Tests.Application.Audit;
 using SISLAB.SharedKernel.Exceptions;
 
 namespace SISLAB.Modules.Inventory.Tests.Application.Equipments.Commands;
@@ -97,7 +99,8 @@ public sealed class EquipmentCommandHandlerTests
     {
         Equipment equipment = Equipment.Register("Espectrofotômetro", "PAT-3");
         var equipments = new FakeEquipmentRepository().Seed(equipment);
-        var handler = new DefineEquipmentCalibrationCommandHandler(equipments);
+        TestAuditRecorder audit = TestAuditRecorder.Create();
+        var handler = new DefineEquipmentCalibrationCommandHandler(equipments, audit.Recorder);
 
         await handler.HandleAsync(new DefineEquipmentCalibrationCommand(
             equipment.Id, new DateOnly(2026, 1, 1), new DateOnly(2026, 12, 1)));
@@ -105,6 +108,13 @@ public sealed class EquipmentCommandHandlerTests
         Assert.NotNull(equipment.Calibration);
         Assert.Equal(new DateOnly(2026, 12, 1), equipment.Calibration!.NextCalibration);
         Assert.Same(equipment, equipments.LastUpdated);
+
+        // Equipment interventions are always audited (card #57).
+        Assert.Single(audit.Writer.Entries);
+        var entry = audit.Writer.LastEntry!;
+        Assert.Equal(InventoryAuditActions.EquipmentCalibration, entry.Action);
+        Assert.Equal("Equipment", entry.EntityType);
+        Assert.Equal(equipment.Id, entry.EntityId);
     }
 
     [Fact]
@@ -114,7 +124,8 @@ public sealed class EquipmentCommandHandlerTests
             "Vórtex", "PAT-7",
             calibration: CalibrationSchedule.Create(new DateOnly(2026, 1, 1)));
         var equipments = new FakeEquipmentRepository().Seed(equipment);
-        var handler = new DefineEquipmentCalibrationCommandHandler(equipments);
+        TestAuditRecorder audit = TestAuditRecorder.Create();
+        var handler = new DefineEquipmentCalibrationCommandHandler(equipments, audit.Recorder);
 
         await handler.HandleAsync(new DefineEquipmentCalibrationCommand(equipment.Id, null, null));
 
@@ -126,7 +137,8 @@ public sealed class EquipmentCommandHandlerTests
     {
         Equipment equipment = Equipment.Register("Centrífuga", "PAT-5");
         var equipments = new FakeEquipmentRepository().Seed(equipment);
-        var handler = new RecordEquipmentMaintenanceCommandHandler(equipments);
+        TestAuditRecorder audit = TestAuditRecorder.Create();
+        var handler = new RecordEquipmentMaintenanceCommandHandler(equipments, audit.Recorder);
 
         await handler.HandleAsync(new RecordEquipmentMaintenanceCommand(
             equipment.Id, new DateOnly(2026, 3, 10), MaintenanceType.Preventive, "Revisão anual"));
@@ -135,12 +147,18 @@ public sealed class EquipmentCommandHandlerTests
         Assert.Equal(MaintenanceType.Preventive, record.Type);
         Assert.Equal("Revisão anual", record.Notes);
         Assert.Same(equipment, equipments.LastUpdated);
+
+        // Equipment interventions are always audited (card #57).
+        Assert.Single(audit.Writer.Entries);
+        Assert.Equal(InventoryAuditActions.EquipmentMaintenance, audit.Writer.LastEntry!.Action);
     }
 
     [Fact]
     public async Task RecordMaintenance_fails_when_the_equipment_does_not_exist()
     {
-        var handler = new RecordEquipmentMaintenanceCommandHandler(new FakeEquipmentRepository());
+        TestAuditRecorder audit = TestAuditRecorder.Create();
+        var handler = new RecordEquipmentMaintenanceCommandHandler(
+            new FakeEquipmentRepository(), audit.Recorder);
 
         await Assert.ThrowsAsync<NotFoundException>(() => handler.HandleAsync(
             new RecordEquipmentMaintenanceCommand(
