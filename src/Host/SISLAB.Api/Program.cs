@@ -3,6 +3,7 @@ using SISLAB.Api.Csrf;
 using SISLAB.Api.Middleware;
 using SISLAB.Infrastructure.DependencyInjection;
 using SISLAB.Infrastructure.Modules;
+using SISLAB.Jobs.DependencyInjection;
 using SISLAB.Modules.Identity.Application;
 using SISLAB.Modules.Inventory.Application;
 
@@ -25,6 +26,15 @@ Assembly[] moduleAssemblies =
 ];
 
 ModuleLoader.RegisterModules(builder.Services, builder.Configuration, moduleAssemblies);
+
+// ---------------------------------------------------------------------------
+// Background jobs (E6 #39) — run in-process with the API (Fork #1 → C).
+// Registered AFTER the modules because the Outbox dispatcher job depends on the
+// module-contributed IOutboxDbContext / write-side DbContext. Registers the
+// scheduled IHostedService(s), the SISLAB IEventBus, the Outbox dispatcher and
+// the settable ambient tenant context for background work.
+// ---------------------------------------------------------------------------
+builder.Services.AddSislabJobs(builder.Configuration);
 
 // ---------------------------------------------------------------------------
 // Swagger / OpenAPI (development only)
