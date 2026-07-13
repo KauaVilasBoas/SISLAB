@@ -18,7 +18,11 @@ internal static class AssemblyRegistry
             // Loaded explicitly so the module-isolation rules (E5 #35) can evaluate the module's public
             // Contracts boundary and its internal Infrastructure against real types, not zero types.
             typeof(Modules.Inventory.Contracts.IInventoryApi).Assembly,             // Inventory.Contracts
-            typeof(Modules.Inventory.Infrastructure.Persistence.InventoryDbContext).Assembly // Inventory.Infrastructure
+            typeof(Modules.Inventory.Infrastructure.Persistence.InventoryDbContext).Assembly, // Inventory.Infrastructure
+            // Jobs host library (E6 #39): loaded so the Host-style isolation rules can be evaluated
+            // against real types — it must depend only on shared Infrastructure/module Application,
+            // never on a module's internal Domain.
+            typeof(Jobs.Scheduling.TimedBackgroundService).Assembly                 // SISLAB.Jobs
         )
         .Build();
 

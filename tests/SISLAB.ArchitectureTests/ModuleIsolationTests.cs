@@ -33,6 +33,7 @@ public sealed class ModuleIsolationTests
     private const string InventoryContractsAssembly = "SISLAB.Modules.Inventory.Contracts";
     private const string SharedKernelAssembly = "SISLAB.SharedKernel";
     private const string InfrastructureAssembly = "SISLAB.Infrastructure";
+    private const string JobsAssembly = "SISLAB.Jobs";
 
     /// <summary>
     /// (a+b) Domain do Identity não deve depender de nada do módulo Inventory.
@@ -227,6 +228,44 @@ public sealed class ModuleIsolationTests
             .Types().That().ResideInAssembly(InventoryDomainAssembly)
             .Should().NotDependOnAnyTypesThat()
             .ResideInNamespace("Microsoft.AspNetCore")
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // (e) Jobs host library (card [E6] #39). SISLAB.Jobs runs in-process with the API and follows the
+    //     same isolation rules as the Host: it may use shared Infrastructure and each module's public
+    //     entry point (Application), but must NEVER reach into a module's internal Domain. Guarding
+    //     this keeps the background worker from coupling to aggregates/value objects behind a module's
+    //     boundary — it talks to modules only through their public surface (mediator/Contracts).
+    // ---------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// (e) O host de Jobs não deve depender do Domain interno do módulo Identity.
+    /// </summary>
+    [Fact]
+    public void Jobs_ShouldNotDependOn_IdentityDomain()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(JobsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(IdentityDomainAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>
+    /// (e) O host de Jobs não deve depender do Domain interno do módulo Inventory.
+    /// </summary>
+    [Fact]
+    public void Jobs_ShouldNotDependOn_InventoryDomain()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(JobsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(InventoryDomainAssembly)
             .WithoutRequiringPositiveResults();
 
         rule.Check(Architecture);
