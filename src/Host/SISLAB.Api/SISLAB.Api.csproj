@@ -20,6 +20,7 @@
     -->
     <ProjectReference Include="..\..\Jobs\SISLAB.Jobs\SISLAB.Jobs.csproj" />
     <ProjectReference Include="..\..\Modules\Audit\SISLAB.Modules.Audit.Application\SISLAB.Modules.Audit.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Configuration\SISLAB.Modules.Configuration.Application\SISLAB.Modules.Configuration.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

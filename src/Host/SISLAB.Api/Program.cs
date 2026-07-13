@@ -9,6 +9,7 @@ using SISLAB.Infrastructure.DependencyInjection;
 using SISLAB.Infrastructure.Modules;
 using SISLAB.Jobs.DependencyInjection;
 using SISLAB.Modules.Audit.Application;
+using SISLAB.Modules.Configuration.Application;
 using SISLAB.Modules.Identity.Application;
 using SISLAB.Modules.Inventory.Application;
 using SISLAB.Modules.Notifications.Application;
@@ -41,14 +42,15 @@ builder.Services.Replace(
 // ---------------------------------------------------------------------------
 // Composition Root — module discovery and registration via assembly scanning.
 // Load order is determined by IModule.Order (lower = first).
-// Convention: Identity = 10, Inventory = 20, Notifications = 30, Audit = 40.
+// Convention: Identity = 10, Inventory = 20, Notifications = 30, Audit = 40, Configuration = 50.
 // ---------------------------------------------------------------------------
 Assembly[] moduleAssemblies =
 [
     typeof(IdentityModule).Assembly,
     typeof(InventoryModule).Assembly,
     typeof(NotificationsModule).Assembly,
-    typeof(AuditModule).Assembly
+    typeof(AuditModule).Assembly,
+    typeof(ConfigurationModule).Assembly
 ];
 
 ModuleLoader.RegisterModules(builder.Services, builder.Configuration, moduleAssemblies);
