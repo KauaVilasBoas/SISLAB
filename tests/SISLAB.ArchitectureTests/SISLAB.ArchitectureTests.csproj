@@ -36,6 +36,12 @@
     <ProjectReference Include="..\..\src\Modules\Audit\SISLAB.Modules.Audit.Contracts\SISLAB.Modules.Audit.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Audit\SISLAB.Modules.Audit.Application\SISLAB.Modules.Audit.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Audit\SISLAB.Modules.Audit.Infrastructure\SISLAB.Modules.Audit.Infrastructure.csproj" />
+    <!-- Configuration module (card [E12] #76): all four projects loaded so the isolation rules evaluate the
+         module's public Contracts boundary and its internal Domain/Infrastructure against real types. -->
+    <ProjectReference Include="..\..\src\Modules\Configuration\SISLAB.Modules.Configuration.Domain\SISLAB.Modules.Configuration.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Configuration\SISLAB.Modules.Configuration.Application\SISLAB.Modules.Configuration.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Configuration\SISLAB.Modules.Configuration.Contracts\SISLAB.Modules.Configuration.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Configuration\SISLAB.Modules.Configuration.Infrastructure\SISLAB.Modules.Configuration.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
