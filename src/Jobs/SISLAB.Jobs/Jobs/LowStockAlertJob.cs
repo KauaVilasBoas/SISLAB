@@ -55,12 +55,12 @@ public sealed class LowStockAlertJob : CompanyScanAlertJob
         INotificationPublisher publisher = companyScope.ServiceProvider.GetRequiredService<INotificationPublisher>();
 
         IReadOnlyList<BelowMinimumItem> belowMinimumItems = await PagedQueryDrainer.DrainAsync(
+            mediator,
             queryForPage: page => new ListItemsBelowMinimumQuery
             {
                 Page = page,
-                PageSize = PagedQueryDrainer.PageSize
+                PageSize = ScanPageSize
             },
-            send: (query, ct) => mediator.SendAsync(query, ct),
             cancellationToken);
 
         foreach (BelowMinimumItem item in belowMinimumItems)
