@@ -1,4 +1,5 @@
 using FluentValidation;
+using SISLAB.Modules.Inventory.Application.Audit;
 using SISLAB.Modules.Inventory.Domain.StockItems;
 using SISLAB.Modules.Inventory.Domain.ValueObjects;
 using SISLAB.SharedKernel.Exceptions;
@@ -43,9 +44,15 @@ internal sealed class DisposeStockCommandValidator : AbstractValidator<DisposeSt
 internal sealed class DisposeStockCommandHandler : ICommandHandler<DisposeStockCommand>
 {
     private readonly IStockItemRepository _stockItems;
+    private readonly InventoryAuditRecorder _audit;
 
-    public DisposeStockCommandHandler(IStockItemRepository stockItems)
-        => _stockItems = stockItems;
+    public DisposeStockCommandHandler(
+        IStockItemRepository stockItems,
+        InventoryAuditRecorder audit)
+    {
+        _stockItems = stockItems;
+        _audit = audit;
+    }
 
     public async Task<Unit> HandleAsync(
         DisposeStockCommand request,
@@ -59,6 +66,24 @@ internal sealed class DisposeStockCommandHandler : ICommandHandler<DisposeStockC
         item.Dispose(disposed);
 
         await _stockItems.UpdateAsync(item, cancellationToken);
+
+        // Controlled substances leave a compliance trail (card #57); ordinary items do not.
+        if (item.IsControlled)
+        {
+            await _audit.RecordStockItemAsync(
+                item.CompanyId,
+                item.Id,
+                InventoryAuditActions.Disposal,
+                new
+                {
+                    request.Quantity,
+                    request.Unit,
+                    request.Reason,
+                    request.OccurredOn,
+                    RemainingBalance = item.Quantity.Value
+                },
+                cancellationToken);
+        }
 
         return Unit.Value;
     }

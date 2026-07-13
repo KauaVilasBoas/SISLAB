@@ -33,6 +33,9 @@
     <!-- Jobs host library (E6 #39): loaded so the isolation rules can assert it never reaches into a
          module's internal Domain. It follows the Host rules — Infrastructure + Application only. -->
     <ProjectReference Include="..\..\src\Jobs\SISLAB.Jobs\SISLAB.Jobs.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Audit\SISLAB.Modules.Audit.Contracts\SISLAB.Modules.Audit.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Audit\SISLAB.Modules.Audit.Application\SISLAB.Modules.Audit.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Audit\SISLAB.Modules.Audit.Infrastructure\SISLAB.Modules.Audit.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

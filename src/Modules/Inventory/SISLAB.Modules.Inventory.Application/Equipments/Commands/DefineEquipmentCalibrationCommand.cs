@@ -1,4 +1,5 @@
 using FluentValidation;
+using SISLAB.Modules.Inventory.Application.Audit;
 using SISLAB.Modules.Inventory.Domain.Equipments;
 using SISLAB.SharedKernel.Exceptions;
 using SISLAB.SharedKernel.Messaging;
@@ -35,9 +36,15 @@ internal sealed class DefineEquipmentCalibrationCommandHandler
     : ICommandHandler<DefineEquipmentCalibrationCommand>
 {
     private readonly IEquipmentRepository _equipments;
+    private readonly InventoryAuditRecorder _audit;
 
-    public DefineEquipmentCalibrationCommandHandler(IEquipmentRepository equipments)
-        => _equipments = equipments;
+    public DefineEquipmentCalibrationCommandHandler(
+        IEquipmentRepository equipments,
+        InventoryAuditRecorder audit)
+    {
+        _equipments = equipments;
+        _audit = audit;
+    }
 
     public async Task<Unit> HandleAsync(
         DefineEquipmentCalibrationCommand request,
@@ -53,6 +60,18 @@ internal sealed class DefineEquipmentCalibrationCommandHandler
         equipment.DefineCalibration(calibration);
 
         await _equipments.UpdateAsync(equipment, cancellationToken);
+
+        // Equipment interventions are always audited (card #57).
+        await _audit.RecordEquipmentAsync(
+            equipment.CompanyId,
+            equipment.Id,
+            InventoryAuditActions.EquipmentCalibration,
+            new
+            {
+                request.LastCalibration,
+                request.NextCalibration
+            },
+            cancellationToken);
 
         return Unit.Value;
     }
