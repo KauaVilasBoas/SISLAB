@@ -27,6 +27,14 @@ public static class InfrastructureServiceExtensions
         // itself is contributed by the Identity module (it owns the tenant source).
         services.AddScoped<ITenantBypass, TenantBypass>();
 
+        // Background tenant-override seam (E6 alert jobs #41/#42/#66). Scoped so a company set inside one
+        // job iteration never leaks into the next or into an HTTP request. It is safe to register here
+        // (unlike ITenantContext, which Identity owns): the effective ITenantContext — composed by the
+        // Identity module as OverridableTenantContext — reads this override and, when unset (every HTTP
+        // request), transparently falls back to the request-resolved tenant. Registering only the override
+        // here keeps the jobs host free of any ITenantContext registration (composition test).
+        services.AddScoped<ITenantContextOverride, TenantContextOverride>();
+
         // Cross-cutting CQRS pipeline behaviors that carry NO module-specific dependency.
         // Registration order defines pipeline position: the Mediator reverses the resolved
         // sequence, so the FIRST registered behavior becomes the OUTERMOST wrapper.
