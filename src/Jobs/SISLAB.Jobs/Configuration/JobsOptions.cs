@@ -1,0 +1,35 @@
+namespace SISLAB.Jobs.Configuration;
+
+/// <summary>
+/// Strongly-typed configuration for the background jobs (E6 #39), bound from the <c>Jobs</c> section
+/// of <c>appsettings</c> (see <c>AddSislabJobs</c>). Every value has a safe default so the worker runs
+/// even when the section is absent; environments override only what they need.
+///
+/// Intervals are expressed as <see cref="TimeSpan"/> and parse from the standard <c>"hh:mm:ss"</c>
+/// config format (e.g. <c>"00:00:30"</c> = 30s).
+///
+/// Only the Outbox dispatcher exists in this card; the alert jobs (#41/#42/#66) add their own
+/// sub-sections here as they land.
+/// </summary>
+public sealed class JobsOptions
+{
+    /// <summary>Configuration section name (<c>appsettings.json</c> → <c>"Jobs"</c>).</summary>
+    public const string SectionName = "Jobs";
+
+    /// <summary>Settings for the Outbox dispatcher job (the E6 #39 example job / #40).</summary>
+    public OutboxDispatcherOptions OutboxDispatcher { get; init; } = new();
+}
+
+/// <summary>
+/// Settings for the Outbox dispatcher job: how often it runs and how many pending messages it drains
+/// per tick. The defaults (5s cadence, 50 messages) keep integration events near-real-time without
+/// hammering the database.
+/// </summary>
+public sealed class OutboxDispatcherOptions
+{
+    /// <summary>How often the Outbox is scanned for pending messages. Default: 5 seconds.</summary>
+    public TimeSpan Interval { get; init; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>Maximum pending messages published per tick. Default: 50.</summary>
+    public int BatchSize { get; init; } = 50;
+}
