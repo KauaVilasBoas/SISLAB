@@ -38,6 +38,10 @@ public sealed class ModuleIsolationTests
     private const string AuditContractsAssembly = "SISLAB.Modules.Audit.Contracts";
     private const string AuditApplicationAssembly = "SISLAB.Modules.Audit.Application";
     private const string AuditInfrastructureAssembly = "SISLAB.Modules.Audit.Infrastructure";
+    private const string ConfigurationDomainAssembly = "SISLAB.Modules.Configuration.Domain";
+    private const string ConfigurationApplicationAssembly = "SISLAB.Modules.Configuration.Application";
+    private const string ConfigurationContractsAssembly = "SISLAB.Modules.Configuration.Contracts";
+    private const string ConfigurationInfrastructureAssembly = "SISLAB.Modules.Configuration.Infrastructure";
     private const string SharedKernelAssembly = "SISLAB.SharedKernel";
     private const string InfrastructureAssembly = "SISLAB.Infrastructure";
     private const string JobsAssembly = "SISLAB.Jobs";
@@ -611,6 +615,106 @@ public sealed class ModuleIsolationTests
             .Types().That().ResideInAssembly(AuditApplicationAssembly)
             .Should().NotDependOnAnyTypesThat()
             .ResideInAssembly(InventoryDomainAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Configuration module (card [E12] #76). The transversal per-tenant settings source that other
+    // business modules read from through the public ILabConfiguration port.
+    // (b) Its public Contracts boundary — the surface Inventory references — must not leak the module's
+    //     Application/Infrastructure or EF Core.
+    // (a) The Inventory module, which consumes Configuration only via Contracts, must never reach into
+    //     the Configuration internal Domain/Application/Infrastructure (module isolation, section 2).
+    // ---------------------------------------------------------------------------------------------
+
+    /// <summary>(b) O boundary público (Contracts) da Configuration não deve depender da Application do módulo.</summary>
+    [Fact]
+    public void ConfigurationContracts_ShouldNotDependOn_ConfigurationApplication()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ConfigurationContractsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(ConfigurationApplicationAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(b) O boundary público (Contracts) da Configuration não deve depender da Infrastructure do módulo.</summary>
+    [Fact]
+    public void ConfigurationContracts_ShouldNotDependOn_ConfigurationInfrastructure()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ConfigurationContractsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(ConfigurationInfrastructureAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(b) O boundary público (Contracts) da Configuration não deve depender do Domain interno do módulo.</summary>
+    [Fact]
+    public void ConfigurationContracts_ShouldNotDependOn_ConfigurationDomain()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ConfigurationContractsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(ConfigurationDomainAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(b) O boundary público (Contracts) da Configuration não deve depender de EF Core.</summary>
+    [Fact]
+    public void ConfigurationContracts_ShouldNotDependOn_EntityFramework()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ConfigurationContractsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInNamespace("Microsoft.EntityFrameworkCore")
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(a) O Inventory (Application) só consome a Configuration via Contracts, nunca seu Domain interno.</summary>
+    [Fact]
+    public void InventoryApplication_ShouldNotDependOn_ConfigurationDomain()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(InventoryApplicationAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(ConfigurationDomainAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(a) O Inventory (Application) não deve depender da Application interna da Configuration.</summary>
+    [Fact]
+    public void InventoryApplication_ShouldNotDependOn_ConfigurationApplication()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(InventoryApplicationAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(ConfigurationApplicationAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(a) O Inventory (Application) não deve depender da Infrastructure interna da Configuration.</summary>
+    [Fact]
+    public void InventoryApplication_ShouldNotDependOn_ConfigurationInfrastructure()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(InventoryApplicationAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(ConfigurationInfrastructureAssembly)
             .WithoutRequiringPositiveResults();
 
         rule.Check(Architecture);

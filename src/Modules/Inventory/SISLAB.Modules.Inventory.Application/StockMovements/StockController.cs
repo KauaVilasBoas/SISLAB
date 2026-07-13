@@ -232,6 +232,39 @@ public sealed class StockController : SislabControllerBase
 
     // ---- Write side ------------------------------------------------------------------------------------------
 
+    /// <summary>
+    /// Registers a new stock item for the active company with its initial balance. The category is a per-tenant
+    /// Configuration category referenced by value (card [E12] #76); an unknown category id — or an unknown
+    /// storage location — is a 404. Returns the new item id.
+    /// </summary>
+    [HttpPost("stock-items")]
+    [ProducesResponseType(typeof(ApiResult<Guid>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> RegisterStockItem(
+        [FromBody] RegisterStockItemRequest body,
+        CancellationToken ct)
+    {
+        Guid id = await _mediator.SendAsync(
+            new RegisterStockItemCommand(
+                body.Name,
+                body.CategoryId,
+                body.StorageLocationId,
+                body.InitialQuantity,
+                body.MinimumQuantity,
+                body.Unit,
+                body.IsControlled,
+                body.Brand,
+                body.Application,
+                body.LotCode,
+                body.ExpiryYear,
+                body.ExpiryMonth),
+            ct);
+
+        return Ok(new ApiResult<Guid>(true, "Stock item registered.", id));
+    }
+
     /// <summary>Registers an incoming stock entry (receipt) on an existing item.</summary>
     [HttpPost("stock-items/{stockItemId:guid}/entries")]
     [ProducesResponseType(typeof(ApiResult<Guid>), StatusCodes.Status200OK)]
@@ -351,6 +384,24 @@ public sealed class StockController : SislabControllerBase
         return Ok(new ApiResult<decimal>(true, "Stock count registered.", divergence));
     }
 }
+
+/// <summary>
+/// Request body for registering a new stock item. <paramref name="CategoryId"/> is a per-tenant Configuration
+/// category referenced by value (card [E12] #76); the operator comes from the session, never the payload.
+/// </summary>
+public sealed record RegisterStockItemRequest(
+    string Name,
+    Guid CategoryId,
+    Guid StorageLocationId,
+    decimal InitialQuantity,
+    decimal MinimumQuantity,
+    string Unit,
+    bool IsControlled,
+    string? Brand,
+    string? Application,
+    string? LotCode,
+    int? ExpiryYear,
+    int? ExpiryMonth);
 
 /// <summary>Request body for a stock entry; the item id comes from the route, the operator from the session.</summary>
 public sealed record RegisterStockEntryRequest(

@@ -16,15 +16,18 @@ namespace SISLAB.Modules.Configuration.Application;
 /// assembly for auto-discovery via reflection; it never references the internal Domain project directly.
 /// </summary>
 /// <remarks>
-/// <see cref="Order"/> is 50 — after the existing modules (Identity = 10, Inventory = 20, Notifications = 30,
-/// Audit = 40). Configuration is a transversal settings source the business modules read from; registering it
-/// after them keeps a coherent, collision-free order (nothing consumed at registration time depends on load
-/// order, since cross-module reads go through the public <see cref="ILabConfiguration"/> port at runtime).
+/// <see cref="Order"/> is 15 — right after Identity (10) and <b>before</b> Inventory (20), Notifications (30)
+/// and Audit (40). Nothing consumed at registration time depends on load order (cross-module reads go through
+/// the public <see cref="ILabConfiguration"/> port at runtime), but the order does govern the sequence of the
+/// per-module schema-migration hosted services: the Inventory read-side view (<c>inventory.stock_view</c>)
+/// resolves the category name through a LEFT JOIN onto <c>configuration.item_categories</c> (card [E12] #76),
+/// so the <c>configuration</c> schema must be applied before Inventory's migrations recreate that view. Placing
+/// Configuration ahead of the business modules makes that dependency hold on a fresh database.
 /// </remarks>
 public sealed class ConfigurationModule : IModule
 {
     /// <inheritdoc />
-    public int Order => 50;
+    public int Order => 15;
 
     /// <inheritdoc />
     public void RegisterServices(IServiceCollection services, IConfiguration configuration)

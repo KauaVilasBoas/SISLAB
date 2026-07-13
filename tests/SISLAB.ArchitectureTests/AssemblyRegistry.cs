@@ -32,6 +32,12 @@ internal static class AssemblyRegistry
             typeof(Modules.Audit.Contracts.IAuditWriter).Assembly,                  // Audit.Contracts
             typeof(Modules.Audit.Application.AuditModule).Assembly,                  // Audit.Application
             typeof(Modules.Audit.Infrastructure.DependencyInjection.AuditModuleServiceExtensions).Assembly, // Audit.Infrastructure
+            // Configuration module (card [E12] #76): all four projects loaded so the module-isolation rules
+            // can evaluate the Domain internals and the public Contracts boundary against real types.
+            typeof(Modules.Configuration.Domain.Rooms.Room).Assembly,                     // Configuration.Domain
+            typeof(Modules.Configuration.Application.ConfigurationModule).Assembly,        // Configuration.Application
+            typeof(Modules.Configuration.Contracts.ILabConfiguration).Assembly,            // Configuration.Contracts
+            typeof(Modules.Configuration.Infrastructure.Persistence.ConfigurationDbContext).Assembly, // Configuration.Infrastructure
             // Jobs host library (E6 #39): loaded so the Host-style isolation rules can be evaluated
             // against real types — it must depend only on shared Infrastructure/module Application,
             // never on a module's internal Domain.

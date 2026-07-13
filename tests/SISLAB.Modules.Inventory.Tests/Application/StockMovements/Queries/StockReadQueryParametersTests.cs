@@ -1,4 +1,5 @@
 using SISLAB.Modules.Inventory.Application.StockMovements.Queries;
+using SISLAB.Modules.Inventory.Tests.Application.Configuration;
 using SISLAB.SharedKernel.Exceptions;
 
 namespace SISLAB.Modules.Inventory.Tests.Application.StockMovements.Queries;
@@ -15,9 +16,18 @@ public sealed class StockReadQueryParametersTests
     private static readonly Guid ActiveCompany = Guid.Parse("11111111-1111-1111-1111-111111111111");
     private static readonly DateTime Now = new(2026, 7, 12, 8, 0, 0, DateTimeKind.Utc);
 
-    // BuildParameters does not touch the connection factory, so a null factory is never dereferenced here.
-    private readonly ListStockItemsQueryHandler _itemsHandler =
-        new(connectionFactory: null!, new StubTenantContext(ActiveCompany), new FixedClock(Now));
+    // The expiry window a handler would resolve from the Configuration boundary (card [E12] #76); the
+    // BuildParameters overloads that classify expiry take it as an argument, so the guard stays testable
+    // without a Configuration round-trip.
+    private const int ExpectedWarningWindowDays = 30;
+
+    // BuildParameters does not touch the connection factory, so a null factory is never dereferenced here; the
+    // ILabConfiguration is likewise never called by BuildParameters (the handler resolves the window before it).
+    private readonly FakeLabConfiguration _labConfiguration =
+        new() { WarningWindowDays = ExpectedWarningWindowDays };
+
+    private readonly ListStockItemsQueryHandler _itemsHandler;
+    private readonly GetExpirySummaryQueryHandler _expirySummaryHandler;
 
     private readonly GetLocationsSummaryQueryHandler _summaryHandler =
         new(connectionFactory: null!, new StubTenantContext(ActiveCompany), new FixedClock(Now));
@@ -25,8 +35,13 @@ public sealed class StockReadQueryParametersTests
     private readonly ListExpiringItemsQueryHandler _expiringHandler =
         new(connectionFactory: null!, new StubTenantContext(ActiveCompany), new FixedClock(Now));
 
-    private readonly GetExpirySummaryQueryHandler _expirySummaryHandler =
-        new(connectionFactory: null!, new StubTenantContext(ActiveCompany), new FixedClock(Now));
+    public StockReadQueryParametersTests()
+    {
+        _itemsHandler = new ListStockItemsQueryHandler(
+            connectionFactory: null!, new StubTenantContext(ActiveCompany), new FixedClock(Now), _labConfiguration);
+        _expirySummaryHandler = new GetExpirySummaryQueryHandler(
+            connectionFactory: null!, new StubTenantContext(ActiveCompany), new FixedClock(Now), _labConfiguration);
+    }
 
     private readonly ListItemsBelowMinimumQueryHandler _belowMinimumHandler =
         new(connectionFactory: null!, new StubTenantContext(ActiveCompany));
@@ -46,7 +61,8 @@ public sealed class StockReadQueryParametersTests
     [Fact]
     public void List_query_takes_the_company_from_the_tenant_context()
     {
-        StockItemsQueryParameters parameters = _itemsHandler.BuildParameters(new ListStockItemsQuery());
+        StockItemsQueryParameters parameters =
+            _itemsHandler.BuildParameters(new ListStockItemsQuery(), ExpectedWarningWindowDays);
 
         Assert.Equal(ActiveCompany, parameters.CompanyId);
     }
@@ -54,7 +70,8 @@ public sealed class StockReadQueryParametersTests
     [Fact]
     public void List_query_derives_today_from_the_clock()
     {
-        StockItemsQueryParameters parameters = _itemsHandler.BuildParameters(new ListStockItemsQuery());
+        StockItemsQueryParameters parameters =
+            _itemsHandler.BuildParameters(new ListStockItemsQuery(), ExpectedWarningWindowDays);
 
         Assert.Equal(DateOnly.FromDateTime(Now), parameters.Today);
         Assert.Equal(ExpectedWarningWindowDays, parameters.WarningWindowDays);
@@ -63,7 +80,8 @@ public sealed class StockReadQueryParametersTests
     [Fact]
     public void List_query_carries_the_expiry_status_ordinals_for_the_sql_case()
     {
-        StockItemsQueryParameters parameters = _itemsHandler.BuildParameters(new ListStockItemsQuery());
+        StockItemsQueryParameters parameters =
+            _itemsHandler.BuildParameters(new ListStockItemsQuery(), ExpectedWarningWindowDays);
 
         Assert.Equal((int)ExpiryStatusView.NotApplicable, parameters.NotApplicable);
         Assert.Equal((int)ExpiryStatusView.Ok, parameters.Ok);
@@ -75,7 +93,7 @@ public sealed class StockReadQueryParametersTests
     public void List_query_maps_pagination_bounds()
     {
         StockItemsQueryParameters parameters =
-            _itemsHandler.BuildParameters(new ListStockItemsQuery { Page = 3, PageSize = 25 });
+            _itemsHandler.BuildParameters(new ListStockItemsQuery { Page = 3, PageSize = 25 }, ExpectedWarningWindowDays);
 
         Assert.Equal(51, parameters.FirstResult); // (3-1)*25 + 1
         Assert.Equal(75, parameters.LastResult);  // 3*25
@@ -88,7 +106,7 @@ public sealed class StockReadQueryParametersTests
     public void List_query_collapses_blank_filters_to_null(string? blank)
     {
         StockItemsQueryParameters parameters = _itemsHandler.BuildParameters(
-            new ListStockItemsQuery { Category = blank, Search = blank });
+            new ListStockItemsQuery { Category = blank, Search = blank }, ExpectedWarningWindowDays);
 
         Assert.Null(parameters.Category);
         Assert.Null(parameters.Search);
@@ -98,7 +116,7 @@ public sealed class StockReadQueryParametersTests
     public void List_query_trims_populated_filters()
     {
         StockItemsQueryParameters parameters = _itemsHandler.BuildParameters(
-            new ListStockItemsQuery { Category = "  Solvent  ", Search = "  eta  " });
+            new ListStockItemsQuery { Category = "  Solvent  ", Search = "  eta  " }, ExpectedWarningWindowDays);
 
         Assert.Equal("Solvent", parameters.Category);
         Assert.Equal("eta", parameters.Search);
@@ -110,7 +128,7 @@ public sealed class StockReadQueryParametersTests
         Guid location = Guid.NewGuid();
 
         StockItemsQueryParameters parameters =
-            _itemsHandler.BuildParameters(new ListStockItemsQuery { StorageLocationId = location });
+            _itemsHandler.BuildParameters(new ListStockItemsQuery { StorageLocationId = location }, ExpectedWarningWindowDays);
 
         Assert.Equal(location, parameters.StorageLocationId);
     }
@@ -205,7 +223,7 @@ public sealed class StockReadQueryParametersTests
     [Fact]
     public void Expiry_summary_query_takes_the_company_from_the_tenant_context()
     {
-        ExpirySummaryQueryParameters parameters = _expirySummaryHandler.BuildParameters();
+        ExpirySummaryQueryParameters parameters = _expirySummaryHandler.BuildParameters(ExpectedWarningWindowDays);
 
         Assert.Equal(ActiveCompany, parameters.CompanyId);
     }
@@ -213,7 +231,7 @@ public sealed class StockReadQueryParametersTests
     [Fact]
     public void Expiry_summary_query_derives_today_and_uses_the_shared_window()
     {
-        ExpirySummaryQueryParameters parameters = _expirySummaryHandler.BuildParameters();
+        ExpirySummaryQueryParameters parameters = _expirySummaryHandler.BuildParameters(ExpectedWarningWindowDays);
 
         Assert.Equal(DateOnly.FromDateTime(Now), parameters.Today);
         Assert.Equal(ExpectedWarningWindowDays, parameters.WarningWindowDays);
@@ -444,6 +462,4 @@ public sealed class StockReadQueryParametersTests
 
     private static GetConsumptionSeriesQuery ValidSeries() =>
         new() { From = WindowFrom, To = WindowTo };
-
-    private const int ExpectedWarningWindowDays = 30;
 }

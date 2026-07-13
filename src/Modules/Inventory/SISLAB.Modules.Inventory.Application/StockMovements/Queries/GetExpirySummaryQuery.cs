@@ -1,6 +1,7 @@
 using System.Data;
 using Dapper;
 using SISLAB.Infrastructure.Data;
+using SISLAB.Modules.Configuration.Contracts;
 using SISLAB.SharedKernel.Messaging;
 using SISLAB.SharedKernel.Multitenancy;
 using SISLAB.SharedKernel.Time;
@@ -17,9 +18,9 @@ namespace SISLAB.Modules.Inventory.Application.StockMovements.Queries;
 /// <para>
 /// <b>Three slices, not four.</b> The donut has exactly three slices — items with no recorded validity
 /// (<see cref="ExpiryStatusView.NotApplicable"/>) are not a slice and are excluded from every count, so the
-/// three totals cover only items that carry a validity. The window is the shared 30-day one
-/// (<see cref="ExpiryStatusRule.DefaultWarningWindowDays"/>), matching the "≤30d" label; the classification
-/// is a faithful mirror of <see cref="ExpiryStatusRule"/>.
+/// three totals cover only items that carry a validity. The window is the active tenant's configured expiry
+/// window (card [E12] #76), read through <c>ILabConfiguration</c>; the classification is a faithful mirror of
+/// <see cref="ExpiryStatusRule"/>.
 /// </para>
 /// <para>
 /// <b>Derived, never persisted.</b> The status is computed in SQL against the handler-supplied <c>@Today</c>
@@ -84,15 +85,18 @@ internal sealed class GetExpirySummaryQueryHandler
 
     private readonly ITenantContext _tenantContext;
     private readonly IClock _clock;
+    private readonly ILabConfiguration _labConfiguration;
 
     public GetExpirySummaryQueryHandler(
         DbConnectionFactory connectionFactory,
         ITenantContext tenantContext,
-        IClock clock)
+        IClock clock,
+        ILabConfiguration labConfiguration)
         : base(connectionFactory)
     {
         _tenantContext = tenantContext;
         _clock = clock;
+        _labConfiguration = labConfiguration;
     }
 
     public async Task<ExpirySummary> HandleAsync(
@@ -101,7 +105,11 @@ internal sealed class GetExpirySummaryQueryHandler
     {
         using IDbConnection connection = await OpenConnectionAsync();
 
-        ExpirySummaryQueryParameters parameters = BuildParameters();
+        // The donut's "expiring soon" band uses the active tenant's configured window (card [E12] #76), read
+        // through the Configuration boundary — replacing the retired shared 30-day constant.
+        int warningWindowDays = await _labConfiguration.GetExpiryWarningWindowDaysAsync(cancellationToken);
+
+        ExpirySummaryQueryParameters parameters = BuildParameters(warningWindowDays);
 
         return await connection.QuerySingleAsync<ExpirySummary>(
             new CommandDefinition(Sql, parameters, cancellationToken: cancellationToken));
@@ -109,13 +117,15 @@ internal sealed class GetExpirySummaryQueryHandler
 
     /// <summary>
     /// Materializes the Dapper parameter set: the company id always comes from <see cref="ITenantContext"/>
-    /// (never the request), <c>@Today</c> from the injected <see cref="IClock"/> and the window from the shared
-    /// 30-day default. Extracted so the tenant guard is unit-testable without a live database.
+    /// (never the request), <c>@Today</c> from the injected <see cref="IClock"/> and
+    /// <paramref name="warningWindowDays"/> is the tenant's configured expiry window (resolved by the handler
+    /// through <see cref="ILabConfiguration"/>). Taken as an argument so the tenant guard is unit-testable
+    /// without a live database or a Configuration round-trip.
     /// </summary>
-    internal ExpirySummaryQueryParameters BuildParameters() => new(
+    internal ExpirySummaryQueryParameters BuildParameters(int warningWindowDays) => new(
         CompanyId: _tenantContext.CompanyId,
         Today: DateOnly.FromDateTime(_clock.UtcNow),
-        WarningWindowDays: ExpiryStatusRule.DefaultWarningWindowDays);
+        WarningWindowDays: warningWindowDays);
 }
 
 /// <summary>

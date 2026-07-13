@@ -58,20 +58,20 @@ public static class DefaultItemCategories
                 entry.IsControlled))
             .ToList();
 
+    /// <summary>Namespace prefix keeping category ids disjoint from other config defaults sharing the derivation.</summary>
+    internal const string IdNamespace = "sislab:item-category:";
+
     /// <summary>
     /// Derives a stable, collision-resistant id for a default category from the <paramref name="companyId"/>
-    /// and the category <paramref name="code"/>. Deterministic by construction (a namespaced MD5-based UUIDv3
-    /// style hash), so the same pair always yields the same id — the property the idempotent seed and the SQL
-    /// backfill both rely on. MD5 here is a non-cryptographic id derivation, not a security primitive.
+    /// and the category <paramref name="code"/>. Deterministic by construction, so the same pair always yields
+    /// the same id — the property the idempotent seed and the SQL backfill both rely on.
     /// </summary>
+    /// <remarks>
+    /// The hash is taken over the <b>canonical, big-endian UUID text</b> of the company id (not the
+    /// mixed-endian <c>Guid.ToByteArray()</c> bytes), so the exact same id is reproducible in PostgreSQL with
+    /// <c>md5(lower(company_id::text) || 'sislab:item-category:' || code)</c> — this is what makes the C# seed
+    /// and the SQL backfill agree. MD5 here is a non-cryptographic id derivation, not a security primitive.
+    /// </remarks>
     public static Guid DeterministicId(Guid companyId, string code)
-    {
-        byte[] payload = companyId
-            .ToByteArray()
-            .Concat(Encoding.UTF8.GetBytes(code))
-            .ToArray();
-
-        byte[] hash = MD5.HashData(payload);
-        return new Guid(hash);
-    }
+        => DeterministicGuid.From(IdNamespace + companyId.ToString("D").ToLowerInvariant(), code);
 }

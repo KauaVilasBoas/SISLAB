@@ -55,7 +55,7 @@ public sealed record GetConsumptionReportQuery : PagedQuery<ConsumptionReport>
     /// <summary>Optional experiment filter; null reports company-wide consumption (with and without experiment).</summary>
     public Guid? ExperimentId { get; init; }
 
-    /// <summary>Optional category filter (the <c>StockItemCategory</c> enum name); null reports every category.</summary>
+    /// <summary>Optional category filter (by the per-tenant category name); null reports every category.</summary>
     public string? Category { get; init; }
 }
 
@@ -98,19 +98,22 @@ internal sealed class GetConsumptionReportQueryHandler
             SELECT
                 m.stock_item_id,
                 si.name              AS name,
-                si.category          AS category,
+                ic.name              AS category,
                 m.quantity_unit,
                 m.quantity_amount
             FROM inventory.stock_movements AS m
             JOIN inventory.stock_items AS si
                 ON si.id = m.stock_item_id
                AND si.company_id = m.company_id
+            LEFT JOIN configuration.item_categories AS ic
+                ON ic.id = si.category_id
+               AND ic.company_id = si.company_id
             WHERE m.company_id = @CompanyId
               AND m.movement_type = @ConsumedMovementType
               AND m.occurred_on IS NOT NULL
               AND m.occurred_on BETWEEN @From AND @To
               AND (@ExperimentId IS NULL OR m.experiment_id = @ExperimentId)
-              AND (@Category IS NULL OR si.category = @Category)
+              AND (@Category IS NULL OR ic.name = @Category)
         )
         """;
 
@@ -120,7 +123,9 @@ internal sealed class GetConsumptionReportQueryHandler
     //   2) the per-unit grand totals over EVERY movement in the filtered period (not just the page).
     // Both read the same filtered ledger (the shared ConsumptionCte): consumption movements only, the tenant
     // company, the [@From, @To] window over occurred_on, and the optional experiment/category filters. The
-    // JOIN to stock_items (also tenant-scoped) brings name/category the ledger does not store. Grain is
+    // JOIN to stock_items (also tenant-scoped) brings the name, and the tenant-safe LEFT JOIN to the
+    // Configuration item_categories catalogue resolves the category name (card [E12] #76) — neither is in the
+    // ledger. Grain is
     // (item, unit) — the read side never converts between units, so amounts are summed within a unit only.
     // Counts are cast to int: PostgreSQL COUNT is bigint, but the read models expose them as int.
     private const string Sql =
