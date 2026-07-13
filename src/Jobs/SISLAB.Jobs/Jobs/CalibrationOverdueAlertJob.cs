@@ -24,17 +24,17 @@ namespace SISLAB.Jobs.Jobs;
 public sealed class CalibrationOverdueAlertJob : CompanyScanAlertJob
 {
     private readonly CalibrationAlertOptions _options;
-    private readonly IClock _clock;
+    private readonly ILogger<CalibrationOverdueAlertJob> _logger;
 
     public CalibrationOverdueAlertJob(
         IServiceScopeFactory scopeFactory,
         IOptions<JobsOptions> options,
         IClock clock,
         ILogger<CalibrationOverdueAlertJob> logger)
-        : base(scopeFactory, logger)
+        : base(scopeFactory, clock, logger)
     {
         _options = options.Value.CalibrationAlert;
-        _clock = clock;
+        _logger = logger;
     }
 
     /// <inheritdoc />
@@ -47,12 +47,11 @@ public sealed class CalibrationOverdueAlertJob : CompanyScanAlertJob
     protected override async Task ScanCompanyAsync(
         IServiceScope companyScope,
         Guid companyId,
+        DateOnly scanDay,
         CancellationToken cancellationToken)
     {
         IMediator mediator = companyScope.ServiceProvider.GetRequiredService<IMediator>();
         INotificationPublisher publisher = companyScope.ServiceProvider.GetRequiredService<INotificationPublisher>();
-
-        DateOnly scanDay = DateOnly.FromDateTime(_clock.UtcNow);
 
         IReadOnlyList<OverdueCalibrationEquipment> overdueEquipment = await PagedQueryDrainer.DrainAsync(
             queryForPage: page => new ListOverdueCalibrationEquipmentQuery
@@ -67,8 +66,22 @@ public sealed class CalibrationOverdueAlertJob : CompanyScanAlertJob
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            RaiseNotificationRequest request = CalibrationAlertPolicy.ToNotification(equipment, scanDay);
-            await publisher.RaiseAsync(request, cancellationToken);
+            try
+            {
+                RaiseNotificationRequest request = CalibrationAlertPolicy.ToNotification(equipment, scanDay);
+                await publisher.RaiseAsync(request, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // One equipment's failure must not skip the remaining overdue equipment for this company.
+                _logger.LogError(ex,
+                    "Calibration alert job failed to raise notification for equipment {EquipmentId} in company {CompanyId}; skipping to the next equipment.",
+                    equipment.Id, companyId);
+            }
         }
     }
 }

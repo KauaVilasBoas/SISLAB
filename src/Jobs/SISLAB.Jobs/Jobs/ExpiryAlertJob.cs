@@ -32,17 +32,17 @@ namespace SISLAB.Jobs.Jobs;
 public sealed class ExpiryAlertJob : CompanyScanAlertJob
 {
     private readonly ExpiryAlertOptions _options;
-    private readonly IClock _clock;
+    private readonly ILogger<ExpiryAlertJob> _logger;
 
     public ExpiryAlertJob(
         IServiceScopeFactory scopeFactory,
         IOptions<JobsOptions> options,
         IClock clock,
         ILogger<ExpiryAlertJob> logger)
-        : base(scopeFactory, logger)
+        : base(scopeFactory, clock, logger)
     {
         _options = options.Value.ExpiryAlert;
-        _clock = clock;
+        _logger = logger;
     }
 
     /// <inheritdoc />
@@ -58,12 +58,11 @@ public sealed class ExpiryAlertJob : CompanyScanAlertJob
     protected override async Task ScanCompanyAsync(
         IServiceScope companyScope,
         Guid companyId,
+        DateOnly scanDay,
         CancellationToken cancellationToken)
     {
         IMediator mediator = companyScope.ServiceProvider.GetRequiredService<IMediator>();
         INotificationPublisher publisher = companyScope.ServiceProvider.GetRequiredService<INotificationPublisher>();
-
-        DateOnly scanDay = DateOnly.FromDateTime(_clock.UtcNow);
 
         IReadOnlyList<ExpiringItem> atRiskItems = await PagedQueryDrainer.DrainAsync(
             queryForPage: page => new ListExpiringItemsQuery
@@ -80,8 +79,22 @@ public sealed class ExpiryAlertJob : CompanyScanAlertJob
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            RaiseNotificationRequest request = ExpiryAlertPolicy.ToNotification(item, scanDay);
-            await publisher.RaiseAsync(request, cancellationToken);
+            try
+            {
+                RaiseNotificationRequest request = ExpiryAlertPolicy.ToNotification(item, scanDay);
+                await publisher.RaiseAsync(request, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // One item's failure must not skip the remaining at-risk items for this company.
+                _logger.LogError(ex,
+                    "Expiry alert job failed to raise notification for item {ItemId} in company {CompanyId}; skipping to the next item.",
+                    item.Id, companyId);
+            }
         }
     }
 }

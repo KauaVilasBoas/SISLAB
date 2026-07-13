@@ -4,6 +4,7 @@ using SISLAB.Jobs.Scheduling;
 using SISLAB.Modules.Identity.Application.Administration;
 using SISLAB.SharedKernel.Messaging;
 using SISLAB.SharedKernel.Multitenancy;
+using SISLAB.SharedKernel.Time;
 
 namespace SISLAB.Jobs.Jobs;
 
@@ -41,13 +42,13 @@ namespace SISLAB.Jobs.Jobs;
 /// </summary>
 public abstract class CompanyScanAlertJob : TimedBackgroundService
 {
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IClock _clock;
     private readonly ILogger _logger;
 
-    protected CompanyScanAlertJob(IServiceScopeFactory scopeFactory, ILogger logger)
+    protected CompanyScanAlertJob(IServiceScopeFactory scopeFactory, IClock clock, ILogger logger)
         : base(scopeFactory, logger)
     {
-        _scopeFactory = scopeFactory;
+        _clock = clock;
         _logger = logger;
     }
 
@@ -59,11 +60,14 @@ public abstract class CompanyScanAlertJob : TimedBackgroundService
     /// fresh child DI <paramref name="companyScope"/> whose <see cref="ITenantContextOverride"/> already
     /// reports <paramref name="companyId"/> as the active tenant, so E4 read queries dispatched here are
     /// automatically scoped to it. Resolve the mediator / notification publisher from
-    /// <paramref name="companyScope"/>. Throwing is safe: the base logs it and continues with the next company.
+    /// <paramref name="companyScope"/>. <paramref name="scanDay"/> is captured once for the whole tick, so
+    /// every company on the same tick shares the same day-bucketed dedupe key even if the tick crosses
+    /// midnight. Throwing is safe: the base logs it and continues with the next company.
     /// </summary>
     protected abstract Task ScanCompanyAsync(
         IServiceScope companyScope,
         Guid companyId,
+        DateOnly scanDay,
         CancellationToken cancellationToken);
 
     /// <inheritdoc />
@@ -71,6 +75,11 @@ public abstract class CompanyScanAlertJob : TimedBackgroundService
     {
         ITenantBypass tenantBypass = scope.ServiceProvider.GetRequiredService<ITenantBypass>();
         IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+
+        // Capture the scan day ONCE for the whole tick. Recomputing it per company would let a tick that
+        // crosses midnight hand different companies different day-bucketed dedupe keys, producing duplicate
+        // alerts for the same at-risk row.
+        DateOnly scanDay = DateOnly.FromDateTime(_clock.UtcNow);
 
         // Enumerating companies and scanning across them is legitimate cross-tenant system work: open an
         // auditable bypass for the whole tick so the enumeration query and every per-company scan are traceable.
@@ -84,18 +93,21 @@ public abstract class CompanyScanAlertJob : TimedBackgroundService
             if (cancellationToken.IsCancellationRequested)
                 return;
 
-            await ScanSingleCompanySafelyAsync(companyId, cancellationToken);
+            await ScanSingleCompanySafelyAsync(companyId, scanDay, cancellationToken);
         }
     }
 
-    private async Task ScanSingleCompanySafelyAsync(Guid companyId, CancellationToken cancellationToken)
+    private async Task ScanSingleCompanySafelyAsync(
+        Guid companyId,
+        DateOnly scanDay,
+        CancellationToken cancellationToken)
     {
         try
         {
             // Fresh child scope per company: the scoped ITenantContextOverride (and any scoped read
             // collaborators) are isolated to this company and disposed before the next one, so no tenant's
             // data bleeds across iterations.
-            using IServiceScope companyScope = _scopeFactory.CreateScope();
+            using IServiceScope companyScope = ScopeFactory.CreateScope();
 
             ITenantContextOverride tenantOverride =
                 companyScope.ServiceProvider.GetRequiredService<ITenantContextOverride>();
@@ -103,7 +115,7 @@ public abstract class CompanyScanAlertJob : TimedBackgroundService
 
             try
             {
-                await ScanCompanyAsync(companyScope, companyId, cancellationToken);
+                await ScanCompanyAsync(companyScope, companyId, scanDay, cancellationToken);
             }
             finally
             {
