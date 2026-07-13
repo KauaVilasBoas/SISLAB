@@ -124,6 +124,13 @@ builder.Services.AddCors(options =>
 builder.Services.AddSislabAntiforgery();
 
 // ---------------------------------------------------------------------------
+// ProblemDetails (card [E9] #59) — RFC 7807 error contract. Registers the
+// ProblemDetailsService used for framework-generated problems; SISLAB's own
+// ExceptionHandlingMiddleware writes the domain/application error shapes.
+// ---------------------------------------------------------------------------
+builder.Services.AddProblemDetails();
+
+// ---------------------------------------------------------------------------
 // Rate limiting (card [E9] #58) — per-IP fixed windows: 10/min on /api/auth/*
 // ("login") and 300/min elsewhere ("api"). Rejected requests get 429 with the
 // uniform ApiResult envelope.
