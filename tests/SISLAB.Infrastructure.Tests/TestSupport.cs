@@ -130,3 +130,29 @@ public sealed class FixedClock : IClock
 
     public DateTime UtcNow { get; }
 }
+
+/// <summary>Event bus that records every published event — the "happy path" for dispatcher tests.</summary>
+public sealed class RecordingEventBus : IEventBus
+{
+    public List<object> Published { get; } = new();
+
+    public Task PublishAsync<TEvent>(TEvent integrationEvent, CancellationToken cancellationToken = default)
+        where TEvent : class
+    {
+        Published.Add(integrationEvent);
+        return Task.CompletedTask;
+    }
+}
+
+/// <summary>Event bus that always throws — drives the failure/retry/dead-letter dispatcher tests.</summary>
+public sealed class ThrowingEventBus : IEventBus
+{
+    public int PublishCallCount { get; private set; }
+
+    public Task PublishAsync<TEvent>(TEvent integrationEvent, CancellationToken cancellationToken = default)
+        where TEvent : class
+    {
+        PublishCallCount++;
+        throw new InvalidOperationException("event bus failed on purpose");
+    }
+}

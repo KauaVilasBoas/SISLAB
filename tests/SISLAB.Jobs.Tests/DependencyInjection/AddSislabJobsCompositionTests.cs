@@ -98,7 +98,8 @@ public sealed class AddSislabJobsCompositionTests
             {
                 ["ConnectionStrings:SislabDb"] = "Host=localhost;Database=sislab_test;Username=u;Password=p",
                 ["Jobs:OutboxDispatcher:Interval"] = "00:00:30",
-                ["Jobs:OutboxDispatcher:BatchSize"] = "123"
+                ["Jobs:OutboxDispatcher:BatchSize"] = "123",
+                ["Jobs:OutboxDispatcher:MaxAttempts"] = "9"
             })
             .Build();
 
@@ -108,6 +109,7 @@ public sealed class AddSislabJobsCompositionTests
 
         Assert.Equal(TimeSpan.FromSeconds(30), options.OutboxDispatcher.Interval);
         Assert.Equal(123, options.OutboxDispatcher.BatchSize);
+        Assert.Equal(9, options.OutboxDispatcher.MaxAttempts);
     }
 
     [Fact]
@@ -120,5 +122,6 @@ public sealed class AddSislabJobsCompositionTests
 
         Assert.Equal(TimeSpan.FromSeconds(5), options.OutboxDispatcher.Interval);
         Assert.Equal(50, options.OutboxDispatcher.BatchSize);
+        Assert.Equal(5, options.OutboxDispatcher.MaxAttempts);
     }
 }
