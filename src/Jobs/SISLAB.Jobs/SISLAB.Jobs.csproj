@@ -1,13 +1,29 @@
-<Project Sdk="Microsoft.NET.Sdk.Worker">
+<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>dotnet-SISLAB.Jobs-99239f22-3d68-4ae3-8686-0ff0e79a17ac</UserSecretsId>
-  </PropertyGroup>
+  <!--
+    SISLAB.Jobs is a CLASS LIBRARY, not a standalone worker executable (E6 #39, Fork #1 → C).
+    The background jobs run IN-PROCESS with the API: the host references this library and calls
+    AddSislabJobs(configuration) to register the IHostedService(s). This honours the E8/#51
+    decision (worker on the same host — fits the free tier) and avoids a second composition root.
+
+    The classes are deliberately host-agnostic: promoting them to a standalone worker process later
+    (Host.CreateApplicationBuilder + AddSislabJobs) needs no rewrite.
+
+    Microsoft.AspNetCore.App is referenced because SISLAB.Infrastructure targets that shared
+    framework (IServiceCollection, IHostedService, ILogger), and the scheduling base + jobs here
+    build on Microsoft.Extensions.Hosting (BackgroundService, IServiceScopeFactory).
+  -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <!-- Shared infrastructure: OutboxDispatcher, InMemoryEventBus, TenantBypass, IClock. -->
+    <ProjectReference Include="..\..\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="SISLAB.Jobs.Tests" />
+  </ItemGroup>
+
 </Project>
