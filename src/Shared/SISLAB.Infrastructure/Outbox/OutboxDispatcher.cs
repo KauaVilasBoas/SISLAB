@@ -106,10 +106,11 @@ public sealed class OutboxDispatcher
         }
 
         // Persist ProcessedAtUtc / AttemptCount / DeadLetteredAtUtc / Error marks in the same context scope.
-        if (_outboxContext is DbContext dbContext)
-            await dbContext.SaveChangesAsync(cancellationToken);
+        await _outboxContext.SaveChangesAsync(cancellationToken);
 
-        int backlog = await CountPendingAsync(cancellationToken);
+        // Derive the backlog signal from what we already know instead of a second COUNT round-trip: a full
+        // batch means there may be more pending messages; a short batch means the pending set is drained.
+        string backlog = pending.Count == batchSize ? "> 0 (batch full)" : "= 0";
 
         _logger.LogInformation(
             "Outbox tick: read {Read}, published {Published}, failed {Failed}, dead-lettered {DeadLettered}, backlog {Backlog}.",
@@ -139,13 +140,6 @@ public sealed class OutboxDispatcher
                 "Outbox: message dead-lettered after {AttemptCount} attempts. MessageId={MessageId}, EventType={EventType}",
                 message.AttemptCount, message.Id, message.EventType);
         }
-    }
-
-    private async Task<int> CountPendingAsync(CancellationToken cancellationToken)
-    {
-        return await _outboxContext.OutboxMessages
-            .Where(m => m.ProcessedAtUtc == null && m.DeadLetteredAtUtc == null)
-            .CountAsync(cancellationToken);
     }
 
     private static object? DeserializeEvent(OutboxMessage message)
