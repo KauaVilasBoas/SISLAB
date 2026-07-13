@@ -20,7 +20,9 @@ public sealed class EquipmentReadTenantFilterGuardTests
     /// <summary>The EquipmentRead Dapper handlers that must be tenant-scoped. Pinned so a rename breaks the guard.</summary>
     private static readonly IReadOnlySet<string> ExpectedHandlerTypes = new HashSet<string>
     {
-        "ListOverdueCalibrationEquipmentQueryHandler" // #66 overdue calibration scan
+        "ListOverdueCalibrationEquipmentQueryHandler", // #66 overdue calibration scan
+        "ListEquipmentQueryHandler",                   // #27 equipment listing
+        "GetEquipmentDetailQueryHandler"               // #27 equipment detail
     };
 
     private static readonly Assembly ApplicationAssembly = typeof(InventoryModule).Assembly;
