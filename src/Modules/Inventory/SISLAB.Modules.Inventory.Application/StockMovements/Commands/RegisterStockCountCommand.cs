@@ -1,4 +1,5 @@
 using FluentValidation;
+using SISLAB.Modules.Inventory.Application.Audit;
 using SISLAB.Modules.Inventory.Domain.StockItems;
 using SISLAB.Modules.Inventory.Domain.ValueObjects;
 using SISLAB.SharedKernel.Exceptions;
@@ -41,9 +42,15 @@ internal sealed class RegisterStockCountCommandValidator : AbstractValidator<Reg
 internal sealed class RegisterStockCountCommandHandler : ICommandHandler<RegisterStockCountCommand, decimal>
 {
     private readonly IStockItemRepository _stockItems;
+    private readonly InventoryAuditRecorder _audit;
 
-    public RegisterStockCountCommandHandler(IStockItemRepository stockItems)
-        => _stockItems = stockItems;
+    public RegisterStockCountCommandHandler(
+        IStockItemRepository stockItems,
+        InventoryAuditRecorder audit)
+    {
+        _stockItems = stockItems;
+        _audit = audit;
+    }
 
     public async Task<decimal> HandleAsync(
         RegisterStockCountCommand request,
@@ -57,6 +64,25 @@ internal sealed class RegisterStockCountCommandHandler : ICommandHandler<Registe
         decimal divergence = item.RegisterStockCount(counted);
 
         await _stockItems.UpdateAsync(item, cancellationToken);
+
+        // The periodic count of a controlled substance is the compliance record itself (card #57);
+        // ordinary items are not audited.
+        if (item.IsControlled)
+        {
+            await _audit.RecordStockItemAsync(
+                item.CompanyId,
+                item.Id,
+                InventoryAuditActions.StockCount,
+                new
+                {
+                    request.CountedQuantity,
+                    request.Unit,
+                    SystemBalance = item.Quantity.Value,
+                    Divergence = divergence,
+                    request.OccurredOn
+                },
+                cancellationToken);
+        }
 
         return divergence;
     }

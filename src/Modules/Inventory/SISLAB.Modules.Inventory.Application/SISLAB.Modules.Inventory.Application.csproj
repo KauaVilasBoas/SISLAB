@@ -19,6 +19,7 @@
     -->
     <ProjectReference Include="..\SISLAB.Modules.Inventory.Contracts\SISLAB.Modules.Inventory.Contracts.csproj" />
     <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Audit\SISLAB.Modules.Audit.Contracts\SISLAB.Modules.Audit.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

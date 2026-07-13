@@ -19,6 +19,7 @@
       process — the classes stay promotable to one later without a rewrite.
     -->
     <ProjectReference Include="..\..\Jobs\SISLAB.Jobs\SISLAB.Jobs.csproj" />
+    <ProjectReference Include="..\..\Modules\Audit\SISLAB.Modules.Audit.Application\SISLAB.Modules.Audit.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
