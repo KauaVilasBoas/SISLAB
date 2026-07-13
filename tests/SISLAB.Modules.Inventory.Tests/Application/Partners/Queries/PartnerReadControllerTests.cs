@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using SISLAB.Modules.Inventory.Application.Partners;
 using SISLAB.Modules.Inventory.Application.Partners.Queries;
 using SISLAB.Modules.Inventory.Domain.Partners;
 using SISLAB.SharedKernel.Exceptions;
@@ -8,7 +9,7 @@ using SISLAB.SharedKernel.Messaging;
 namespace SISLAB.Modules.Inventory.Tests.Application.Partners.Queries;
 
 /// <summary>
-/// Covers the read-side <see cref="PartnerReadController"/> mapping (card [E4] #28): the detail endpoint keeps the
+/// Covers the read-side of the merged <see cref="PartnersController"/> mapping (card [E4] #28): the detail endpoint keeps the
 /// query pure (it returns <see cref="PartnerDetail"/>?) and the controller is the single place that turns a missing
 /// partner into a <see cref="NotFoundException"/> (404), while a found one is wrapped in the uniform
 /// <see cref="ApiResult{T}"/>. Exercised with a stub mediator, without a live database.
@@ -18,7 +19,7 @@ public sealed class PartnerReadControllerTests
     [Fact]
     public async Task Get_detail_throws_not_found_when_the_query_returns_null()
     {
-        var controller = new PartnerReadController(new StubMediator(detail: null));
+        var controller = new PartnersController(new StubMediator(detail: null));
 
         await Assert.ThrowsAsync<NotFoundException>(
             () => controller.GetPartnerDetail(Guid.NewGuid(), CancellationToken.None));
@@ -28,7 +29,7 @@ public sealed class PartnerReadControllerTests
     public async Task Get_detail_wraps_the_found_partner_in_the_api_result_envelope()
     {
         PartnerDetail detail = SampleDetail();
-        var controller = new PartnerReadController(new StubMediator(detail));
+        var controller = new PartnersController(new StubMediator(detail));
 
         IActionResult result = await controller.GetPartnerDetail(detail.Id, CancellationToken.None);
 

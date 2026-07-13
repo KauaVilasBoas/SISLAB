@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using SISLAB.Modules.Inventory.Application.Equipments;
 using SISLAB.Modules.Inventory.Application.Equipments.Queries;
 using SISLAB.Modules.Inventory.Domain.Equipments;
 using SISLAB.SharedKernel.Exceptions;
@@ -8,7 +9,7 @@ using SISLAB.SharedKernel.Messaging;
 namespace SISLAB.Modules.Inventory.Tests.Application.Equipments.Queries;
 
 /// <summary>
-/// Covers the read-side <see cref="EquipmentReadController"/> mapping (card [E4] #27): the detail endpoint keeps
+/// Covers the read-side of the merged <see cref="EquipmentController"/> mapping (card [E4] #27): the detail endpoint keeps
 /// the query pure (it returns <see cref="EquipmentDetail"/>?) and the controller is the single place that turns a
 /// missing equipment into a <see cref="NotFoundException"/> (404), while a found one is wrapped in the uniform
 /// <see cref="ApiResult{T}"/>. Exercised with a stub mediator, without a live database.
@@ -18,7 +19,7 @@ public sealed class EquipmentReadControllerTests
     [Fact]
     public async Task Get_detail_throws_not_found_when_the_query_returns_null()
     {
-        var controller = new EquipmentReadController(new StubMediator(detail: null));
+        var controller = new EquipmentController(new StubMediator(detail: null));
 
         await Assert.ThrowsAsync<NotFoundException>(
             () => controller.GetEquipmentDetail(Guid.NewGuid(), CancellationToken.None));
@@ -28,7 +29,7 @@ public sealed class EquipmentReadControllerTests
     public async Task Get_detail_wraps_the_found_equipment_in_the_api_result_envelope()
     {
         EquipmentDetail detail = SampleDetail();
-        var controller = new EquipmentReadController(new StubMediator(detail));
+        var controller = new EquipmentController(new StubMediator(detail));
 
         IActionResult result = await controller.GetEquipmentDetail(detail.Id, CancellationToken.None);
 
