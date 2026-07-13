@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <!-- SISLAB.Jobs builds on the AspNetCore shared framework (IHostedService, ILogger,
+       IServiceCollection); the test project needs it at runtime to exercise that code. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit" Version="2.5.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The library under test. -->
+    <ProjectReference Include="..\..\src\Jobs\SISLAB.Jobs\SISLAB.Jobs.csproj" />
+    <!-- The Inventory Application module entry point: the composition test wires the real host
+         graph (infrastructure + module + jobs), exactly as Program.cs does, to prove that the
+         Outbox dispatcher job and its collaborators resolve end to end. -->
+    <ProjectReference Include="..\..\src\Modules\Inventory\SISLAB.Modules.Inventory.Application\SISLAB.Modules.Inventory.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>
