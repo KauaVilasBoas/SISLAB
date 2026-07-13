@@ -118,6 +118,41 @@ public sealed class ModuleIsolationTests
     }
 
     /// <summary>
+    /// (f) SharedKernel deve permanecer PURO também para a nova abstração de multi-tenancy do E6
+    /// (<c>ITenantContextOverride</c>, o seam de override usado pelos jobs de alerta #41/#42/#66):
+    /// nenhum tipo do SharedKernel pode referenciar EF Core. O seam settável vive no SharedKernel como
+    /// contrato puro; suas implementações (<c>TenantContextOverride</c>, <c>OverridableTenantContext</c>)
+    /// vivem na Infrastructure. Esta regra garante que a abstração nova não arrasta persistência para o Shared.
+    /// </summary>
+    [Fact]
+    public void SharedKernel_ShouldNotDependOn_EntityFramework()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(SharedKernelAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInNamespace("Microsoft.EntityFrameworkCore")
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>
+    /// (f) SharedKernel não deve depender de ASP.NET Core — reforça a pureza do Shared, incluindo a nova
+    /// abstração de override de tenant do E6, que não pode conhecer o pipeline HTTP.
+    /// </summary>
+    [Fact]
+    public void SharedKernel_ShouldNotDependOn_AspNetCore()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(SharedKernelAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInNamespace("Microsoft.AspNetCore")
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>
     /// (f) SharedKernel não deve depender de Domain do módulo Identity.
     /// </summary>
     [Fact]
