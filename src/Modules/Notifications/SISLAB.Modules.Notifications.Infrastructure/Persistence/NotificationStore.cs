@@ -16,7 +16,7 @@ namespace SISLAB.Modules.Notifications.Infrastructure.Persistence;
 /// predicate (<c>WHERE is_read = false</c>) — PostgreSQL matches a partial unique index only when the
 /// statement's conflict target carries the same predicate.
 /// </remarks>
-internal sealed class NotificationStore : INotificationStore
+internal sealed class NotificationStore : BaseDataAccess, INotificationStore
 {
     private const string InsertNotificationSql =
         """
@@ -33,14 +33,14 @@ internal sealed class NotificationStore : INotificationStore
         RETURNING id;
         """;
 
-    private readonly DbConnectionFactory _connectionFactory;
-
     public NotificationStore(DbConnectionFactory connectionFactory)
-        => _connectionFactory = connectionFactory;
+        : base(connectionFactory)
+    {
+    }
 
     public async Task<bool> TryAppendAsync(NotificationRow row, CancellationToken cancellationToken = default)
     {
-        using IDbConnection connection = await _connectionFactory.CreateOpenConnectionAsync();
+        using IDbConnection connection = await OpenConnectionAsync();
 
         Guid? insertedId = await connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(
             InsertNotificationSql,
