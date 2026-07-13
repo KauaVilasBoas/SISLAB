@@ -15,8 +15,8 @@ namespace SISLAB.Modules.Inventory.Application.Audit;
 /// </summary>
 internal sealed class InventoryAuditRecorder
 {
-    private const string StockItemEntityType = "StockItem";
-    private const string EquipmentEntityType = "Equipment";
+    private const string StockItemEntityType = AuditConstants.EntityTypes.StockItem;
+    private const string EquipmentEntityType = AuditConstants.EntityTypes.Equipment;
 
     private static readonly JsonSerializerOptions PayloadOptions = new()
     {

@@ -49,8 +49,8 @@ internal static class RateLimitingConfiguration
 
         // Partition by policy + IP so the two ceilings are tracked independently per client.
         (string policy, int permitPerMinute) = isAuthRequest
-            ? ("login", LoginPermitPerMinute)
-            : ("api", ApiPermitPerMinute);
+            ? (HttpConstants.RateLimitPolicies.Login, LoginPermitPerMinute)
+            : (HttpConstants.RateLimitPolicies.Api, ApiPermitPerMinute);
 
         return RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: $"{policy}:{clientIp}",

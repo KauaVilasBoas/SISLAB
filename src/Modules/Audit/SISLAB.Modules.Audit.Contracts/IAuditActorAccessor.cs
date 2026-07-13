@@ -12,7 +12,7 @@ namespace SISLAB.Modules.Audit.Contracts;
 public interface IAuditActorAccessor
 {
     /// <summary>Sentinel actor used for background/system operations that have no authenticated principal.</summary>
-    const string SystemActor = "system";
+    const string SystemActor = AuditConstants.SystemActor;
 
     /// <summary>
     /// The current actor id — the JWT <c>sub</c> claim of the authenticated user, or

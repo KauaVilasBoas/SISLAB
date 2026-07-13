@@ -1,6 +1,7 @@
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
+using SISLAB.SharedKernel.Observability;
 
 namespace SISLAB.Api.Observability;
 
@@ -37,7 +38,8 @@ internal static class SerilogConfiguration
             .MinimumLevel.Information()
             .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
             .Enrich.FromLogContext()
-            .Enrich.WithProperty("Application", "SISLAB.Api")
+            .Enrich.WithProperty(
+                ObservabilityConstants.ApplicationProperty, ObservabilityConstants.ApplicationName)
             .WriteTo.Console(new CompactJsonFormatter());
 
         string? coralogixApiKey = context.Configuration[CoralogixApiKeyPath];

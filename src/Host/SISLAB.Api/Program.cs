@@ -169,7 +169,7 @@ if (!app.Environment.IsDevelopment())
 app.UseSerilogRequestLogging(options =>
     options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
         diagnosticContext.Set(
-            "CorrelationId",
+            ObservabilityConstants.CorrelationIdProperty,
             httpContext.RequestServices.GetRequiredService<ICorrelationIdAccessor>().CorrelationId));
 
 if (app.Environment.IsDevelopment())
