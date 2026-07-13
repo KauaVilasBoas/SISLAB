@@ -6,6 +6,7 @@ using SISLAB.Infrastructure.Modules;
 using SISLAB.Jobs.DependencyInjection;
 using SISLAB.Modules.Identity.Application;
 using SISLAB.Modules.Inventory.Application;
+using SISLAB.Modules.Notifications.Application;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -17,12 +18,13 @@ builder.Services.AddSislabInfrastructure();
 // ---------------------------------------------------------------------------
 // Composition Root — module discovery and registration via assembly scanning.
 // Load order is determined by IModule.Order (lower = first).
-// Convention: Identity = 10, Inventory = 20.
+// Convention: Identity = 10, Inventory = 20, Notifications = 30.
 // ---------------------------------------------------------------------------
 Assembly[] moduleAssemblies =
 [
     typeof(IdentityModule).Assembly,
-    typeof(InventoryModule).Assembly
+    typeof(InventoryModule).Assembly,
+    typeof(NotificationsModule).Assembly
 ];
 
 ModuleLoader.RegisterModules(builder.Services, builder.Configuration, moduleAssemblies);

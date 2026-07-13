@@ -20,6 +20,13 @@
   <ItemGroup>
     <!-- Shared infrastructure: OutboxDispatcher, InMemoryEventBus, TenantBypass, IClock. -->
     <ProjectReference Include="..\..\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
+    <!--
+      Notifications public boundary (card #64a, Option A). The future alert jobs (#41/#42/#66) resolve
+      INotificationPublisher from the shared container and raise notifications through it. Jobs references
+      ONLY the module's Contracts — never its Domain/Application/Infrastructure (module-isolation rule,
+      enforced by ArchRules). No job is added now; this reference just makes the port reachable when they are.
+    -->
+    <ProjectReference Include="..\..\Modules\Notifications\SISLAB.Modules.Notifications.Contracts\SISLAB.Modules.Notifications.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
