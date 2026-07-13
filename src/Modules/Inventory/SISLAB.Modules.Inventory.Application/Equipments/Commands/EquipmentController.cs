@@ -6,7 +6,7 @@ using SISLAB.Modules.Inventory.Domain.Equipments;
 using SISLAB.SharedKernel.Http;
 using SISLAB.SharedKernel.Messaging;
 
-namespace SISLAB.Modules.Inventory.Application.Equipments;
+namespace SISLAB.Modules.Inventory.Application.Equipments.Commands;
 
 /// <summary>
 /// HTTP boundary for the laboratory equipment of the <b>active company</b>: registration, update, status

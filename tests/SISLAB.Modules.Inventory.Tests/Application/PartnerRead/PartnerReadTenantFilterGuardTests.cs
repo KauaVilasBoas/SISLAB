@@ -64,7 +64,7 @@ public sealed class PartnerReadTenantFilterGuardTests
     private static IReadOnlyList<Type> DiscoverPartnerReadHandlers()
         => ApplicationAssembly.GetTypes()
             .Where(type => type is { IsClass: true, IsAbstract: false })
-            .Where(type => type.Namespace == "SISLAB.Modules.Inventory.Application.PartnerRead")
+            .Where(type => type.Namespace == "SISLAB.Modules.Inventory.Application.Partners.Queries")
             .Where(ImplementsQueryHandler)
             .Where(HasSqlConstant)
             .OrderBy(type => type.Name, StringComparer.Ordinal)

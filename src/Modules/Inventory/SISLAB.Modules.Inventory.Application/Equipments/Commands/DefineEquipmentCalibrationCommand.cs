@@ -3,7 +3,7 @@ using SISLAB.Modules.Inventory.Domain.Equipments;
 using SISLAB.SharedKernel.Exceptions;
 using SISLAB.SharedKernel.Messaging;
 
-namespace SISLAB.Modules.Inventory.Application.Equipments;
+namespace SISLAB.Modules.Inventory.Application.Equipments.Commands;
 
 /// <summary>
 /// Defines or replaces an equipment's calibration schedule (last calibration + optional next-due date).

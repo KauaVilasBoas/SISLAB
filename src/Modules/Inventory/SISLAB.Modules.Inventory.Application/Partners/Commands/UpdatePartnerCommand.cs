@@ -3,7 +3,7 @@ using SISLAB.Modules.Inventory.Domain.Partners;
 using SISLAB.SharedKernel.Exceptions;
 using SISLAB.SharedKernel.Messaging;
 
-namespace SISLAB.Modules.Inventory.Application.Partners;
+namespace SISLAB.Modules.Inventory.Application.Partners.Commands;
 
 /// <summary>
 /// Updates a partner's descriptive data (name, type, document, contact e-mail, description). Passing a

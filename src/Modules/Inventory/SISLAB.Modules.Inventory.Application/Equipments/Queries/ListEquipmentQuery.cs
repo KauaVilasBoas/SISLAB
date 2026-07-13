@@ -6,7 +6,7 @@ using SISLAB.SharedKernel.Messaging;
 using SISLAB.SharedKernel.Multitenancy;
 using SISLAB.SharedKernel.Time;
 
-namespace SISLAB.Modules.Inventory.Application.EquipmentRead;
+namespace SISLAB.Modules.Inventory.Application.Equipments.Queries;
 
 /// <summary>
 /// Read-side query (card [E4] #27) that lists the laboratory equipment of the <b>active company</b> for the

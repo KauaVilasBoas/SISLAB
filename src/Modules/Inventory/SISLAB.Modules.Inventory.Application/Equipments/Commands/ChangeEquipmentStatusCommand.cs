@@ -3,7 +3,7 @@ using SISLAB.Modules.Inventory.Domain.Equipments;
 using SISLAB.SharedKernel.Exceptions;
 using SISLAB.SharedKernel.Messaging;
 
-namespace SISLAB.Modules.Inventory.Application.Equipments;
+namespace SISLAB.Modules.Inventory.Application.Equipments.Commands;
 
 /// <summary>
 /// Moves an equipment to a new operational status (in use / available / under maintenance / inactive).

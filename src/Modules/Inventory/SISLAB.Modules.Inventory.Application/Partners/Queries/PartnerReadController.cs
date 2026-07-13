@@ -7,7 +7,7 @@ using SISLAB.SharedKernel.Exceptions;
 using SISLAB.SharedKernel.Http;
 using SISLAB.SharedKernel.Messaging;
 
-namespace SISLAB.Modules.Inventory.Application.PartnerRead;
+namespace SISLAB.Modules.Inventory.Application.Partners.Queries;
 
 /// <summary>
 /// Read-side (CQRS query) HTTP boundary for the "Parceiros" screen (#48) of the <b>active company</b>: the

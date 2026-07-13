@@ -5,7 +5,7 @@ using SISLAB.Modules.Inventory.Domain.Partners;
 using SISLAB.SharedKernel.Messaging;
 using SISLAB.SharedKernel.Multitenancy;
 
-namespace SISLAB.Modules.Inventory.Application.PartnerRead;
+namespace SISLAB.Modules.Inventory.Application.Partners.Queries;
 
 /// <summary>
 /// Read-side query (card [E4] #28) that lists the partners (suppliers/clients) of the <b>active company</b> for

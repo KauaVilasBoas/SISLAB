@@ -1,4 +1,4 @@
-namespace SISLAB.Modules.Inventory.Application.EquipmentRead;
+namespace SISLAB.Modules.Inventory.Application.Equipments.Queries;
 
 /// <summary>
 /// Derived calibration classification of an equipment, as exposed to the read side (card [E4] #27). It mirrors

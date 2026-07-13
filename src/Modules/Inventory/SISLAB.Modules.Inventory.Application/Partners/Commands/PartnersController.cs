@@ -6,7 +6,7 @@ using SISLAB.Modules.Inventory.Domain.Partners;
 using SISLAB.SharedKernel.Http;
 using SISLAB.SharedKernel.Messaging;
 
-namespace SISLAB.Modules.Inventory.Application.Partners;
+namespace SISLAB.Modules.Inventory.Application.Partners.Commands;
 
 /// <summary>
 /// HTTP boundary for the partners (suppliers/clients) of the <b>active company</b>: registration,

@@ -3,7 +3,7 @@ using SISLAB.Modules.Inventory.Domain.Partners;
 using SISLAB.SharedKernel.Exceptions;
 using SISLAB.SharedKernel.Messaging;
 
-namespace SISLAB.Modules.Inventory.Application.Partners;
+namespace SISLAB.Modules.Inventory.Application.Partners.Commands;
 
 /// <summary>
 /// Takes a partner out of service. A deactivated partner is kept for the traceability of past stock

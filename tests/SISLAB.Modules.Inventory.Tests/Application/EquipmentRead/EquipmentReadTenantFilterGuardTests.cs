@@ -72,7 +72,7 @@ public sealed class EquipmentReadTenantFilterGuardTests
     private static IReadOnlyList<Type> DiscoverEquipmentReadHandlers()
         => ApplicationAssembly.GetTypes()
             .Where(type => type is { IsClass: true, IsAbstract: false })
-            .Where(type => type.Namespace == "SISLAB.Modules.Inventory.Application.EquipmentRead")
+            .Where(type => type.Namespace == "SISLAB.Modules.Inventory.Application.Equipments.Queries")
             .Where(ImplementsQueryHandler)
             .Where(HasSqlConstant)
             .OrderBy(type => type.Name, StringComparer.Ordinal)

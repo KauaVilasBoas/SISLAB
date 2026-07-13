@@ -2,7 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SISLAB.Jobs.Configuration;
-using SISLAB.Modules.Inventory.Application.EquipmentRead;
+using SISLAB.Modules.Inventory.Application.Equipments.Queries;
 using SISLAB.Modules.Notifications.Contracts;
 using SISLAB.SharedKernel.Messaging;
 using SISLAB.SharedKernel.Time;

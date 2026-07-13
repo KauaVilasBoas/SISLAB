@@ -2,7 +2,7 @@ using FluentValidation;
 using SISLAB.Modules.Inventory.Domain.Equipments;
 using SISLAB.SharedKernel.Messaging;
 
-namespace SISLAB.Modules.Inventory.Application.Equipments;
+namespace SISLAB.Modules.Inventory.Application.Equipments.Commands;
 
 /// <summary>
 /// Registers a new equipment for the active company. Brand, model, storage location and calibration are

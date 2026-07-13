@@ -1,5 +1,5 @@
 using SISLAB.Jobs.Jobs;
-using SISLAB.Modules.Inventory.Application.EquipmentRead;
+using SISLAB.Modules.Inventory.Application.Equipments.Queries;
 using SISLAB.Modules.Inventory.Application.StockRead;
 using SISLAB.Modules.Notifications.Contracts;
 
