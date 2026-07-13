@@ -81,6 +81,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SISLAB.Modules.Audit.Infras
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SISLAB.Modules.Audit.Tests", "tests\SISLAB.Modules.Audit.Tests\SISLAB.Modules.Audit.Tests.csproj", "{AFA62119-B3CF-441C-998C-9E5D326537A1}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Configuration", "Configuration", "{EB4D8678-A4A5-42E4-9B15-91B03310999B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SISLAB.Modules.Configuration.Domain", "src\Modules\Configuration\SISLAB.Modules.Configuration.Domain\SISLAB.Modules.Configuration.Domain.csproj", "{70372000-D95F-4F17-92F2-FDE4FD09481A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SISLAB.Modules.Configuration.Contracts", "src\Modules\Configuration\SISLAB.Modules.Configuration.Contracts\SISLAB.Modules.Configuration.Contracts.csproj", "{B8D5A21A-3958-4968-89F3-7BDA09180C1D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SISLAB.Modules.Configuration.Infrastructure", "src\Modules\Configuration\SISLAB.Modules.Configuration.Infrastructure\SISLAB.Modules.Configuration.Infrastructure.csproj", "{B43971B6-99B0-4622-99AA-7F78FD971F93}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SISLAB.Modules.Configuration.Application", "src\Modules\Configuration\SISLAB.Modules.Configuration.Application\SISLAB.Modules.Configuration.Application.csproj", "{15ACC42C-4A6C-4596-966A-F28903D2620A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -203,6 +213,22 @@ Global
 		{AFA62119-B3CF-441C-998C-9E5D326537A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AFA62119-B3CF-441C-998C-9E5D326537A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AFA62119-B3CF-441C-998C-9E5D326537A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{70372000-D95F-4F17-92F2-FDE4FD09481A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{70372000-D95F-4F17-92F2-FDE4FD09481A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{70372000-D95F-4F17-92F2-FDE4FD09481A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{70372000-D95F-4F17-92F2-FDE4FD09481A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8D5A21A-3958-4968-89F3-7BDA09180C1D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8D5A21A-3958-4968-89F3-7BDA09180C1D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8D5A21A-3958-4968-89F3-7BDA09180C1D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8D5A21A-3958-4968-89F3-7BDA09180C1D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B43971B6-99B0-4622-99AA-7F78FD971F93}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B43971B6-99B0-4622-99AA-7F78FD971F93}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B43971B6-99B0-4622-99AA-7F78FD971F93}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B43971B6-99B0-4622-99AA-7F78FD971F93}.Release|Any CPU.Build.0 = Release|Any CPU
+		{15ACC42C-4A6C-4596-966A-F28903D2620A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15ACC42C-4A6C-4596-966A-F28903D2620A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15ACC42C-4A6C-4596-966A-F28903D2620A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15ACC42C-4A6C-4596-966A-F28903D2620A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{A793684D-A839-4E4E-8094-6F40D2DD6645} = {74C1DD44-E596-47AE-8F36-9C4D3FA01EEE}
@@ -239,5 +265,9 @@ Global
 		{21F1C9AC-01F0-4FD0-8C94-EEB486331FF5} = {606C74BC-A0ED-4A98-89D9-0339965FF113}
 		{99C345E7-C87E-4E5E-A059-45822ACD20FF} = {606C74BC-A0ED-4A98-89D9-0339965FF113}
 		{AFA62119-B3CF-441C-998C-9E5D326537A1} = {8FBC5EE1-4C1C-429D-9DC9-F9704447627B}
+		{70372000-D95F-4F17-92F2-FDE4FD09481A} = {EB4D8678-A4A5-42E4-9B15-91B03310999B}
+		{B8D5A21A-3958-4968-89F3-7BDA09180C1D} = {EB4D8678-A4A5-42E4-9B15-91B03310999B}
+		{B43971B6-99B0-4622-99AA-7F78FD971F93} = {EB4D8678-A4A5-42E4-9B15-91B03310999B}
+		{15ACC42C-4A6C-4596-966A-F28903D2620A} = {EB4D8678-A4A5-42E4-9B15-91B03310999B}
 	EndGlobalSection
 EndGlobal
