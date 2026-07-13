@@ -11,6 +11,7 @@
     -->
     <ProjectReference Include="..\..\Modules\Identity\SISLAB.Modules.Identity.Application\SISLAB.Modules.Identity.Application.csproj" />
     <ProjectReference Include="..\..\Modules\Inventory\SISLAB.Modules.Inventory.Application\SISLAB.Modules.Inventory.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Notifications\SISLAB.Modules.Notifications.Application\SISLAB.Modules.Notifications.Application.csproj" />
 
     <!--
       Background jobs run in-process with the API (E6 #39, Fork #1 → C): the host references the
