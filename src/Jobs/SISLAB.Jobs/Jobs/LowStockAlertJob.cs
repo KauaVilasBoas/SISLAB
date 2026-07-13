@@ -25,17 +25,17 @@ namespace SISLAB.Jobs.Jobs;
 public sealed class LowStockAlertJob : CompanyScanAlertJob
 {
     private readonly LowStockAlertOptions _options;
-    private readonly IClock _clock;
+    private readonly ILogger<LowStockAlertJob> _logger;
 
     public LowStockAlertJob(
         IServiceScopeFactory scopeFactory,
         IOptions<JobsOptions> options,
         IClock clock,
         ILogger<LowStockAlertJob> logger)
-        : base(scopeFactory, logger)
+        : base(scopeFactory, clock, logger)
     {
         _options = options.Value.LowStockAlert;
-        _clock = clock;
+        _logger = logger;
     }
 
     /// <inheritdoc />
@@ -48,12 +48,11 @@ public sealed class LowStockAlertJob : CompanyScanAlertJob
     protected override async Task ScanCompanyAsync(
         IServiceScope companyScope,
         Guid companyId,
+        DateOnly scanDay,
         CancellationToken cancellationToken)
     {
         IMediator mediator = companyScope.ServiceProvider.GetRequiredService<IMediator>();
         INotificationPublisher publisher = companyScope.ServiceProvider.GetRequiredService<INotificationPublisher>();
-
-        DateOnly scanDay = DateOnly.FromDateTime(_clock.UtcNow);
 
         IReadOnlyList<BelowMinimumItem> belowMinimumItems = await PagedQueryDrainer.DrainAsync(
             queryForPage: page => new ListItemsBelowMinimumQuery
@@ -68,8 +67,22 @@ public sealed class LowStockAlertJob : CompanyScanAlertJob
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            RaiseNotificationRequest request = LowStockAlertPolicy.ToNotification(item, scanDay);
-            await publisher.RaiseAsync(request, cancellationToken);
+            try
+            {
+                RaiseNotificationRequest request = LowStockAlertPolicy.ToNotification(item, scanDay);
+                await publisher.RaiseAsync(request, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // One item's failure must not skip the remaining below-minimum items for this company.
+                _logger.LogError(ex,
+                    "Low-stock alert job failed to raise notification for item {ItemId} in company {CompanyId}; skipping to the next item.",
+                    item.Id, companyId);
+            }
         }
     }
 }
