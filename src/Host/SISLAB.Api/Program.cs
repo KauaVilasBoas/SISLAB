@@ -4,6 +4,7 @@ using Serilog;
 using SISLAB.Api.Csrf;
 using SISLAB.Api.Middleware;
 using SISLAB.Api.Observability;
+using SISLAB.Api.Security;
 using SISLAB.Infrastructure.DependencyInjection;
 using SISLAB.Infrastructure.Modules;
 using SISLAB.Jobs.DependencyInjection;
@@ -123,6 +124,13 @@ builder.Services.AddCors(options =>
 builder.Services.AddSislabAntiforgery();
 
 // ---------------------------------------------------------------------------
+// Rate limiting (card [E9] #58) — per-IP fixed windows: 10/min on /api/auth/*
+// ("login") and 300/min elsewhere ("api"). Rejected requests get 429 with the
+// uniform ApiResult envelope.
+// ---------------------------------------------------------------------------
+builder.Services.AddRateLimiter(RateLimitingConfiguration.Configure);
+
+// ---------------------------------------------------------------------------
 // Build
 // ---------------------------------------------------------------------------
 WebApplication app = builder.Build();
@@ -139,6 +147,15 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 // scoped accessor for the LoggingBehavior/ProblemDetails traceId, and echoes it on the response. Runs
 // right after the exception boundary so every downstream log line and error carries the id.
 app.UseMiddleware<CorrelationIdMiddleware>();
+
+// Security headers (card [E9] #58) — a baseline of browser-hardening headers on every response.
+// Placed early so it also covers Swagger, health checks and error responses.
+app.UseMiddleware<SecurityHeadersMiddleware>();
+
+// HSTS outside development only (never over plain HTTP in local dev). Complements the security headers
+// above with Strict-Transport-Security, pinning HTTPS for future requests.
+if (!app.Environment.IsDevelopment())
+    app.UseHsts();
 
 // Serilog request logging — one structured summary line per request (method, path, status, elapsed),
 // enriched with the CorrelationId pushed onto the LogContext below.
@@ -159,6 +176,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Rate limiting (card [E9] #58) — enforce the per-IP windows before authentication so abusive traffic is
+// shed cheaply, ahead of any DB-touching auth/tenant work.
+app.UseRateLimiter();
 app.UseCors("SislabCorsPolicy");
 
 // Lumen AuthN — resolves the principal from the JWT Bearer token.
