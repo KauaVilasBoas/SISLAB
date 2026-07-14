@@ -39,6 +39,13 @@ public sealed class Company : AggregateRoot<Guid>
 
     public IReadOnlyList<CompanyMembership> Memberships => _memberships.AsReadOnly();
 
+    /// <summary>
+    /// True when the given Lumen user is a member of this company. Used by profile-assignment use cases to
+    /// enforce tenant isolation: a profile may only be assigned to (or removed from) an actual member of the
+    /// active company, never a user from another tenant.
+    /// </summary>
+    public bool IsMember(Guid lumenUserId) => _memberships.Any(m => m.LumenUserId == lumenUserId);
+
     public static Company Create(string name, string? taxId = null)
     {
         if (string.IsNullOrWhiteSpace(name))
