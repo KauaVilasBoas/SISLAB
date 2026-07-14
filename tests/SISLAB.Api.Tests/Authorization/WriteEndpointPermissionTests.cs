@@ -12,14 +12,15 @@ namespace SISLAB.Api.Tests.Authorization;
 /// drift tests use — so a new write endpoint that forgets <c>[RequirePermission]</c> breaks the build.</para>
 ///
 /// <para>Reads (GET) are intentionally excluded: they are authenticated (<c>[Authorize]</c> on the controller)
-/// but not permission-gated — any member, including <c>ReadOnly</c>, may read (see <c>RolePermissionsMap</c>).</para>
+/// but not permission-gated — any authenticated member of the active company may read. Which members hold a
+/// given write permission is owned by Lumen (profiles assigned to the user, scoped to the company).</para>
 /// </summary>
 public sealed class WriteEndpointPermissionTests
 {
     /// <summary>
     /// Every write action (POST/PUT/DELETE/PATCH) must carry <c>[RequirePermission]</c> so Lumen materializes
     /// its permission code and enforces it. An undecorated write endpoint would be reachable by any
-    /// authenticated member regardless of role — a privilege-escalation hole this test forbids.
+    /// authenticated member regardless of their Lumen permissions — a privilege-escalation hole this test forbids.
     /// </summary>
     [Fact]
     public void EveryWriteEndpoint_MustHave_RequirePermission()

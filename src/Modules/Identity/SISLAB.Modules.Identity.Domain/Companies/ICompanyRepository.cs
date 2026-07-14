@@ -25,11 +25,4 @@ public interface ICompanyRepository
     Task AddAsync(Company company, CancellationToken ct = default);
 
     Task UpdateAsync(Company company, CancellationToken ct = default);
-
-    /// <summary>
-    /// Persists pending changes to tracked aggregates in a single transaction. Exposed on the repository
-    /// (rather than a module-wide <c>IUnitOfWork</c>) because the Identity write surface is small — member
-    /// administration — and does not use the Outbox/domain-event pipeline the Inventory module wires up.
-    /// </summary>
-    Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

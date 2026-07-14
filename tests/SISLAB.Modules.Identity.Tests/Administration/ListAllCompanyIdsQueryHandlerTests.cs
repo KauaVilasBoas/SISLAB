@@ -59,8 +59,5 @@ public sealed class ListAllCompanyIdsQueryHandlerTests
 
         public Task UpdateAsync(Company company, CancellationToken ct = default)
             => throw new NotSupportedException();
-
-        public Task<int> SaveChangesAsync(CancellationToken ct = default)
-            => throw new NotSupportedException();
     }
 }

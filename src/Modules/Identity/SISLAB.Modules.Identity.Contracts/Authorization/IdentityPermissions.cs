@@ -30,11 +30,5 @@ public static class IdentityPermissions
 
         /// <summary>Check removal eligibility of a member (action <c>CheckRemovalEligibility</c>). Scope: active company.</summary>
         public const string CheckRemovalEligibility = CompanyMembersPermissions.CheckRemovalEligibility;
-
-        /// <summary>
-        /// Change a member's business role (action <c>ChangeMemberRole</c>) — a management/write
-        /// permission held only by the Coordinator. Scope: active company.
-        /// </summary>
-        public const string ChangeMemberRole = CompanyMembersPermissions.ChangeMemberRole;
     }
 }

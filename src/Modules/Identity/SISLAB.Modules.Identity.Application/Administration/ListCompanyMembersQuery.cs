@@ -29,7 +29,7 @@ internal sealed class ListCompanyMembersQueryHandler
             ?? throw new NotFoundException("Company", request.CompanyId);
 
         var members = company.Memberships
-            .Select(m => new CompanyMemberDto(m.Id, m.LumenUserId, m.Role))
+            .Select(m => new CompanyMemberDto(m.Id, m.LumenUserId))
             .ToList();
 
         return new ListCompanyMembersQueryResult(members);

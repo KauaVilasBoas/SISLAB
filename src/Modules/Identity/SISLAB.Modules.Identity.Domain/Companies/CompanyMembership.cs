@@ -1,4 +1,3 @@
-using SISLAB.SharedKernel.Authorization;
 using SISLAB.SharedKernel.Domain;
 
 namespace SISLAB.Modules.Identity.Domain.Companies;
@@ -10,20 +9,23 @@ namespace SISLAB.Modules.Identity.Domain.Companies;
 /// no navigation to Lumen's tables. This enforces bounded-context isolation:
 /// SISLAB has no knowledge of the identity system's internal schema.
 ///
+/// <para>This is a <b>pure membership link</b> (user ↔ company). It carries no authorization
+/// concept of its own: which permissions a member holds in a company is owned entirely by Lumen
+/// (Lumen profiles assigned to the user, scoped to the company). SISLAB does not model roles.</para>
+///
 /// A <see cref="CompanyMembership"/> belongs to the <see cref="Company"/> aggregate
-/// and must not be mutated outside it — hence the <c>internal</c> mutators.
+/// and must not be mutated outside it — hence the <c>internal</c> factory.
 /// </summary>
 public sealed class CompanyMembership : Entity<Guid>
 {
     // Private constructor for EF Core
     private CompanyMembership() : base(Guid.Empty) { }
 
-    private CompanyMembership(Guid id, Guid companyId, Guid lumenUserId, Role role, DateTime joinedAt)
+    private CompanyMembership(Guid id, Guid companyId, Guid lumenUserId, DateTime joinedAt)
         : base(id)
     {
         CompanyId = companyId;
         LumenUserId = lumenUserId;
-        Role = role;
         JoinedAt = joinedAt;
     }
 
@@ -34,20 +36,8 @@ public sealed class CompanyMembership : Entity<Guid>
     /// </summary>
     public Guid LumenUserId { get; private init; }
 
-    /// <summary>
-    /// Business role the member holds within the company. Drives the Lumen Profile assignment,
-    /// scoped to <see cref="CompanyId"/>. Mutated only by the owning <see cref="Company"/> aggregate.
-    /// </summary>
-    public Role Role { get; private set; }
-
     public DateTime JoinedAt { get; private init; }
 
-    internal static CompanyMembership Create(Guid companyId, Guid lumenUserId, Role role)
-        => new(Guid.NewGuid(), companyId, lumenUserId, role, DateTime.UtcNow);
-
-    /// <summary>
-    /// Reassigns the member's role. Called only by the <see cref="Company"/> aggregate, which owns
-    /// the ≥1-active-Coordinator invariant; this method performs no invariant checking on its own.
-    /// </summary>
-    internal void ChangeRole(Role role) => Role = role;
+    internal static CompanyMembership Create(Guid companyId, Guid lumenUserId)
+        => new(Guid.NewGuid(), companyId, lumenUserId, DateTime.UtcNow);
 }
