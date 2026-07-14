@@ -51,4 +51,18 @@ public static class IdentityPermissions
         /// <summary>Reconcile a profile's permissions (action <c>SetProfilePermissions</c>).</summary>
         public const string SetProfilePermissions = ProfilesPermissions.SetProfilePermissions;
     }
+
+    /// <summary>
+    /// Permissions for assigning/removing profiles to members of the active company
+    /// (<c>MemberProfilesController</c> → prefix <c>MemberProfiles</c>, card [E12] #104). Company-scoped:
+    /// assignment sets <c>UserProfile.ScopeId = companyId</c> and is confined to members of the active company.
+    /// </summary>
+    public static class MemberProfiles
+    {
+        /// <summary>Assign a profile to a member of the active company (action <c>AssignProfile</c>).</summary>
+        public const string AssignProfile = MemberProfilesPermissions.AssignProfile;
+
+        /// <summary>Remove a profile assignment from a member of the active company (action <c>RemoveProfile</c>).</summary>
+        public const string RemoveProfile = MemberProfilesPermissions.RemoveProfile;
+    }
 }
