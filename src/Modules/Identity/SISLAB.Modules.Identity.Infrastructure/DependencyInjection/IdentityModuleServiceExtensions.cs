@@ -170,6 +170,14 @@ public static class IdentityModuleServiceExtensions
         //     Lumen registers its no-op via TryAdd; this AddScoped wins as the last registration.
         services.AddScoped<Lumen.Authorization.Contracts.ITenantScopeAccessor, SislabTenantScopeAccessor>();
 
+        // 11.1 Authorization gateway (card [E12] #101): the single anti-corruption adapter that dispatches
+        //      Lumen's authorization use cases through its MediatR pipeline and maps the results to SISLAB
+        //      Contracts DTOs. Registered AFTER AddLumenAuthorization so MediatR's IMediator (which the
+        //      gateway depends on) is available. Every profile-management handler depends on this port,
+        //      never on Lumen/MediatR directly — keeping Lumen confined to Identity's Infrastructure (§8).
+        services.AddScoped<Contracts.Authorization.ILumenAuthorizationGateway,
+            Authorization.LumenAuthorizationGateway>();
+
         // 12. Lumen.Modularity in-process event bus.
         //     Lumen Identity's CQRS handlers publish integration events via IEventBus;
         //     without this registration the container cannot build those handlers.
