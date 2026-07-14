@@ -13,10 +13,14 @@ public sealed class StockItemTests
     private static readonly UnitOfMeasure Ml = UnitOfMeasure.Milliliter;
     private static readonly Guid Location = Guid.NewGuid();
 
+    // The category is referenced by value (a per-tenant Configuration category, card [E12] #76); the aggregate
+    // only holds the id, so a fixed Guid is all these fixtures need.
+    private static readonly Guid Category = Guid.NewGuid();
+
     private static StockItem NewItem(decimal initial = 100m, decimal minimum = 10m) =>
         StockItem.Register(
             name: "DMSO",
-            category: StockItemCategory.Solvent,
+            categoryId: Category,
             storageLocationId: Location,
             initialQuantity: Quantity.Of(initial, Ml),
             minimumQuantity: Quantity.Of(minimum, Ml));
@@ -24,9 +28,11 @@ public sealed class StockItemTests
     [Fact]
     public void Register_captures_all_descriptive_attributes()
     {
+        Guid category = Guid.NewGuid();
+
         StockItem item = StockItem.Register(
             name: "Cetamina 10%",
-            category: StockItemCategory.ControlledAnesthetic,
+            categoryId: category,
             storageLocationId: Location,
             initialQuantity: Quantity.Of(5m, UnitOfMeasure.Ampoule),
             minimumQuantity: Quantity.Of(2m, UnitOfMeasure.Ampoule),
@@ -38,7 +44,7 @@ public sealed class StockItemTests
             expiry: ExpiryDate.FromYearMonth(2027, 6));
 
         Assert.Equal("Cetamina 10%", item.Name);
-        Assert.Equal(StockItemCategory.ControlledAnesthetic, item.Category);
+        Assert.Equal(category, item.CategoryId);
         Assert.Equal("Cristália", item.Brand);
         Assert.Equal(ContainerState.Closed, item.ContainerState);
         Assert.Equal("Anestesia", item.Application);
@@ -53,7 +59,7 @@ public sealed class StockItemTests
     {
         Assert.Throws<DomainException>(() => StockItem.Register(
             name: "MTT",
-            category: StockItemCategory.Reagent,
+            categoryId: Category,
             storageLocationId: Location,
             initialQuantity: Quantity.Of(1m, UnitOfMeasure.Gram),
             minimumQuantity: Quantity.Of(1m, UnitOfMeasure.Milliliter)));
@@ -214,7 +220,7 @@ public sealed class StockItemTests
     {
         StockItem item = StockItem.Register(
             name: "DMSO",
-            category: StockItemCategory.Solvent,
+            categoryId: Category,
             storageLocationId: Location,
             initialQuantity: Quantity.Of(100m, Ml),
             minimumQuantity: Quantity.Of(10m, Ml),
@@ -230,7 +236,7 @@ public sealed class StockItemTests
     {
         StockItem item = StockItem.Register(
             name: "DMSO",
-            category: StockItemCategory.Solvent,
+            categoryId: Category,
             storageLocationId: Location,
             initialQuantity: Quantity.Of(100m, Ml),
             minimumQuantity: Quantity.Of(10m, Ml),

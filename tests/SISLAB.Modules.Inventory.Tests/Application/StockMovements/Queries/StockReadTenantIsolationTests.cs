@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Npgsql;
 using SISLAB.Infrastructure.Data;
 using SISLAB.Modules.Inventory.Application.StockMovements.Queries;
+using SISLAB.Modules.Inventory.Tests.Application.Configuration;
 using SISLAB.SharedKernel.Multitenancy;
 using SISLAB.SharedKernel.Time;
 using Testcontainers.PostgreSql;
@@ -31,6 +32,13 @@ public sealed class StockReadTenantIsolationTests : IAsyncLifetime
     // A fixed "today" so the derived expiry status is deterministic against the seeded validities.
     private static readonly DateTime Today = new(2026, 7, 12, 0, 0, 0, DateTimeKind.Utc);
     private static readonly DateOnly TodayDate = DateOnly.FromDateTime(Today);
+
+    // --- Category catalogue (Configuration module, card [E12] #76). Each company owns its own categories;
+    // the read-side view resolves the name from here, so A's items must reference A's categories only.
+    private static readonly Guid A_SolventCategory = Guid.Parse("a0000005-0000-0000-0000-000000000001");
+    private static readonly Guid A_ReagentCategory = Guid.Parse("a0000005-0000-0000-0000-000000000002");
+    private static readonly Guid B_SolventCategory = Guid.Parse("b0000005-0000-0000-0000-000000000001");
+    private static readonly Guid B_ReagentCategory = Guid.Parse("b0000005-0000-0000-0000-000000000002");
 
     // --- Company A seed ids (the ONLY ids any query run as A may return) -----------------------------
     private static readonly Guid A_FridgeLocation = Guid.Parse("a0000001-0000-0000-0000-000000000001");
@@ -90,9 +98,13 @@ public sealed class StockReadTenantIsolationTests : IAsyncLifetime
         ITenantContext tenantA = new StubTenantContext(CompanyA);
         IClock clock = new FixedClock(Today);
 
-        _listItems = new ListStockItemsQueryHandler(_connectionFactory, tenantA, clock);
+        // The two expiry-classifying read handlers resolve the warning window from the Configuration boundary
+        // (card [E12] #76); the seed uses the 30-day window (this month is "expiring soon"), so the stub returns 30.
+        var labConfiguration = new FakeLabConfiguration { WarningWindowDays = 30 };
+
+        _listItems = new ListStockItemsQueryHandler(_connectionFactory, tenantA, clock, labConfiguration);
         _locationsSummary = new GetLocationsSummaryQueryHandler(_connectionFactory, tenantA, clock);
-        _expirySummary = new GetExpirySummaryQueryHandler(_connectionFactory, tenantA, clock);
+        _expirySummary = new GetExpirySummaryQueryHandler(_connectionFactory, tenantA, clock, labConfiguration);
         _expiringItems = new ListExpiringItemsQueryHandler(_connectionFactory, tenantA, clock);
         _belowMinimum = new ListItemsBelowMinimumQueryHandler(_connectionFactory, tenantA);
         _belowMinimumSummary = new GetBelowMinimumSummaryQueryHandler(_connectionFactory, tenantA);
@@ -245,6 +257,17 @@ public sealed class StockReadTenantIsolationTests : IAsyncLifetime
         await connection.ExecuteAsync(
             """
             CREATE SCHEMA IF NOT EXISTS inventory;
+            CREATE SCHEMA IF NOT EXISTS configuration;
+
+            -- The per-tenant category catalogue owned by the Configuration module (card [E12] #76). The
+            -- read-side stock_view resolves the human-readable category name from here through a tenant-safe
+            -- join; Inventory only stores category_id by value.
+            CREATE TABLE configuration.item_categories (
+                id          uuid PRIMARY KEY,
+                company_id  uuid NOT NULL,
+                name        varchar(120) NOT NULL,
+                is_controlled boolean NOT NULL
+            );
 
             CREATE TABLE inventory.storage_locations (
                 id          uuid PRIMARY KEY,
@@ -261,7 +284,7 @@ public sealed class StockReadTenantIsolationTests : IAsyncLifetime
                 id                      uuid PRIMARY KEY,
                 company_id              uuid NOT NULL,
                 name                    varchar(200) NOT NULL,
-                category                varchar(40)  NOT NULL,
+                category_id             uuid NOT NULL,
                 brand                   varchar(120),
                 container_state         varchar(20)  NOT NULL,
                 application             varchar(500),
@@ -295,7 +318,8 @@ public sealed class StockReadTenantIsolationTests : IAsyncLifetime
                 si.id                       AS id,
                 si.company_id               AS company_id,
                 si.name                     AS name,
-                si.category                 AS category,
+                si.category_id              AS category_id,
+                ic.name                     AS category,
                 si.brand                    AS brand,
                 si.container_state          AS container_state,
                 si.application              AS application,
@@ -315,7 +339,10 @@ public sealed class StockReadTenantIsolationTests : IAsyncLifetime
             FROM inventory.stock_items AS si
             LEFT JOIN inventory.storage_locations AS sl
                 ON sl.id = si.storage_location_id
-               AND sl.company_id = si.company_id;
+               AND sl.company_id = si.company_id
+            LEFT JOIN configuration.item_categories AS ic
+                ON ic.id = si.category_id
+               AND ic.company_id = si.company_id;
             """);
     }
 
@@ -323,6 +350,25 @@ public sealed class StockReadTenantIsolationTests : IAsyncLifetime
     {
         await using var connection = new NpgsqlConnection(_container.GetConnectionString());
         await connection.OpenAsync();
+
+        // --- Category catalogue ----------------------------------------------------------------------
+        await connection.ExecuteAsync(
+            """
+            INSERT INTO configuration.item_categories (id, company_id, name, is_controlled) VALUES
+                (@A_Solvent, @CompanyA, 'Solvent', false),
+                (@A_Reagent, @CompanyA, 'Reagent', true),
+                (@B_Solvent, @CompanyB, 'Solvent', false),
+                (@B_Reagent, @CompanyB, 'Reagent', false);
+            """,
+            new
+            {
+                A_Solvent = A_SolventCategory,
+                A_Reagent = A_ReagentCategory,
+                B_Solvent = B_SolventCategory,
+                B_Reagent = B_ReagentCategory,
+                CompanyA,
+                CompanyB
+            });
 
         // --- Storage locations -----------------------------------------------------------------------
         await connection.ExecuteAsync(
@@ -344,21 +390,21 @@ public sealed class StockReadTenantIsolationTests : IAsyncLifetime
         await connection.ExecuteAsync(
             """
             INSERT INTO inventory.stock_items
-                (id, company_id, name, category, brand, container_state, is_controlled, storage_location_id,
+                (id, company_id, name, category_id, brand, container_state, is_controlled, storage_location_id,
                  lot_code, expiry_year, expiry_month, minimum_quantity_unit, minimum_quantity_amount,
                  quantity_unit, quantity_amount)
             VALUES
-                (@A_ItemOk, @CompanyA, 'Etanol shared-name A', 'Solvent', 'AcmeA', 'Sealed', false, @A_Fridge,
+                (@A_ItemOk, @CompanyA, 'Etanol shared-name A', @A_Solvent, 'AcmeA', 'Sealed', false, @A_Fridge,
                  'LA-OK', 2030, 1, 'mL', 100, 'mL', 500),
-                (@A_ItemExpiringSoon, @CompanyA, 'Metanol A', 'Solvent', 'AcmeA', 'Sealed', false, @A_Fridge,
+                (@A_ItemExpiringSoon, @CompanyA, 'Metanol A', @A_Solvent, 'AcmeA', 'Sealed', false, @A_Fridge,
                  'LA-SOON', @ExpYear, @ExpMonth, 'mL', 100, 'mL', 500),
-                (@A_ItemExpired, @CompanyA, 'Acetona A', 'Solvent', 'AcmeA', 'Sealed', false, @A_Fridge,
+                (@A_ItemExpired, @CompanyA, 'Acetona A', @A_Solvent, 'AcmeA', 'Sealed', false, @A_Fridge,
                  'LA-EXP', @ExpiredYear, @ExpiredMonth, 'mL', 100, 'mL', 500),
-                (@A_ItemBelowMinimum, @CompanyA, 'Reagente controlado shared-name A', 'Reagent', 'AcmeA', 'Open',
+                (@A_ItemBelowMinimum, @CompanyA, 'Reagente controlado shared-name A', @A_Reagent, 'AcmeA', 'Open',
                  true, @A_Controlled, 'LA-LOW', NULL, NULL, 'g', 100, 'g', 10),
-                (@B_ItemExpired, @CompanyB, 'Acetona shared-name B', 'Solvent', 'AcmeB', 'Sealed', false, @B_Location,
+                (@B_ItemExpired, @CompanyB, 'Acetona shared-name B', @B_Solvent, 'AcmeB', 'Sealed', false, @B_Location,
                  'LB-EXP', @ExpiredYear, @ExpiredMonth, 'mL', 100, 'mL', 500),
-                (@B_ItemBelowMinimum, @CompanyB, 'Reagente shared-name B', 'Reagent', 'AcmeB', 'Open', false,
+                (@B_ItemBelowMinimum, @CompanyB, 'Reagente shared-name B', @B_Reagent, 'AcmeB', 'Open', false,
                  @B_Location, 'LB-LOW', NULL, NULL, 'g', 100, 'g', 5);
             """,
             new
@@ -369,6 +415,10 @@ public sealed class StockReadTenantIsolationTests : IAsyncLifetime
                 A_ItemBelowMinimum,
                 B_ItemExpired,
                 B_ItemBelowMinimum,
+                A_Solvent = A_SolventCategory,
+                A_Reagent = A_ReagentCategory,
+                B_Solvent = B_SolventCategory,
+                B_Reagent = B_ReagentCategory,
                 A_Fridge = A_FridgeLocation,
                 A_Controlled = A_ControlledLocation,
                 B_Location,

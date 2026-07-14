@@ -27,6 +27,14 @@ namespace SISLAB.Modules.Inventory.Domain.StockItems;
 /// location" needs the location type and is therefore enforced where that is known (card [E3] #23),
 /// not inside this aggregate.
 /// </para>
+/// <para>
+/// The category is likewise referenced <b>by value</b> (<see cref="CategoryId"/>) since card [E12] #76:
+/// item categories became dynamic, per-tenant rows owned by the Configuration module, replacing the old
+/// closed <c>StockItemCategory</c> enum. The aggregate does not know the category's name or its controlled
+/// flag; that a category exists and belongs to the tenant is validated in the write-side command handler
+/// via <c>ILabConfiguration</c> (same pattern as the supplier guard), not inside this aggregate — exactly
+/// like <see cref="StorageLocationId"/>.
+/// </para>
 /// </remarks>
 public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
 {
@@ -42,7 +50,7 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
     private StockItem(
         Guid id,
         string name,
-        StockItemCategory category,
+        Guid categoryId,
         string? brand,
         ContainerState containerState,
         string? application,
@@ -55,7 +63,7 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
         : base(id)
     {
         Name = name;
-        Category = category;
+        CategoryId = categoryId;
         Brand = brand;
         ContainerState = containerState;
         Application = application;
@@ -72,7 +80,8 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
 
     public string Name { get; private set; } = default!;
 
-    public StockItemCategory Category { get; private set; }
+    /// <summary>Item category, referenced by value (a per-tenant Configuration category — card [E12] #76).</summary>
+    public Guid CategoryId { get; private set; }
 
     public string? Brand { get; private set; }
 
@@ -102,7 +111,7 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
     /// </summary>
     public static StockItem Register(
         string name,
-        StockItemCategory category,
+        Guid categoryId,
         Guid storageLocationId,
         Quantity initialQuantity,
         Quantity minimumQuantity,
@@ -115,6 +124,7 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
     {
         Guard.AgainstNullOrWhiteSpace(name, nameof(name));
         Guard.AgainstMaxLength(name.Trim(), MaxNameLength, nameof(name));
+        Guard.AgainstEmptyGuid(categoryId, nameof(categoryId));
         Guard.AgainstEmptyGuid(storageLocationId, nameof(storageLocationId));
         Guard.AgainstNull(initialQuantity, nameof(initialQuantity));
         Guard.AgainstNull(minimumQuantity, nameof(minimumQuantity));
@@ -123,7 +133,7 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
         return new StockItem(
             Guid.NewGuid(),
             name.Trim(),
-            category,
+            categoryId,
             NormalizeOptionalText(brand, MaxBrandLength, nameof(brand)),
             containerState,
             NormalizeOptionalText(application, MaxApplicationLength, nameof(application)),

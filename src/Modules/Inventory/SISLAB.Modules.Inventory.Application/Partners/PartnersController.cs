@@ -1,3 +1,4 @@
+using Lumen.Authorization.AspNetCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -79,8 +80,10 @@ public sealed class PartnersController : SislabControllerBase
 
     /// <summary>Registers a new partner.</summary>
     [HttpPost]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult<Guid>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Register(
         [FromBody] RegisterPartnerRequest body,
@@ -100,8 +103,10 @@ public sealed class PartnersController : SislabControllerBase
 
     /// <summary>Updates a partner's descriptive data.</summary>
     [HttpPut("{partnerId:guid}")]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Update(
@@ -124,8 +129,10 @@ public sealed class PartnersController : SislabControllerBase
 
     /// <summary>Takes a partner out of service.</summary>
     [HttpPost("{partnerId:guid}/deactivation")]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Deactivate(Guid partnerId, CancellationToken ct)
     {
@@ -136,8 +143,10 @@ public sealed class PartnersController : SislabControllerBase
 
     /// <summary>Puts a deactivated partner back in service.</summary>
     [HttpPost("{partnerId:guid}/reactivation")]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Reactivate(Guid partnerId, CancellationToken ct)
     {
@@ -148,8 +157,10 @@ public sealed class PartnersController : SislabControllerBase
 
     /// <summary>Records a sample/compound the partner sent for testing.</summary>
     [HttpPost("{partnerId:guid}/samples")]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> RecordSample(
@@ -166,8 +177,10 @@ public sealed class PartnersController : SislabControllerBase
 
     /// <summary>Removes a previously recorded sample from a partner.</summary>
     [HttpDelete("{partnerId:guid}/samples/{reference}")]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RemoveSample(
         Guid partnerId,

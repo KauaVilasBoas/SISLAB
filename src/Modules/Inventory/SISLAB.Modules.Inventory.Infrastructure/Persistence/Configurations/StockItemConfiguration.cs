@@ -39,10 +39,11 @@ internal sealed class StockItemConfiguration : IEntityTypeConfiguration<StockIte
             .IsRequired()
             .HasMaxLength(200);
 
-        builder.Property(item => item.Category)
-            .IsRequired()
-            .HasConversion<string>()
-            .HasMaxLength(40);
+        // Category referenced by value (card [E12] #76): a per-tenant Configuration category id. No
+        // cross-module FK/navigation — the id is stored as a plain uuid, validated on the write-side command
+        // via ILabConfiguration, exactly like storage_location_id.
+        builder.Property(item => item.CategoryId)
+            .IsRequired();
 
         builder.Property(item => item.Brand)
             .HasMaxLength(120);

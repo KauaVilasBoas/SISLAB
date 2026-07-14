@@ -9,8 +9,12 @@ namespace SISLAB.Modules.Identity.Domain.Companies;
 /// no navigation to Lumen's tables. This enforces bounded-context isolation:
 /// SISLAB has no knowledge of the identity system's internal schema.
 ///
+/// <para>This is a <b>pure membership link</b> (user ↔ company). It carries no authorization
+/// concept of its own: which permissions a member holds in a company is owned entirely by Lumen
+/// (Lumen profiles assigned to the user, scoped to the company). SISLAB does not model roles.</para>
+///
 /// A <see cref="CompanyMembership"/> belongs to the <see cref="Company"/> aggregate
-/// and must not be mutated outside it.
+/// and must not be mutated outside it — hence the <c>internal</c> factory.
 /// </summary>
 public sealed class CompanyMembership : Entity<Guid>
 {

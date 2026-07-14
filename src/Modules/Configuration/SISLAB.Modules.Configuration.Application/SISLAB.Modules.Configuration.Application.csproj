@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Application: orquestra casos de uso (write-side commands, read-side Dapper, controllers por domínio)
+    e o adapter público (LabConfiguration : ILabConfiguration). É o ponto de entrada do módulo (IModule),
+    exposto ao Host. Depende de Domain + Infrastructure (do MESMO módulo, para delegar o wiring de DI) +
+    Contracts + SharedKernel. Simétrico ao Inventory/Notifications.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\SISLAB.Modules.Configuration.Domain\SISLAB.Modules.Configuration.Domain.csproj" />
+    <ProjectReference Include="..\SISLAB.Modules.Configuration.Infrastructure\SISLAB.Modules.Configuration.Infrastructure.csproj" />
+    <ProjectReference Include="..\SISLAB.Modules.Configuration.Contracts\SISLAB.Modules.Configuration.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Expõe handlers CQRS internos (queries/commands) e o adapter aos testes do módulo. -->
+    <InternalsVisibleTo Include="SISLAB.Modules.Configuration.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Lumen's [RequirePermission] on the module's write endpoints (card [E12] #95). Conscious relaxation of
+      section 8: the authorization attribute must decorate the controller hosting the action (Lumen's
+      discovery scanner only sees ControllerActionDescriptors), so the module references
+      Lumen.Authorization.AspNetCore directly, pinned to the same 1.1.0 the Identity module uses.
+    -->
+    <PackageReference Include="Lumen.Authorization.AspNetCore" Version="1.1.0" />
+  </ItemGroup>
+
+</Project>

@@ -195,11 +195,9 @@ namespace SISLAB.Modules.Inventory.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(120)")
                         .HasColumnName("brand");
 
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasColumnName("category");
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("category_id");
 
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid")

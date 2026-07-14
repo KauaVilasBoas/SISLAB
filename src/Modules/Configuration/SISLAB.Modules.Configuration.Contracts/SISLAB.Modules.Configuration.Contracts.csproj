@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Contracts: fronteira pública do módulo Configuration (porta de leitura ILabConfiguration + DTOs). -->
+  <!-- POCO/interface puro: sem referência ao Domain interno, sem EF/Dapper/ASP.NET. Os outros módulos -->
+  <!-- (Inventory hoje; Agenda/Experimentos no futuro) referenciam APENAS este projeto, nunca o Domain. -->
+
+  <!-- Deliberadamente sem ProjectReference: a porta e os DTOs usam apenas primitivos do BCL, então nem o
+       SharedKernel é necessário — mantém a fronteira pública o mais leve e blindada possível (mesmo padrão
+       do SISLAB.Modules.Notifications.Contracts). -->
+
+</Project>

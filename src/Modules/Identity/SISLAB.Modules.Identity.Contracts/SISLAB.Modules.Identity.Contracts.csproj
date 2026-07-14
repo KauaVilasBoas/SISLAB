@@ -3,4 +3,11 @@
   <!-- Contracts: interface pública do módulo. Sem referência ao Domain interno. Sem EF/Dapper. -->
   <!-- Outros módulos referenciam APENAS este projeto, nunca o Domain. -->
 
+  <ItemGroup>
+    <!-- SharedKernel entrega o catálogo de códigos de permissão (*Permissions, padrão
+         <Controller>.<Action>) que os contratos de autorização re-exportam. A autorização em si
+         (perfis e atribuição escopada por company) é 100% do Lumen — o SISLAB não modela roles. -->
+    <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.SharedKernel\SISLAB.SharedKernel.csproj" />
+  </ItemGroup>
+
 </Project>

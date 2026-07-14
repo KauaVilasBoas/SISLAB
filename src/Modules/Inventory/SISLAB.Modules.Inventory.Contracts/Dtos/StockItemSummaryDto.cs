@@ -15,7 +15,7 @@ namespace SISLAB.Modules.Inventory.Contracts.Dtos;
 /// </remarks>
 /// <param name="Id">Stock item identifier.</param>
 /// <param name="Name">Human-readable item name.</param>
-/// <param name="Category">Category name (the <c>StockItemCategory</c> enum name).</param>
+/// <param name="Category">Category name, resolved from the item's per-tenant Configuration category (card [E12] #76).</param>
 /// <param name="QuantityValue">Current on-hand amount.</param>
 /// <param name="QuantityUnit">Symbol of the item's unit of measure (e.g. "mL", "g").</param>
 /// <param name="MinimumQuantityValue">Configured minimum stock amount.</param>

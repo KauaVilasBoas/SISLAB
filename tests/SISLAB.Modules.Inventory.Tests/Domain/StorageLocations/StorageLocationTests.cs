@@ -16,10 +16,14 @@ public sealed class StorageLocationTests
         StorageLocationType type = StorageLocationType.GeneralStorage) =>
         StorageLocation.Register("Almoxarifado", type);
 
+    // The category is referenced by value (a per-tenant Configuration category, card [E12] #76); the storage
+    // rule keys off the item's IsControlled flag, not the category, so a fixed id suffices here.
+    private static readonly Guid Category = Guid.NewGuid();
+
     private static StockItem NewItem(bool controlled) =>
         StockItem.Register(
             name: controlled ? "Cetamina 10%" : "DMSO",
-            category: controlled ? StockItemCategory.ControlledAnesthetic : StockItemCategory.Solvent,
+            categoryId: Category,
             storageLocationId: Guid.NewGuid(),
             initialQuantity: Quantity.Of(100m, Ml),
             minimumQuantity: Quantity.Of(10m, Ml),
