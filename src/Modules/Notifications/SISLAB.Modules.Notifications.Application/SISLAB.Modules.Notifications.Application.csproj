@@ -22,9 +22,9 @@
       Lumen's [RequirePermission] on the module's write endpoints (card [E12] #95). Conscious relaxation of
       section 8: the authorization attribute must decorate the controller hosting the action (Lumen's
       discovery scanner only sees ControllerActionDescriptors), so the module references
-      Lumen.Authorization.AspNetCore directly, pinned to the same 1.1.0 the Identity module uses.
+      Lumen.Authorization.AspNetCore directly, pinned to the same 2.0.0 the Identity module uses.
     -->
-    <PackageReference Include="Lumen.Authorization.AspNetCore" Version="1.1.0" />
+    <PackageReference Include="Lumen.Authorization.AspNetCore" Version="2.0.0" />
   </ItemGroup>
 
 </Project>
