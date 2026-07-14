@@ -31,4 +31,15 @@ public static class IdentityPermissions
         /// <summary>Check removal eligibility of a member (action <c>CheckRemovalEligibility</c>). Scope: active company.</summary>
         public const string CheckRemovalEligibility = CompanyMembersPermissions.CheckRemovalEligibility;
     }
+
+    /// <summary>
+    /// Permissions for the authorization-profile management controller
+    /// (<c>ProfilesController</c> → prefix <c>Profiles</c>, cards [E12] #102/#103). Profiles and the
+    /// permission catalogue are global to the Lumen instance; management is gated to whoever holds the code.
+    /// </summary>
+    public static class Profiles
+    {
+        /// <summary>List the permission catalogue grouped for the checkboxes (action <c>ListAvailablePermissions</c>).</summary>
+        public const string ListAvailablePermissions = ProfilesPermissions.ListAvailablePermissions;
+    }
 }
