@@ -1,3 +1,4 @@
+using Lumen.Authorization.AspNetCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -39,8 +40,10 @@ public sealed class ExpiryPolicyController : SislabControllerBase
 
     /// <summary>Sets the active company's expiry warning window (creating the policy on first configuration).</summary>
     [HttpPut]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> SetWarningWindow(
         [FromBody] SetExpiryWarningWindowRequest body,

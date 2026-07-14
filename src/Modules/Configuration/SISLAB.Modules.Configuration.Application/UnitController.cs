@@ -1,3 +1,4 @@
+using Lumen.Authorization.AspNetCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -39,8 +40,10 @@ public sealed class UnitController : SislabControllerBase
 
     /// <summary>Creates a new unit for the active company.</summary>
     [HttpPost]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult<Guid>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Create([FromBody] CreateUnitRequest body, CancellationToken ct)
