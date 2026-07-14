@@ -56,4 +56,87 @@ public sealed class ProfilesController : SislabControllerBase
         return Ok(new ApiResult<IReadOnlyList<PermissionGroupDto>>(
             true, "Permissions retrieved.", result.Groups));
     }
+
+    /// <summary>
+    /// Creates a profile from a name and description (card #103) and returns its new id. Permissions are set
+    /// separately via <see cref="SetProfilePermissions"/>. Requires the <c>Profiles.CreateProfile</c> permission.
+    /// </summary>
+    [HttpPost(Name = "CreateProfile")]
+    [ActionName("CreateProfile")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult<Guid>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> CreateProfile([FromBody] CreateProfileRequest body, CancellationToken ct)
+    {
+        Guid id = await _mediator.SendAsync(
+            new CreateProfileCommand(body.Name, body.Description ?? string.Empty), ct);
+
+        return Ok(new ApiResult<Guid>(true, "Profile created.", id));
+    }
+
+    /// <summary>
+    /// Renames/re-describes an existing profile (card #103). Requires the <c>Profiles.UpdateProfile</c> permission.
+    /// </summary>
+    [HttpPut("{profileId:guid}", Name = "UpdateProfile")]
+    [ActionName("UpdateProfile")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> UpdateProfile(
+        Guid profileId,
+        [FromBody] UpdateProfileRequest body,
+        CancellationToken ct)
+    {
+        await _mediator.SendAsync(
+            new UpdateProfileCommand(profileId, body.Name, body.Description ?? string.Empty), ct);
+
+        return Ok(new ApiResult(true, "Profile updated."));
+    }
+
+    /// <summary>
+    /// Reconciles a profile's permissions to exactly the supplied set (card #103) — the "save" of the
+    /// permission checkboxes, idempotent. The audit actor is taken from the authenticated principal, never from
+    /// the body. Requires the <c>Profiles.SetProfilePermissions</c> permission.
+    /// </summary>
+    [HttpPut("{profileId:guid}/permissions", Name = "SetProfilePermissions")]
+    [ActionName("SetProfilePermissions")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> SetProfilePermissions(
+        Guid profileId,
+        [FromBody] SetProfilePermissionsRequest body,
+        CancellationToken ct)
+    {
+        await _mediator.SendAsync(
+            new SetProfilePermissionsCommand(
+                profileId,
+                body.PermissionIds ?? [],
+                User.Identity?.Name),
+            ct);
+
+        return Ok(new ApiResult(true, "Profile permissions updated."));
+    }
 }
+
+/// <summary>Request body for creating a profile. Description is optional (defaults to empty).</summary>
+public sealed record CreateProfileRequest(string Name, string? Description);
+
+/// <summary>Request body for updating a profile's identity. Description is optional (defaults to empty).</summary>
+public sealed record UpdateProfileRequest(string Name, string? Description);
+
+/// <summary>
+/// Request body for setting a profile's permissions: the exact set of permission ids that should be granted
+/// (the checked checkboxes). An empty/absent list clears all permissions.
+/// </summary>
+public sealed record SetProfilePermissionsRequest(IReadOnlyList<Guid>? PermissionIds);

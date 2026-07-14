@@ -22,7 +22,8 @@ public sealed class PermissionCatalogDriftTests
         .. NotificationsPermissions.All,
         .. ConfigurationPermissions.All,
         .. AuditPermissions.All,
-        .. CompanyMembersPermissions.All
+        .. CompanyMembersPermissions.All,
+        .. ProfilesPermissions.All
     ]);
 
     /// <summary>
