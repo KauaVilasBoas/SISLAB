@@ -1,4 +1,7 @@
+using SISLAB.Modules.Identity.Domain.Companies.Events;
+using SISLAB.SharedKernel.Authorization;
 using SISLAB.SharedKernel.Domain;
+using SISLAB.SharedKernel.Exceptions;
 
 namespace SISLAB.Modules.Identity.Domain.Companies;
 
@@ -78,18 +81,20 @@ public sealed class Company : AggregateRoot<Guid>
     public void Deactivate() => IsActive = false;
 
     /// <summary>
-    /// Adds a Lumen user as a member of this company.
+    /// Adds a Lumen user as a member of this company with the given <paramref name="role"/>.
     /// The userId is the user's identity in Lumen, referenced by value — no FK to Lumen's schema.
+    /// New members default to <see cref="Role.ReadOnly"/> (least privilege); the company owner set
+    /// at provisioning is added explicitly as <see cref="Role.Coordinator"/>.
     /// </summary>
     /// <exception cref="InvalidOperationException">User is already a member of this company.</exception>
-    public void AddMember(Guid lumenUserId)
+    public void AddMember(Guid lumenUserId, Role role = Role.ReadOnly)
     {
         bool alreadyMember = _memberships.Any(m => m.LumenUserId == lumenUserId);
         if (alreadyMember)
             throw new InvalidOperationException(
                 $"User '{lumenUserId}' is already a member of company '{Name}'.");
 
-        _memberships.Add(CompanyMembership.Create(Id, lumenUserId));
+        _memberships.Add(CompanyMembership.Create(Id, lumenUserId, role));
     }
 
     /// <summary>
@@ -105,6 +110,45 @@ public sealed class Company : AggregateRoot<Guid>
 
         _memberships.Remove(membership);
     }
+
+    /// <summary>
+    /// Reassigns the business <see cref="Role"/> of an existing member.
+    ///
+    /// <para>Enforces the aggregate invariant <b>"a company must always retain at least one active
+    /// Coordinator"</b>: demoting the last remaining Coordinator to any other role is rejected with a
+    /// <see cref="BusinessException"/>. Assigning the same role a member already holds is a no-op that
+    /// raises no event (idempotency, avoiding spurious Lumen Profile churn downstream).</para>
+    ///
+    /// <para>On a real change, raises <see cref="MemberRoleChangedEvent"/> so the Role→Lumen-Profile
+    /// translation (#77d) can reconcile the member's scoped Profile assignment.</para>
+    /// </summary>
+    /// <exception cref="BusinessException">
+    /// The user is not a member of this company, or the change would leave the company with no
+    /// active Coordinator.
+    /// </exception>
+    public void AssignMemberRole(Guid lumenUserId, Role newRole)
+    {
+        CompanyMembership? membership = _memberships.FirstOrDefault(m => m.LumenUserId == lumenUserId);
+        if (membership is null)
+            throw new BusinessException(
+                $"User '{lumenUserId}' is not a member of company '{Name}'.");
+
+        Role previousRole = membership.Role;
+        if (previousRole == newRole)
+            return;
+
+        bool isDemotingACoordinator = previousRole == Role.Coordinator && newRole != Role.Coordinator;
+        if (isDemotingACoordinator && CountCoordinators() == 1)
+            throw new BusinessException(
+                $"Company '{Name}' must retain at least one Coordinator. " +
+                "Promote another member to Coordinator before changing this one's role.");
+
+        membership.ChangeRole(newRole);
+
+        RaiseDomainEvent(new MemberRoleChangedEvent(Id, lumenUserId, previousRole, newRole));
+    }
+
+    private int CountCoordinators() => _memberships.Count(m => m.Role == Role.Coordinator);
 
     /// <summary>
     /// Reconstitutes the company from the repository (used by EF Core via navigation loading).

@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SISLAB.Modules.Identity.Domain.Companies;
 using SISLAB.Modules.Identity.Infrastructure.Persistence;
+using SISLAB.SharedKernel.Authorization;
 
 namespace SISLAB.Modules.Identity.Infrastructure.Seeding;
 
@@ -103,14 +104,15 @@ public sealed class LafteDevSeeder
         Guid adminUserId = await EnsureAdminUserAsync(ct);
 
         // Company WITH permission (allow): admin is a member AND receives Administrator profile scoped to LAFTE.
+        // The admin is the LAFTE Coordinator, satisfying the ≥1-Coordinator invariant of the aggregate.
         Company lafte = await EnsureCompanyAsync(LafteCompanyId, LafteCompanyName, LafteTaxId, ct);
-        await EnsureMembershipAsync(lafte, adminUserId, ct);
+        await EnsureMembershipAsync(lafte, adminUserId, Role.Coordinator, ct);
         await EnsureAdministratorProfileAsync(adminUserId, lafte.Id, ct);
 
         // Company WITHOUT permission (deny): admin is a member but has NO Administrator profile.
         // Proves tenant-scoped enforcement: with ACME active, protected endpoints return 403.
         Company acme = await EnsureCompanyAsync(AcmeCompanyId, AcmeCompanyName, AcmeTaxId, ct);
-        await EnsureMembershipAsync(acme, adminUserId, ct);
+        await EnsureMembershipAsync(acme, adminUserId, Role.ReadOnly, ct);
 
         _logger.LogInformation(
             "Seed complete. LAFTE(allow)={LafteId}, ACME(deny)={AcmeId}, AdminUserId={AdminUserId}.",
@@ -173,8 +175,8 @@ public sealed class LafteDevSeeder
         return admin.Id;
     }
 
-    /// <summary>Ensures the admin ↔ company link in company_memberships. Idempotent.</summary>
-    private async Task EnsureMembershipAsync(Company company, Guid adminUserId, CancellationToken ct)
+    /// <summary>Ensures the admin ↔ company link in company_memberships with the given role. Idempotent.</summary>
+    private async Task EnsureMembershipAsync(Company company, Guid adminUserId, Role role, CancellationToken ct)
     {
         bool alreadyMember = company.Memberships.Any(m => m.LumenUserId == adminUserId);
         if (alreadyMember)
@@ -183,7 +185,7 @@ public sealed class LafteDevSeeder
             return;
         }
 
-        company.AddMember(adminUserId);
+        company.AddMember(adminUserId, role);
 
         // Force the new CompanyMembership to the Added state explicitly.
         //
