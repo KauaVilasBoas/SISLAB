@@ -19,6 +19,15 @@ public static class ProfilesPermissions
     /// <summary>List the permission catalogue grouped for the checkboxes (GET <c>ListAvailablePermissions</c>). Read.</summary>
     public const string ListAvailablePermissions = "Profiles.ListAvailablePermissions";
 
+    /// <summary>Create a profile (POST <c>CreateProfile</c>). Write.</summary>
+    public const string CreateProfile = "Profiles.CreateProfile";
+
+    /// <summary>Rename/re-describe a profile (PUT <c>UpdateProfile</c>). Write.</summary>
+    public const string UpdateProfile = "Profiles.UpdateProfile";
+
+    /// <summary>Reconcile a profile's permissions (PUT <c>SetProfilePermissions</c>). Write.</summary>
+    public const string SetProfilePermissions = "Profiles.SetProfilePermissions";
+
     /// <summary>
     /// The permission-gated read actions of the profile-management controller. Documentation-only but still
     /// anti-drift: each code here must map to a real read action.
@@ -28,9 +37,9 @@ public static class ProfilesPermissions
         ListAvailablePermissions
     };
 
-    /// <summary>
-    /// Every profile-management <b>write</b> permission (management actions). Populated when the write
-    /// endpoints land (card #103); each code must map to a real write action.
-    /// </summary>
-    public static IReadOnlySet<string> All { get; } = new HashSet<string>();
+    /// <summary>Every profile-management <b>write</b> permission (management actions).</summary>
+    public static IReadOnlySet<string> All { get; } = new HashSet<string>
+    {
+        CreateProfile, UpdateProfile, SetProfilePermissions
+    };
 }

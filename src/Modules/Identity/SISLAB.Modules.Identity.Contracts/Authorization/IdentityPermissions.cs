@@ -41,5 +41,14 @@ public static class IdentityPermissions
     {
         /// <summary>List the permission catalogue grouped for the checkboxes (action <c>ListAvailablePermissions</c>).</summary>
         public const string ListAvailablePermissions = ProfilesPermissions.ListAvailablePermissions;
+
+        /// <summary>Create a profile (action <c>CreateProfile</c>).</summary>
+        public const string CreateProfile = ProfilesPermissions.CreateProfile;
+
+        /// <summary>Rename/re-describe a profile (action <c>UpdateProfile</c>).</summary>
+        public const string UpdateProfile = ProfilesPermissions.UpdateProfile;
+
+        /// <summary>Reconcile a profile's permissions (action <c>SetProfilePermissions</c>).</summary>
+        public const string SetProfilePermissions = ProfilesPermissions.SetProfilePermissions;
     }
 }
