@@ -49,4 +49,7 @@ internal sealed class CompanyRepository : ICompanyRepository
         _dbContext.Companies.Update(company);
         return Task.CompletedTask;
     }
+
+    public Task<int> SaveChangesAsync(CancellationToken ct = default)
+        => _dbContext.SaveChangesAsync(ct);
 }

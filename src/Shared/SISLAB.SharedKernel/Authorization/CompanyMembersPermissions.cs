@@ -25,9 +25,11 @@ public static class CompanyMembersPermissions
     public const string ChangeMemberRole = "CompanyMembers.ChangeMemberRole";
 
     /// <summary>
-    /// Every CompanyMembers <b>write</b> permission (management actions). Empty until the
-    /// <c>ChangeMemberRole</c> action is introduced by card #77e — a permission constant only joins the
-    /// write set once a real controller action backs it (anti-drift).
+    /// Every CompanyMembers <b>write</b> permission (management actions). Contains
+    /// <see cref="ChangeMemberRole"/> now that card #77e backs it with a real controller action — a
+    /// permission constant only joins the write set once a real action exists (anti-drift). Being in
+    /// this set feeds it into <c>RolePermissionsMap.AllWritePermissions</c>, so only the Coordinator
+    /// (which grants every write permission) receives member-role management.
     /// </summary>
-    public static IReadOnlySet<string> All { get; } = new HashSet<string>();
+    public static IReadOnlySet<string> All { get; } = new HashSet<string> { ChangeMemberRole };
 }

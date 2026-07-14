@@ -1,3 +1,5 @@
+using SISLAB.SharedKernel.Authorization;
+
 namespace SISLAB.Modules.Identity.Contracts.Administration;
 
 /// <summary>
@@ -7,4 +9,5 @@ namespace SISLAB.Modules.Identity.Contracts.Administration;
 /// </summary>
 /// <param name="MembershipId">Identifier of the membership link (CompanyMembership).</param>
 /// <param name="UserId">Identifier of the Lumen user (by value).</param>
-public sealed record CompanyMemberDto(Guid MembershipId, Guid UserId);
+/// <param name="Role">The member's current business role in the company (drives role management in the UI).</param>
+public sealed record CompanyMemberDto(Guid MembershipId, Guid UserId, Role Role);

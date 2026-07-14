@@ -179,5 +179,7 @@ public sealed class TenantResolutionMiddlewareTests
         public Task AddAsync(Company company, CancellationToken ct = default) => Task.CompletedTask;
 
         public Task UpdateAsync(Company company, CancellationToken ct = default) => Task.CompletedTask;
+
+        public Task<int> SaveChangesAsync(CancellationToken ct = default) => Task.FromResult(0);
     }
 }
