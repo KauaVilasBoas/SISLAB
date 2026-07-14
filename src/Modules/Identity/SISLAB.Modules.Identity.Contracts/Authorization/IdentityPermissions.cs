@@ -1,3 +1,5 @@
+using SISLAB.SharedKernel.Authorization;
+
 namespace SISLAB.Modules.Identity.Contracts.Authorization;
 
 /// <summary>
@@ -24,12 +26,15 @@ public static class IdentityPermissions
     public static class CompanyMembers
     {
         /// <summary>List members of the active company (action <c>ListMembers</c>). Scope: active company.</summary>
-        public const string ListMembers = "CompanyMembers.ListMembers";
+        public const string ListMembers = CompanyMembersPermissions.ListMembers;
+
+        /// <summary>Check removal eligibility of a member (action <c>CheckRemovalEligibility</c>). Scope: active company.</summary>
+        public const string CheckRemovalEligibility = CompanyMembersPermissions.CheckRemovalEligibility;
 
         /// <summary>
-        /// Check removal eligibility of a member (action <c>CheckRemovalEligibility</c>) —
-        /// represents a management/write permission. Scope: active company.
+        /// Change a member's business role (action <c>ChangeMemberRole</c>) — a management/write
+        /// permission held only by the Coordinator. Scope: active company.
         /// </summary>
-        public const string CheckRemovalEligibility = "CompanyMembers.CheckRemovalEligibility";
+        public const string ChangeMemberRole = CompanyMembersPermissions.ChangeMemberRole;
     }
 }

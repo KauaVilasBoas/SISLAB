@@ -3,4 +3,10 @@
   <!-- Contracts: interface pública do módulo. Sem referência ao Domain interno. Sem EF/Dapper. -->
   <!-- Outros módulos referenciam APENAS este projeto, nunca o Domain. -->
 
+  <ItemGroup>
+    <!-- SharedKernel entrega o catálogo de permissões RBAC (Role, *Permissions, RolePermissionsMap)
+         que os contratos de autorização re-exportam. -->
+    <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.SharedKernel\SISLAB.SharedKernel.csproj" />
+  </ItemGroup>
+
 </Project>
