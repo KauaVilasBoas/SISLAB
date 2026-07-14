@@ -79,7 +79,8 @@ public sealed class PermissionCatalogDriftTests
             AuditPermissions.List,
             AuditPermissions.Export,
             CompanyMembersPermissions.ListMembers,
-            CompanyMembersPermissions.CheckRemovalEligibility
+            CompanyMembersPermissions.CheckRemovalEligibility,
+            .. ProfilesPermissions.Reads
         ];
 
         List<string> drifted = cataloguedReadCodes
