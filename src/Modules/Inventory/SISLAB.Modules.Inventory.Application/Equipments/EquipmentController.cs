@@ -1,3 +1,4 @@
+using Lumen.Authorization.AspNetCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -82,8 +83,10 @@ public sealed class EquipmentController : SislabControllerBase
 
     /// <summary>Registers a new equipment.</summary>
     [HttpPost]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult<Guid>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Register(
         [FromBody] RegisterEquipmentRequest body,
@@ -106,8 +109,10 @@ public sealed class EquipmentController : SislabControllerBase
 
     /// <summary>Updates an equipment's identification data.</summary>
     [HttpPut("{equipmentId:guid}")]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Update(
@@ -130,8 +135,10 @@ public sealed class EquipmentController : SislabControllerBase
 
     /// <summary>Moves the equipment to a new operational status.</summary>
     [HttpPost("{equipmentId:guid}/status")]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> ChangeStatus(
@@ -146,8 +153,10 @@ public sealed class EquipmentController : SislabControllerBase
 
     /// <summary>Defines or clears the equipment's calibration schedule.</summary>
     [HttpPut("{equipmentId:guid}/calibration")]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> DefineCalibration(
@@ -167,8 +176,10 @@ public sealed class EquipmentController : SislabControllerBase
 
     /// <summary>Logs a maintenance event against the equipment.</summary>
     [HttpPost("{equipmentId:guid}/maintenances")]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> RecordMaintenance(

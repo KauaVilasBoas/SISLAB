@@ -1,6 +1,7 @@
 using System.Data;
 using Dapper;
 using SISLAB.Infrastructure.Data;
+using SISLAB.Modules.Configuration.Contracts;
 using SISLAB.SharedKernel.Messaging;
 using SISLAB.SharedKernel.Multitenancy;
 using SISLAB.SharedKernel.Time;
@@ -23,9 +24,10 @@ namespace SISLAB.Modules.Inventory.Application.StockMovements.Queries;
 /// <para>
 /// <b>Derived expiry status.</b> Validity is stored with month granularity (<c>expiry_year</c> /
 /// <c>expiry_month</c>); the item expires on the last day of that month. The status is computed in SQL
-/// against the handler-supplied <c>@Today</c> and a 30-day warning window — a faithful mirror of
-/// <see cref="ExpiryStatusRule"/> — and is <see cref="ExpiryStatusView.NotApplicable"/> when the item
-/// has no validity. It is never persisted (decision recorded on the StorageLocation aggregate / card #29).
+/// against the handler-supplied <c>@Today</c> and the active tenant's configured warning window (card
+/// [E12] #76, read through <c>ILabConfiguration</c>) — a faithful mirror of <see cref="ExpiryStatusRule"/> —
+/// and is <see cref="ExpiryStatusView.NotApplicable"/> when the item has no validity. It is never persisted
+/// (decision recorded on the StorageLocation aggregate / card #29).
 /// </para>
 /// </remarks>
 public sealed record ListStockItemsQuery : PagedQuery<PagedResult<StockItemListItem>>
@@ -33,7 +35,7 @@ public sealed record ListStockItemsQuery : PagedQuery<PagedResult<StockItemListI
     /// <summary>Optional storage-location filter; null lists items of every location.</summary>
     public Guid? StorageLocationId { get; init; }
 
-    /// <summary>Optional category filter (the <c>StockItemCategory</c> enum name); null lists every category.</summary>
+    /// <summary>Optional category filter (by the per-tenant category name); null lists every category.</summary>
     public string? Category { get; init; }
 
     /// <summary>Optional free-text search matched (ILIKE) against name, lot code and brand.</summary>
@@ -162,15 +164,18 @@ internal sealed class ListStockItemsQueryHandler
 
     private readonly ITenantContext _tenantContext;
     private readonly IClock _clock;
+    private readonly ILabConfiguration _labConfiguration;
 
     public ListStockItemsQueryHandler(
         DbConnectionFactory connectionFactory,
         ITenantContext tenantContext,
-        IClock clock)
+        IClock clock,
+        ILabConfiguration labConfiguration)
         : base(connectionFactory)
     {
         _tenantContext = tenantContext;
         _clock = clock;
+        _labConfiguration = labConfiguration;
     }
 
     public async Task<PagedResult<StockItemListItem>> HandleAsync(
@@ -179,7 +184,11 @@ internal sealed class ListStockItemsQueryHandler
     {
         using IDbConnection connection = await OpenConnectionAsync();
 
-        StockItemsQueryParameters parameters = BuildParameters(request);
+        // The "expiring soon" window is the active tenant's configured policy (card [E12] #76), read through
+        // the Configuration boundary; it replaces the retired 30-day constant so each lab tunes its own window.
+        int warningWindowDays = await _labConfiguration.GetExpiryWarningWindowDaysAsync(cancellationToken);
+
+        StockItemsQueryParameters parameters = BuildParameters(request, warningWindowDays);
 
         IReadOnlyList<StockItemRow> rows = (await connection.QueryAsync<StockItemRow>(
             new CommandDefinition(Sql, parameters, cancellationToken: cancellationToken))).AsList();
@@ -196,16 +205,18 @@ internal sealed class ListStockItemsQueryHandler
     /// <summary>
     /// Materializes the Dapper parameter set for <paramref name="request"/>. The company id always comes
     /// from <see cref="ITenantContext"/> (never the request), blank filters collapse to null (an empty box
-    /// means "no filter"), and <c>@Today</c> is derived from the injected <see cref="IClock"/> — extracted
-    /// so the tenant guard and filter normalization are unit-testable without a live database.
+    /// means "no filter"), <c>@Today</c> is derived from the injected <see cref="IClock"/>, and
+    /// <paramref name="warningWindowDays"/> is the tenant's configured expiry window (resolved by the handler
+    /// through <see cref="ILabConfiguration"/>) — taken as an argument so the tenant guard and filter
+    /// normalization stay unit-testable without a live database or a Configuration round-trip.
     /// </summary>
-    internal StockItemsQueryParameters BuildParameters(ListStockItemsQuery request) => new(
+    internal StockItemsQueryParameters BuildParameters(ListStockItemsQuery request, int warningWindowDays) => new(
         CompanyId: _tenantContext.CompanyId,
         StorageLocationId: request.StorageLocationId,
         Category: NormalizeFilter(request.Category),
         Search: NormalizeFilter(request.Search),
         Today: DateOnly.FromDateTime(_clock.UtcNow),
-        WarningWindowDays: ExpiryStatusRule.DefaultWarningWindowDays,
+        WarningWindowDays: warningWindowDays,
         NotApplicable: (int)ExpiryStatusView.NotApplicable,
         Ok: (int)ExpiryStatusView.Ok,
         ExpiringSoon: (int)ExpiryStatusView.ExpiringSoon,

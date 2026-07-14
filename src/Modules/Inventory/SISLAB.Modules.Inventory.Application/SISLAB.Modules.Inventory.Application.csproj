@@ -20,11 +20,30 @@
     <ProjectReference Include="..\SISLAB.Modules.Inventory.Contracts\SISLAB.Modules.Inventory.Contracts.csproj" />
     <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Audit\SISLAB.Modules.Audit.Contracts\SISLAB.Modules.Audit.Contracts.csproj" />
+    <!--
+      Configuration.Contracts: the public ILabConfiguration port (card [E12] #76). The Inventory write-side
+      consumes it to validate a stock item's category by value (it exists and belongs to the tenant), and the
+      read-side to resolve the tenant's expiry warning window. Only the Contracts assembly is referenced —
+      never the Configuration Domain/Application/Infrastructure (module isolation, section 2).
+    -->
+    <ProjectReference Include="..\..\Configuration\SISLAB.Modules.Configuration.Contracts\SISLAB.Modules.Configuration.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- Exposes internal CQRS command handlers to the module's unit tests. -->
     <InternalsVisibleTo Include="SISLAB.Modules.Inventory.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Lumen's [RequirePermission] on the module's write endpoints (card [E12] #95). This is a conscious,
+      documented relaxation of section 8 ("consume Lumen only inside the Identity module"): the granular
+      authorization attribute must decorate the controller that hosts the action, and Lumen's discovery
+      scanner only sees ControllerActionDescriptors — a proxy attribute would be invisible to it. So the
+      business modules reference Lumen.Authorization.AspNetCore directly, pinned to the same 1.1.0 the
+      Identity module already uses. No alias, no wrapper.
+    -->
+    <PackageReference Include="Lumen.Authorization.AspNetCore" Version="1.1.0" />
   </ItemGroup>
 
 </Project>

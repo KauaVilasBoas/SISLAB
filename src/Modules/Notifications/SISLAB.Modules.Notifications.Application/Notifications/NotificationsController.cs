@@ -1,3 +1,4 @@
+using Lumen.Authorization.AspNetCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -63,8 +64,10 @@ public sealed class NotificationsController : SislabControllerBase
 
     /// <summary>Marks a notification as read, clearing it from the unread badge. Idempotent.</summary>
     [HttpPost("{notificationId:guid}/read")]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> MarkAsRead(Guid notificationId, CancellationToken ct)
     {

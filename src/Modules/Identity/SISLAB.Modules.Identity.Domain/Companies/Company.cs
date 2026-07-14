@@ -78,8 +78,12 @@ public sealed class Company : AggregateRoot<Guid>
     public void Deactivate() => IsActive = false;
 
     /// <summary>
-    /// Adds a Lumen user as a member of this company.
-    /// The userId is the user's identity in Lumen, referenced by value — no FK to Lumen's schema.
+    /// Adds a Lumen user as a member of this company. The userId is the user's identity in Lumen,
+    /// referenced by value — no FK to Lumen's schema.
+    ///
+    /// <para>Membership is a pure link: it grants no permissions by itself. What a member may do in
+    /// this company is defined entirely by the Lumen profiles assigned to the user (scoped to this
+    /// company) — SISLAB does not model roles.</para>
     /// </summary>
     /// <exception cref="InvalidOperationException">User is already a member of this company.</exception>
     public void AddMember(Guid lumenUserId)

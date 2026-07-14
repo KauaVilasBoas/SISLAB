@@ -102,7 +102,8 @@ public sealed class LafteDevSeeder
 
         Guid adminUserId = await EnsureAdminUserAsync(ct);
 
-        // Company WITH permission (allow): admin is a member AND receives Administrator profile scoped to LAFTE.
+        // Company WITH permission (allow): admin is a member AND receives the Lumen Administrator profile
+        // scoped to LAFTE. The profile (and its permissions) is a Lumen concept — SISLAB models no roles.
         Company lafte = await EnsureCompanyAsync(LafteCompanyId, LafteCompanyName, LafteTaxId, ct);
         await EnsureMembershipAsync(lafte, adminUserId, ct);
         await EnsureAdministratorProfileAsync(adminUserId, lafte.Id, ct);
