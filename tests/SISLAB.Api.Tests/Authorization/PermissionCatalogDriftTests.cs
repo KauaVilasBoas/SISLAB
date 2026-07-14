@@ -5,10 +5,26 @@ namespace SISLAB.Api.Tests.Authorization;
 /// <summary>
 /// Anti-drift tests for the permission catalogue (card [E12] #77b). They tie the <c>*Permissions</c>
 /// constants to the real controller actions so a renamed controller or action breaks the build until
-/// the catalogue is updated — keeping the constants a faithful mirror of the codes Lumen materializes.
+/// the catalogue is updated — keeping the constants a faithful mirror of the codes Lumen materializes
+/// and enforces via <c>[RequirePermission]</c>.
+///
+/// <para>The catalogue is the union of every module's write-permission set (<c>*Permissions.All</c>).
+/// SISLAB no longer maps roles to permissions — which members hold a code in a company is owned by
+/// Lumen (profiles assigned to the user, scoped to the company). These tests only guard that the
+/// catalogue of <i>codes</i> stays in sync with the real controller actions.</para>
 /// </summary>
 public sealed class PermissionCatalogDriftTests
 {
+    /// <summary>The union of every module's write-permission catalogue — the codes Lumen materializes.</summary>
+    private static readonly IReadOnlySet<string> AllWritePermissions = new HashSet<string>(
+    [
+        .. InventoryPermissions.All,
+        .. NotificationsPermissions.All,
+        .. ConfigurationPermissions.All,
+        .. AuditPermissions.All,
+        .. CompanyMembersPermissions.All
+    ]);
+
     /// <summary>
     /// Every write-permission code in the module catalogues must correspond to a real write action
     /// (POST/PUT/DELETE/PATCH) discovered on a controller. No orphaned constants.
@@ -20,7 +36,7 @@ public sealed class PermissionCatalogDriftTests
             .Select(a => a.PermissionCode)
             .ToHashSet();
 
-        List<string> orphaned = RolePermissionsMap.AllWritePermissions
+        List<string> orphaned = AllWritePermissions
             .Where(code => !realWriteCodes.Contains(code))
             .ToList();
 
@@ -31,19 +47,19 @@ public sealed class PermissionCatalogDriftTests
 
     /// <summary>
     /// Conversely, every real write action's code must be present in the catalogue — so a new write
-    /// endpoint cannot silently escape the Role→permissions map (and thus the Coordinator profile).
+    /// endpoint cannot silently escape the permission catalogue Lumen enforces.
     /// </summary>
     [Fact]
     public void EveryRealWriteAction_IsPresentIn_TheCatalogue()
     {
         List<string> uncatalogued = ControllerActionCatalog.Writes
             .Select(a => a.PermissionCode)
-            .Where(code => !RolePermissionsMap.AllWritePermissions.Contains(code))
+            .Where(code => !AllWritePermissions.Contains(code))
             .Distinct()
             .ToList();
 
         Assert.True(uncatalogued.Count == 0,
-            "Write actions missing a catalogue constant / map entry: " +
+            "Write actions missing a catalogue constant: " +
             string.Join(", ", uncatalogued));
     }
 

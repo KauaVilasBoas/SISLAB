@@ -170,15 +170,6 @@ public static class IdentityModuleServiceExtensions
         //     Lumen registers its no-op via TryAdd; this AddScoped wins as the last registration.
         services.AddScoped<Lumen.Authorization.Contracts.ITenantScopeAccessor, SislabTenantScopeAccessor>();
 
-        // 11.1 Role→Lumen-Profile translation (card [E12] #77d). Reconciles a member's business Role
-        //      into the company-scoped Lumen profile assignment that makes [RequirePermission] grant/deny
-        //      access. RoleProfileProvisioner ensures one profile per role (permissions from the map);
-        //      LumenMemberAuthorizationProfileService assigns it scoped to the active company, idempotently.
-        //      Registered after all Lumen wiring so the Lumen authorization repositories it depends on resolve.
-        services.AddScoped<Authorization.RoleProfileProvisioner>();
-        services.AddScoped<Domain.Companies.IMemberAuthorizationProfileService,
-            Authorization.LumenMemberAuthorizationProfileService>();
-
         // 12. Lumen.Modularity in-process event bus.
         //     Lumen Identity's CQRS handlers publish integration events via IEventBus;
         //     without this registration the container cannot build those handlers.

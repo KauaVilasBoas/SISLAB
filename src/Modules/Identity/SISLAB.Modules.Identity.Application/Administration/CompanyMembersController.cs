@@ -90,33 +90,4 @@ public sealed class CompanyMembersController : SislabControllerBase
         return Ok(new ApiResult<MemberRemovalEligibilityDto>(
             true, "Member removal eligibility evaluated.", result.Eligibility));
     }
-
-    /// <summary>
-    /// Changes the business role of a member of the active company (card [E12] #77e).
-    ///
-    /// <para>A management/write action: gated by <c>CompanyMembers.ChangeMemberRole</c>, a permission only
-    /// the Coordinator holds (via the Role→permissions map). The target user comes from the route and the
-    /// company from the httpOnly cookie (<see cref="SislabControllerBase.GetCompanyId"/>) — never from the
-    /// body, which carries only the new role. The command drives <c>Company.AssignMemberRole</c> (which
-    /// enforces the ≥1-Coordinator invariant, surfaced as 422 by the middleware) and reconciles the member's
-    /// company-scoped Lumen profile so enforcement reflects the new role immediately.</para>
-    /// </summary>
-    [HttpPut("{userId:guid}/role", Name = "ChangeMemberRole")]
-    [ActionName("ChangeMemberRole")]
-    [RequirePermission]
-    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> ChangeMemberRole(
-        Guid userId,
-        [FromBody] ChangeMemberRoleRequest body,
-        CancellationToken ct)
-    {
-        await _mediator.SendAsync(
-            new ChangeMemberRoleCommand(GetCompanyId(), userId, body.Role), ct);
-
-        return Ok(new ApiResult(true, "Member role updated."));
-    }
 }
