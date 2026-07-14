@@ -29,6 +29,7 @@ namespace SISLAB.Modules.Identity.Infrastructure.DependencyInjection;
 /// 7. Lumen Authorization core (granular, no umbrella — see note below)
 /// 8. Lumen Authorization PostgreSQL migrations hosted service (BEFORE discovery)
 /// 9. Lumen Authorization enforcement + discovery
+/// 9.1 pt-BR permission display-name seeder (hosted service AFTER discovery — last write wins)
 /// 10. Tenant context + scope accessor (overrides Lumen's no-op)
 /// 11. Dev seed (opt-in, registered last so it runs after all migration hosted services)
 /// </summary>
@@ -151,6 +152,15 @@ public static class IdentityModuleServiceExtensions
         //    permission discovery/reconciliation. Run after migrations.
         services.AddLumenAuthorizationEnforcement();
         services.AddLumenAuthorizationDiscovery();
+
+        // 9.1 pt-BR permission display-name seeder — hosted service registered IMMEDIATELY AFTER discovery.
+        //      Hosted services run sequentially in registration order, so this executes once discovery has
+        //      already materialized/normalized every "Lumen"."Permission" row. It is therefore the LAST write
+        //      to DisplayName and wins over discovery, leaving the Portuguese label in the source of truth (the
+        //      database). This is why it is a boot-time seeder, NOT a migration: a migration's seeded value would
+        //      be overwritten by the next discovery pass. The UPDATE is idempotent (keyed by "Code") and
+        //      self-healing, and its failure is swallowed inside the service so it never blocks boot.
+        services.AddHostedService<Authorization.PermissionDisplayNameSeeder>();
 
         // 10. SISLAB tenant context (Scoped — one instance per request).
         //     The concrete TenantContext is the REQUEST tenant source: TenantResolutionMiddleware resolves
