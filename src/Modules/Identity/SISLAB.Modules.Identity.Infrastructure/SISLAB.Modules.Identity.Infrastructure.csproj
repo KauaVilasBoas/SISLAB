@@ -37,8 +37,14 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.15" />
 
     <!-- Lumen Identity: AuthN, endpoints, migrations Postgres -->
-    <PackageReference Include="Lumen.Authorization" Version="1.1.0" />
-    <PackageReference Include="Lumen.Authorization.AspNetCore" Version="1.1.0" />
+    <PackageReference Include="Lumen.Authorization" Version="2.0.0" />
+    <PackageReference Include="Lumen.Authorization.AspNetCore" Version="2.0.0" />
+    <!--
+      Migrations assembly stays at 1.1.1: there is no 2.0.0 of this package. It still ships the EF
+      migration classes for the "Lumen" schema (referenced by name via MigrationsAssembly) that the
+      2.0.0 umbrella startup service applies. The buggy SeedLumen* extensions it also exposes are NOT
+      used — SISLAB owns the catalog and seeds it with its own idempotent SQL (see LumenPermissionCatalogSeeder).
+    -->
     <PackageReference Include="Lumen.Authorization.Migrations.PostgreSQL" Version="1.1.1" />
     <PackageReference Include="Lumen.Identity" Version="1.0.0" />
     <PackageReference Include="Lumen.Identity.AspNetCore" Version="1.0.0" />

@@ -1,6 +1,5 @@
 using Lumen.Authorization;
 using Lumen.Authorization.AspNetCore;
-using Lumen.Authorization.Migrations.PostgreSQL;
 using Lumen.Identity.AspNetCore;
 using Lumen.Identity.Migrations.PostgreSQL;
 using Lumen.Modularity;
@@ -26,12 +25,10 @@ namespace SISLAB.Modules.Identity.Infrastructure.DependencyInjection;
 /// 4. Identity schema migrations hosted service
 /// 5. Lumen Identity (AddLumenIdentity — AuthN, JWT Bearer, Lumen's own DbContext + repos)
 /// 6. Lumen Identity PostgreSQL migrations hosted service
-/// 7. Lumen Authorization core (granular, no umbrella — see note below)
-/// 8. Lumen Authorization PostgreSQL migrations hosted service (BEFORE discovery)
-/// 9. Lumen Authorization enforcement + discovery
-/// 9.1 pt-BR permission display-name seeder (hosted service AFTER discovery — last write wins)
-/// 10. Tenant context + scope accessor (overrides Lumen's no-op)
-/// 11. Dev seed (opt-in, registered last so it runs after all migration hosted services)
+/// 7. Lumen Authorization (umbrella AddLumenAuthorization — v2.0.0, CatalogMode=Validate)
+/// 8. SISLAB permission-catalog seeder (hosted service AFTER Lumen startup — SISLAB owns the catalog)
+/// 9. Tenant context + scope accessor (overrides Lumen's no-op)
+/// 10. Dev seed (opt-in, registered last so it runs after all migration hosted services)
 /// </summary>
 public static class IdentityModuleServiceExtensions
 {
@@ -126,43 +123,42 @@ public static class IdentityModuleServiceExtensions
         // 6. Lumen Identity — PostgreSQL migrations hosted service
         services.AddLumenIdentityPostgresMigrations();
 
-        // 7. Lumen Authorization — CORE ONLY (NOT the AspNetCore umbrella).
-        //    The umbrella's AddLumenAuthorization internally calls AddLumenAuthorizationMigrations()
-        //    which registers SQL Server migrations unconditionally → crash on PostgreSQL.
-        //    SISLAB composes granularly as documented. Provider=PostgreSQL is required so the
-        //    core selects the correct migrations assembly. ApplyMigrationsOnStartup=true is
-        //    required: the migrations hosted service checks this flag and skips when false,
-        //    leaving the "Lumen" schema uncreated (→ 42P01 on discovery).
-        LumenAuthorizationServiceCollectionExtensions.AddLumenAuthorization(
+        // 7. Lumen Authorization — v2.0.0 umbrella (AddLumenAuthorization on the AspNetCore package).
+        //    v2 inverted catalog ownership: the umbrella is now provider-aware and the unified
+        //    LumenAuthorizationStartupService applies the PostgreSQL "Lumen"-schema migrations itself
+        //    (assembly selected by Provider=PostgreSQL) — no separate AddLumenAuthorizationPostgresMigrations()
+        //    and no granular AddLumenAuthorizationEnforcement()/Discovery() calls anymore.
+        //
+        //    CatalogMode defaults to Validate: on boot Lumen scans every [RequirePermission] code and only
+        //    LOGS A WARNING for codes missing from "Lumen"."Permission" — it never writes the catalog. SISLAB
+        //    is the owner and seeds the catalog itself (step 8). FailFastOnMissingPermission stays false so a
+        //    seed gap degrades to a warning rather than aborting boot; flip it on in staging to catch drift.
+        //    ApplyMigrationsOnStartup=true so the startup service creates/updates the "Lumen" schema.
+        //    Explicitly qualified to the AspNetCore umbrella: both it and the core package expose an
+        //    AddLumenAuthorization(IServiceCollection, string, Action<...>) with the same signature, so an
+        //    unqualified call is ambiguous. The AspNetCore one is the umbrella (core + enforcement + startup).
+        LumenAuthorizationAspNetCoreServiceCollectionExtensions.AddLumenAuthorization(
             services,
             connectionString,
             options =>
             {
                 options.Provider = DatabaseProvider.PostgreSQL;
                 options.ApplyMigrationsOnStartup = true;
+                // CatalogMode = Validate (default) — SISLAB owns the catalog via LumenPermissionCatalogSeeder.
             });
 
-        // 8. Lumen Authorization — PostgreSQL migrations hosted service.
-        //    CRITICAL: registered BEFORE discovery. Hosted services run in registration order;
-        //    discovery queries the "Lumen"."Permission" table, which only exists after migrations.
-        //    Reversing the order causes 42P01 ("relation does not exist") on boot.
-        services.AddLumenAuthorizationPostgresMigrations();
+        // 8. SISLAB permission-catalog seeder — hosted service registered IMMEDIATELY AFTER the Lumen umbrella.
+        //    Hosted services run sequentially in registration order, so this executes once
+        //    LumenAuthorizationStartupService has applied the "Lumen"-schema migrations (the "Permission" /
+        //    "PermissionGroup" tables exist). Since v2 no longer syncs the catalog, SISLAB inserts every group
+        //    and every [RequirePermission] code with idempotent raw SQL (INSERT ... ON CONFLICT DO NOTHING),
+        //    including the pt-BR DisplayName. This is a boot-time seeder rather than an EF migration on
+        //    IdentityDbContext because those two DbContexts own different schemas/histories and IdentityDbContext's
+        //    migration hosted service (step 4) runs BEFORE Lumen creates its schema — a migration there would hit
+        //    42P01. Failure is swallowed so a seed hiccup never blocks boot (Validate would only warn anyway).
+        services.AddHostedService<Authorization.LumenPermissionCatalogSeeder>();
 
-        // 9. Enforcement ([RequirePermission] + IUserIdAccessor) and
-        //    permission discovery/reconciliation. Run after migrations.
-        services.AddLumenAuthorizationEnforcement();
-        services.AddLumenAuthorizationDiscovery();
-
-        // 9.1 pt-BR permission display-name seeder — hosted service registered IMMEDIATELY AFTER discovery.
-        //      Hosted services run sequentially in registration order, so this executes once discovery has
-        //      already materialized/normalized every "Lumen"."Permission" row. It is therefore the LAST write
-        //      to DisplayName and wins over discovery, leaving the Portuguese label in the source of truth (the
-        //      database). This is why it is a boot-time seeder, NOT a migration: a migration's seeded value would
-        //      be overwritten by the next discovery pass. The UPDATE is idempotent (keyed by "Code") and
-        //      self-healing, and its failure is swallowed inside the service so it never blocks boot.
-        services.AddHostedService<Authorization.PermissionDisplayNameSeeder>();
-
-        // 10. SISLAB tenant context (Scoped — one instance per request).
+        // 9. SISLAB tenant context (Scoped — one instance per request).
         //     The concrete TenantContext is the REQUEST tenant source: TenantResolutionMiddleware resolves
         //     it directly and populates it from the httpOnly cookie. Consumers depend on the abstraction
         //     ITenantContext, which is composed as OverridableTenantContext — a Decorator that reports the
@@ -176,11 +172,11 @@ public static class IdentityModuleServiceExtensions
             sp.GetRequiredService<TenantContext>(),
             sp.GetRequiredService<ITenantContextOverride>()));
 
-        // 11. Tenant bridge: overrides Lumen's no-op ITenantScopeAccessor with SISLAB's impl.
+        // 10. Tenant bridge: overrides Lumen's no-op ITenantScopeAccessor with SISLAB's impl.
         //     Lumen registers its no-op via TryAdd; this AddScoped wins as the last registration.
         services.AddScoped<Lumen.Authorization.Contracts.ITenantScopeAccessor, SislabTenantScopeAccessor>();
 
-        // 11.1 Authorization gateway (card [E12] #101): the single anti-corruption adapter that dispatches
+        // 10.1 Authorization gateway (card [E12] #101): the single anti-corruption adapter that dispatches
         //      Lumen's authorization use cases through its MediatR pipeline and maps the results to SISLAB
         //      Contracts DTOs. Registered AFTER AddLumenAuthorization so MediatR's IMediator (which the
         //      gateway depends on) is available. Every profile-management handler depends on this port,
@@ -188,13 +184,13 @@ public static class IdentityModuleServiceExtensions
         services.AddScoped<Contracts.Authorization.ILumenAuthorizationGateway,
             Authorization.LumenAuthorizationGateway>();
 
-        // 12. Lumen.Modularity in-process event bus.
+        // 11. Lumen.Modularity in-process event bus.
         //     Lumen Identity's CQRS handlers publish integration events via IEventBus;
         //     without this registration the container cannot build those handlers.
         //     SISLAB does not yet consume Lumen events — registered with no handler assemblies.
         services.AddEventBus();
 
-        // 13. Dev seed (LAFTE company + admin user), behind the "Seed:Enabled" flag.
+        // 12. Dev seed (LAFTE company + admin user), behind the "Seed:Enabled" flag.
         //     Registered LAST so DevSeedHostedService runs after all migration hosted services
         //     (SISLAB + Lumen), ensuring schemas and Lumen's system seed (Administrator/User
         //     profiles) already exist when the SISLAB seed executes.
