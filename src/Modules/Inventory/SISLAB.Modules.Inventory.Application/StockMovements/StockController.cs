@@ -1,3 +1,4 @@
+using Lumen.Authorization.AspNetCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -238,8 +239,10 @@ public sealed class StockController : SislabControllerBase
     /// storage location — is a 404. Returns the new item id.
     /// </summary>
     [HttpPost("stock-items")]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult<Guid>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> RegisterStockItem(
@@ -267,8 +270,10 @@ public sealed class StockController : SislabControllerBase
 
     /// <summary>Registers an incoming stock entry (receipt) on an existing item.</summary>
     [HttpPost("stock-items/{stockItemId:guid}/entries")]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult<Guid>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> RegisterEntry(
@@ -293,8 +298,10 @@ public sealed class StockController : SislabControllerBase
 
     /// <summary>Registers a consumption, decreasing the item balance.</summary>
     [HttpPost("stock-items/{stockItemId:guid}/consumptions")]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> RegisterConsumption(
@@ -316,8 +323,10 @@ public sealed class StockController : SislabControllerBase
 
     /// <summary>Transfers the item to another storage location.</summary>
     [HttpPost("stock-items/{stockItemId:guid}/transfers")]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Transfer(
@@ -338,8 +347,10 @@ public sealed class StockController : SislabControllerBase
 
     /// <summary>Discards a quantity of stock (auditable, especially for controlled items).</summary>
     [HttpPost("stock-items/{stockItemId:guid}/disposals")]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Dispose(
@@ -364,8 +375,10 @@ public sealed class StockController : SislabControllerBase
     /// (counted minus system balance). Does not change the balance.
     /// </summary>
     [HttpPost("stock-items/{stockItemId:guid}/counts")]
+    [RequirePermission]
     [ProducesResponseType(typeof(ApiResult<decimal>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> RegisterCount(
