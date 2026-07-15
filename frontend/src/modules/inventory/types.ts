@@ -116,3 +116,30 @@ export interface DisposeStockRequest {
   reason: string;
   occurredOn: string | null;
 }
+
+/**
+ * Movement discriminator mirroring the backend StockMovementType — the four kinds of movement the
+ * ledger records (entry, consumption, transfer, disposal).
+ */
+export type StockMovementType = 'Received' | 'Consumed' | 'Transferred' | 'Disposed';
+
+/** A movement row of a single item's ledger (GET /stock-items/{id}/movements). */
+export interface StockMovementListItem {
+  id: string;
+  stockItemId: string;
+  type: StockMovementType;
+  quantity: number;
+  unit: string;
+  /** Business date the movement occurred on, ISO "YYYY-MM-DD". */
+  occurredAt: string;
+  notes: string | null;
+  /** Operator (responsável); null while the Inventory module has no user identity. */
+  performedBy: string | null;
+}
+
+/** Filters applied to a stock item's movement ledger; empty values mean "no filter". */
+export interface StockMovementsFilter {
+  type?: StockMovementType;
+  from?: string;
+  to?: string;
+}
