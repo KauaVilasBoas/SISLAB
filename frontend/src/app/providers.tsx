@@ -1,10 +1,15 @@
 import { useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ApiError } from '@/shared/types/api';
+import { AuthProvider } from '@/modules/auth/AuthProvider';
 
 /**
  * App-wide providers. Add new context providers (theme, auth, toaster) here so
  * main.tsx stays a thin bootstrap.
+ *
+ * AuthProvider sits INSIDE QueryClientProvider (it uses useQueryClient to reset the
+ * session cache on login/logout/company-switch) and OUTSIDE the router, so the whole
+ * route tree — public /login included — can read the auth context.
  */
 export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -26,6 +31,8 @@ export function AppProviders({ children }: { children: ReactNode }) {
   );
 
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>{children}</AuthProvider>
+    </QueryClientProvider>
   );
 }

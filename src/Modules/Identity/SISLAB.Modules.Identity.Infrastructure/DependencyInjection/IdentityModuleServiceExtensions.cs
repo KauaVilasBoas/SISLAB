@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SISLAB.Infrastructure.Messaging;
 using SISLAB.Infrastructure.Messaging.Behaviors;
+using SISLAB.Modules.Identity.Infrastructure.Authentication;
 using SISLAB.Infrastructure.Multitenancy;
 using SISLAB.Infrastructure.Outbox;
 using SISLAB.Infrastructure.Persistence;
@@ -141,6 +142,14 @@ public static class IdentityModuleServiceExtensions
         {
             options.Provider = DatabaseProvider.PostgreSQL;
         });
+
+        // 5.0 Cookie session bridge (card [E7] #44). The SPA authenticates over httpOnly cookies
+        //     (product-owner decision — never localStorage/Bearer in the browser). This teaches the
+        //     JWT Bearer scheme that AddLumenIdentity just registered to read the access token from the
+        //     sislab_access_token cookie when no Authorization header is present, so UseAuthentication
+        //     authenticates the browser from the cookie with no pipeline change. Registered right after
+        //     AddLumenIdentity so it post-configures the same named JwtBearerOptions.
+        services.AddJwtBearerCookieExtraction();
 
         // 5.1 HaveIBeenPwned typed client override (Lumen.Identity 1.0.0 bug workaround).
         //     Lumen registers AddHttpClient<IPwnedPasswordsClient, PwnedPasswordsClient>
