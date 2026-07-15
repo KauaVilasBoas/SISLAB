@@ -6,10 +6,12 @@ import { EquipmentPage } from '@/modules/inventory/pages/EquipmentPage';
 import { PartnersPage } from '@/modules/inventory/pages/PartnersPage';
 import { ControlledPage } from '@/modules/controlled/pages/ControlledPage';
 import { MembersPage } from '@/modules/identity/pages/MembersPage';
+import { ProfileEditPage } from '@/modules/identity/pages/ProfileEditPage';
 import { ConfigurationPage } from '@/modules/configuration/pages/ConfigurationPage';
 import { AuditPage } from '@/modules/audit/pages/AuditPage';
 import { NotificationsPage } from '@/modules/notifications/pages/NotificationsPage';
 import { LoginPage } from '@/modules/auth/pages/LoginPage';
+import { InvitationAcceptPage } from '@/modules/identity/pages/InvitationAcceptPage';
 import { RequireAuth } from '@/modules/auth/components/RequireAuth';
 
 /**
@@ -21,6 +23,10 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/invite/:token',
+    element: <InvitationAcceptPage />,
   },
   {
     path: '/',
@@ -36,6 +42,7 @@ export const router = createBrowserRouter([
       { path: 'equipment', element: <EquipmentPage /> },
       { path: 'partners', element: <PartnersPage /> },
       { path: 'members', element: <MembersPage /> },
+      { path: 'members/profiles/:profileId', element: <ProfileEditPage /> },
       { path: 'configuration', element: <ConfigurationPage /> },
       { path: 'audit', element: <AuditPage /> },
       { path: 'notifications', element: <NotificationsPage /> },
