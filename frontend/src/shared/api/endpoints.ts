@@ -72,6 +72,8 @@ export const Endpoints = {
       disposals: (stockItemId: string) =>
         `/api/inventory/stock-items/${stockItemId}/disposals`,
       counts: (stockItemId: string) => `/api/inventory/stock-items/${stockItemId}/counts`,
+      movements: (stockItemId: string) =>
+        `/api/inventory/stock-items/${stockItemId}/movements`,
     },
     storageLocations: {
       summary: '/api/inventory/storage-locations/summary',

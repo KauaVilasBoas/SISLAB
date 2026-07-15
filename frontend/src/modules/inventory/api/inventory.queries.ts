@@ -11,6 +11,8 @@ import type {
   RegisterStockItemRequest,
   StockItemFilters,
   StockItemListItem,
+  StockMovementListItem,
+  StockMovementsFilter,
   TransferStockRequest,
   UnitOption,
 } from '@/modules/inventory/types';
@@ -25,6 +27,8 @@ export const inventoryKeys = {
   stockItems: () => [...inventoryKeys.all, 'stock-items'] as const,
   stockItemList: (filters: StockItemFilters, page: number) =>
     [...inventoryKeys.stockItems(), 'list', filters, page] as const,
+  movements: (stockItemId: string, filters: StockMovementsFilter, page: number) =>
+    [...inventoryKeys.stockItems(), 'movements', stockItemId, filters, page] as const,
   locations: () => [...inventoryKeys.all, 'locations'] as const,
   categories: () => [...inventoryKeys.all, 'categories'] as const,
   units: () => [...inventoryKeys.all, 'units'] as const,
@@ -48,6 +52,33 @@ export function useStockItems(filters: StockItemFilters, page: number) {
         page,
         pageSize: PAGE_SIZE,
       }),
+    staleTime: 30_000,
+  });
+}
+
+/**
+ * Paginated, filterable movement history (ledger) of a single stock item. Disabled until an item is
+ * selected, so the Movements tab does not fetch with an empty id.
+ */
+export function useStockMovements(
+  stockItemId: string | undefined,
+  filters: StockMovementsFilter,
+  page: number,
+) {
+  return useQuery({
+    queryKey: inventoryKeys.movements(stockItemId ?? '', filters, page),
+    queryFn: () =>
+      api.get<PagedResult<StockMovementListItem>>(
+        Endpoints.inventory.stockItems.movements(stockItemId as string),
+        {
+          type: filters.type || undefined,
+          from: filters.from || undefined,
+          to: filters.to || undefined,
+          page,
+          pageSize: PAGE_SIZE,
+        },
+      ),
+    enabled: Boolean(stockItemId),
     staleTime: 30_000,
   });
 }
