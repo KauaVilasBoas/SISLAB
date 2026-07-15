@@ -12,21 +12,16 @@ namespace SISLAB.Modules.Identity.Application.Administration;
 /// <summary>
 /// Admin endpoints for managing members of the <b>active company</b>.
 ///
-/// <para>This is an <b>MVC controller</b> (not a Minimal API) for a precise architectural reason:
-/// Lumen's permission discovery scanner (<c>PermissionDiscoveryScanner</c>) only iterates
-/// <c>ControllerActionDescriptor</c>s — Minimal API endpoints are invisible to it. Decorating
-/// actions with <see cref="RequirePermissionAttribute"/> causes Lumen to materialize the
-/// permission codes and reconcile them into the <c>Administrator</c> profile on startup.</para>
+/// <para>This is an <b>MVC controller</b> (not a Minimal API) because Lumen's authorization filter
+/// enforces <see cref="RequirePermissionAttribute"/> on <c>ControllerActionDescriptor</c>s — Minimal
+/// API endpoints are invisible to it.</para>
 ///
-/// <para><b>Permission code convention (enforced by Lumen 1.1.0):</b> the persisted permission is
-/// always <c>&lt;Controller&gt;.&lt;Action&gt;</c>. <c>Permission.Create</c> recomputes the code
-/// from the controller name (without the <c>Controller</c> suffix) and the method name, IGNORING
-/// any explicit string passed to the attribute. Therefore actions are decorated with
-/// <c>[RequirePermission]</c> WITHOUT an explicit code: discovery (which writes
-/// <c>Controller.Action</c>) and enforcement (which, with a null attribute code, derives
-/// <c>Controller.Action</c> from the descriptor) agree. Method names (<c>ListMembers</c>,
-/// <c>CheckRemovalEligibility</c>) are the single source of truth for codes; see
-/// <c>SISLAB.Modules.Identity.Contracts.Authorization.IdentityPermissions</c>.</para>
+/// <para><b>Permission code convention (enforced by Lumen):</b> the enforced permission is always
+/// <c>&lt;Controller&gt;.&lt;Action&gt;</c>. With a null attribute code Lumen derives
+/// <c>Controller.Action</c> from the descriptor (controller name without the <c>Controller</c> suffix,
+/// plus the action name), so actions are decorated with <c>[RequirePermission]</c> WITHOUT an explicit
+/// code. Method names (<c>ListMembers</c>, <c>CheckRemovalEligibility</c>) are the single source of
+/// truth for the codes; the matching permission rows are seeded by the <c>SISLAB.Migrations</c> project.</para>
 ///
 /// <para><b>Tenant-scoped:</b> all actions operate on the active company (from the httpOnly cookie),
 /// read from <see cref="SislabControllerBase.GetCompanyId"/> — never from the request body. The

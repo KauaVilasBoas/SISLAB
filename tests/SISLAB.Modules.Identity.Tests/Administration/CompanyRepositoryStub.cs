@@ -16,6 +16,9 @@ internal sealed class CompanyRepositoryStub : ICompanyRepository
     public Task<Company?> FindByIdAsync(Guid id, CancellationToken ct = default)
         => Task.FromResult(_company is not null && _company.Id == id ? _company : null);
 
+    public Task<bool> ExistsByNameAsync(string name, CancellationToken ct = default)
+        => throw new NotSupportedException();
+
     public Task<IReadOnlyList<Company>> ListActiveAsync(CancellationToken ct = default)
         => throw new NotSupportedException();
 

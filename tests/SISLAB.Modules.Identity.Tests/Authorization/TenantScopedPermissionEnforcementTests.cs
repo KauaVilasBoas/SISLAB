@@ -2,7 +2,6 @@ using System.Security.Claims;
 using Lumen.Authorization.AspNetCore;
 using Lumen.Authorization.Contracts;
 using Microsoft.AspNetCore.Authorization;
-using SISLAB.Modules.Identity.Contracts.Authorization;
 using SISLAB.Modules.Identity.Infrastructure.Multitenancy;
 
 namespace SISLAB.Modules.Identity.Tests.Authorization;
@@ -26,12 +25,20 @@ public sealed class TenantScopedPermissionEnforcementTests
     private static readonly Guid LafteCompanyId = new("10000000-0000-0000-0000-00000000000a");
     private static readonly Guid AcmeCompanyId = new("10000000-0000-0000-0000-00000000000b");
 
+    // Representative permission codes gated on CompanyMembersController. Since Lumen.Authorization 3.0.0
+    // the permission catalogue lives ONLY in the database (seeded by SISLAB.Migrations), so this test —
+    // which exercises the tenant-scoped enforcement pipeline, not the catalogue — pins the codes locally.
+    // They follow Lumen's <Controller>.<Action> convention; WriteEndpointPermissionTests guards the
+    // controllers stay [RequirePermission]-decorated.
+    private const string ListMembersPermission = "CompanyMembers.ListMembers";
+    private const string CheckRemovalEligibilityPermission = "CompanyMembers.CheckRemovalEligibility";
+
     [Fact]
     public async Task Enforcement_ComLafteAtiva_ConcedeAcesso()
     {
         AuthorizationHandlerContext context = await EvaluateAsync(
             activeCompanyId: LafteCompanyId,
-            permissionCode: IdentityPermissions.CompanyMembers.ListMembers);
+            permissionCode: ListMembersPermission);
 
         Assert.True(context.HasSucceeded);
         Assert.False(context.HasFailed);
@@ -42,7 +49,7 @@ public sealed class TenantScopedPermissionEnforcementTests
     {
         AuthorizationHandlerContext context = await EvaluateAsync(
             activeCompanyId: AcmeCompanyId,
-            permissionCode: IdentityPermissions.CompanyMembers.ListMembers);
+            permissionCode: ListMembersPermission);
 
         // Mesmo usuário, mesma permissão — porém a permissão Administrator está escopada à LAFTE.
         // Com ACME ativa, o requisito não é satisfeito → o pipeline resultaria em 403.
@@ -53,9 +60,9 @@ public sealed class TenantScopedPermissionEnforcementTests
     public async Task Enforcement_PermissaoDeGestao_SegueOMesmoEscopo()
     {
         AuthorizationHandlerContext allow = await EvaluateAsync(
-            LafteCompanyId, IdentityPermissions.CompanyMembers.CheckRemovalEligibility);
+            LafteCompanyId, CheckRemovalEligibilityPermission);
         AuthorizationHandlerContext deny = await EvaluateAsync(
-            AcmeCompanyId, IdentityPermissions.CompanyMembers.CheckRemovalEligibility);
+            AcmeCompanyId, CheckRemovalEligibilityPermission);
 
         Assert.True(allow.HasSucceeded);
         Assert.False(deny.HasSucceeded);
@@ -118,7 +125,7 @@ public sealed class TenantScopedPermissionEnforcementTests
             Guid userId, Guid? scopeId = null, CancellationToken cancellationToken = default)
         {
             HashSet<string> permissions = userId == _userId && scopeId == _grantedScopeId
-                ? [IdentityPermissions.CompanyMembers.ListMembers, IdentityPermissions.CompanyMembers.CheckRemovalEligibility]
+                ? [ListMembersPermission, CheckRemovalEligibilityPermission]
                 : [];
             return Task.FromResult(permissions);
         }

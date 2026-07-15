@@ -48,6 +48,9 @@ public sealed class ListAllCompanyIdsQueryHandlerTests
         public Task<Company?> FindByIdAsync(Guid id, CancellationToken ct = default)
             => throw new NotSupportedException();
 
+        public Task<bool> ExistsByNameAsync(string name, CancellationToken ct = default)
+            => throw new NotSupportedException();
+
         public Task<IReadOnlyList<Company>> ListForMemberAsync(Guid lumenUserId, CancellationToken ct = default)
             => throw new NotSupportedException();
 

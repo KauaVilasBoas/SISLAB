@@ -1,15 +1,27 @@
 using Lumen.Authorization;
 using Lumen.Authorization.AspNetCore;
-using Lumen.Authorization.Migrations.PostgreSQL;
 using Lumen.Identity.AspNetCore;
 using Lumen.Identity.Migrations.PostgreSQL;
 using Lumen.Modularity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SISLAB.Infrastructure.Messaging;
+using SISLAB.Infrastructure.Messaging.Behaviors;
 using SISLAB.Infrastructure.Multitenancy;
+using SISLAB.Infrastructure.Outbox;
+using SISLAB.Infrastructure.Persistence;
+using SISLAB.Modules.Identity.Contracts.Events;
+using SISLAB.Modules.Identity.Contracts.Invitations;
+using SISLAB.Modules.Identity.Contracts.Onboarding;
 using SISLAB.Modules.Identity.Domain.Companies;
+using SISLAB.Modules.Identity.Domain.Invitations;
+using SISLAB.Modules.Identity.Infrastructure.Invitations;
+using SISLAB.Modules.Identity.Infrastructure.Messaging;
 using SISLAB.Modules.Identity.Infrastructure.Multitenancy;
+using SISLAB.Modules.Identity.Infrastructure.Notifications;
+using SISLAB.Modules.Identity.Infrastructure.Onboarding;
+using SISLAB.SharedKernel.Messaging;
 using SISLAB.SharedKernel.Multitenancy;
 using SISLAB.Modules.Identity.Infrastructure.Persistence;
 using SISLAB.Modules.Identity.Infrastructure.Persistence.Repositories;
@@ -22,15 +34,18 @@ namespace SISLAB.Modules.Identity.Infrastructure.DependencyInjection;
 /// Registration order:
 /// 1. EF DbContext (SISLAB — Company/CompanyMembership, schema "tenancy")
 /// 2. Domain repositories
-/// 3. MVC controllers (required for Lumen's permission discovery scanner)
+/// 3. MVC controllers (co-located with their CQRS handlers in the Application assembly)
 /// 4. Identity schema migrations hosted service
 /// 5. Lumen Identity (AddLumenIdentity — AuthN, JWT Bearer, Lumen's own DbContext + repos)
 /// 6. Lumen Identity PostgreSQL migrations hosted service
-/// 7. Lumen Authorization core (granular, no umbrella — see note below)
-/// 8. Lumen Authorization PostgreSQL migrations hosted service (BEFORE discovery)
-/// 9. Lumen Authorization enforcement + discovery
-/// 10. Tenant context + scope accessor (overrides Lumen's no-op)
-/// 11. Dev seed (opt-in, registered last so it runs after all migration hosted services)
+/// 7. Lumen Authorization (umbrella AddLumenAuthorization — v3.0.0; auto-migrates the "Lumen" schema)
+/// 8. Tenant context + scope accessor (overrides Lumen's no-op)
+/// 9. Dev seed (opt-in, registered last so it runs after all migration hosted services)
+///
+/// <para>The permission catalogue is NOT seeded here. Lumen.Authorization 3.0.0 never populates
+/// permissions (no discovery, no catalogue sync — it only creates empty schema tables on boot). SISLAB
+/// owns the permission data and seeds it out-of-band via the <c>SISLAB.Migrations</c> EF project
+/// (idempotent <c>SeedLumenPermission*</c> migrations), decoupled from the app boot path.</para>
 /// </summary>
 public static class IdentityModuleServiceExtensions
 {
@@ -57,6 +72,52 @@ public static class IdentityModuleServiceExtensions
 
         // 2. Domain repositories
         services.AddScoped<ICompanyRepository, CompanyRepository>();
+        services.AddScoped<ICompanyInvitationRepository, CompanyInvitationRepository>();
+
+        // 2.1 Write-side unit of work for this module's commands (card [E12] #75a — signup; #75b — outbox).
+        //      Now a full Transactional Outbox participant (mirrors the Inventory module): on signup the
+        //      Company aggregate raises CompanyCreated; the real DomainEventDispatcher translates it and the
+        //      OutboxWriter enqueues the flattened CompanyCreatedIntegrationEvent into tenancy.outbox_messages
+        //      in the SAME transaction as the aggregate. The background OutboxDispatcher (SISLAB.Jobs) then
+        //      publishes it after commit, so tenant provisioning (Configuration) is eventual and retried on
+        //      failure — a provisioning fault never rolls back or blocks signup.
+        //      - IOutboxDbContext points at THIS module's DbContext so the outbox write shares the txn.
+        //      - OutboxWriter serializes integration events into outbox_messages.
+        //      - IUnitOfWork = EfUnitOfWork<IdentityDbContext>: SaveChanges runs from TransactionBehavior.
+        services.AddScoped<IOutboxDbContext>(sp => sp.GetRequiredService<IdentityDbContext>());
+        services.AddScoped<OutboxWriter>();
+        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+        services.AddScoped<IUnitOfWork, EfUnitOfWork<IdentityDbContext>>();
+        services.AddScoped(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
+
+        // 2.1.1 DomainEvent → IntegrationEvent translators. The DomainEventDispatcher resolves these by
+        //        domain-event type during SaveChanges and enqueues the flattened public contract into the
+        //        Outbox, in the aggregate's transaction. Events with no translator stay module-internal.
+        services.AddScoped<IDomainEventToIntegrationEventTranslator<Domain.Companies.Events.CompanyCreated>,
+            Messaging.CompanyCreatedEventTranslator>();
+
+        // 2.1.2 Member-invitation translator (card #75c): MemberInvited → MemberInvitedIntegrationEvent, enqueued
+        //        in the tenancy Outbox in the invite transaction. The e-mail handler below consumes it after commit.
+        services.AddScoped<IDomainEventToIntegrationEventTranslator<Domain.Invitations.Events.MemberInvited>,
+            Messaging.MemberInvitedEventTranslator>();
+
+        // 2.1.3 Invitation e-mail consumer (card #75c): reacts to the published MemberInvitedIntegrationEvent to
+        //        render and send the branded MemberInvitation e-mail. Eventual + retried via the Outbox, so a
+        //        mail failure never rolls back or blocks the invitation. Registered against the closed
+        //        IIntegrationEventHandler<T> so the InMemoryEventBus resolves it by event type.
+        services.AddScoped<SISLAB.SharedKernel.Messaging.IIntegrationEventHandler<MemberInvitedIntegrationEvent>,
+            SendInvitationEmailOnMemberInvitedHandler>();
+
+        // 2.3 Member-invitation gateway (card #75c): the anti-corruption adapter that resolves or provisions the
+        //      invitee's Lumen account when an invitation is accepted (Fork 1: link existing, else create). The
+        //      accept handler depends on this port, never on Lumen directly (Lumen stays in Infrastructure, §8).
+        services.AddScoped<IMemberInvitationGateway, LumenMemberInvitationGateway>();
+
+        // 2.2 Company onboarding gateway (card #75a): the anti-corruption adapter that provisions the
+        //      coordinator user (Lumen Identity) and grants company-scoped coordinator access (Lumen
+        //      Authorization) for self-service signup. The signup handler depends on this port, never on
+        //      Lumen directly, keeping Lumen confined to Infrastructure (§8).
+        services.AddScoped<ICompanyOnboardingGateway, LumenCompanyOnboardingGateway>();
 
         // 3. MVC controllers for the module live in the Application assembly (co-located with the
         //    CQRS queries they dispatch). Their ApplicationPart is registered by IdentityModule
@@ -125,14 +186,18 @@ public static class IdentityModuleServiceExtensions
         // 6. Lumen Identity — PostgreSQL migrations hosted service
         services.AddLumenIdentityPostgresMigrations();
 
-        // 7. Lumen Authorization — CORE ONLY (NOT the AspNetCore umbrella).
-        //    The umbrella's AddLumenAuthorization internally calls AddLumenAuthorizationMigrations()
-        //    which registers SQL Server migrations unconditionally → crash on PostgreSQL.
-        //    SISLAB composes granularly as documented. Provider=PostgreSQL is required so the
-        //    core selects the correct migrations assembly. ApplyMigrationsOnStartup=true is
-        //    required: the migrations hosted service checks this flag and skips when false,
-        //    leaving the "Lumen" schema uncreated (→ 42P01 on discovery).
-        LumenAuthorizationServiceCollectionExtensions.AddLumenAuthorization(
+        // 7. Lumen Authorization — v3.0.0 umbrella (AddLumenAuthorization on the AspNetCore package).
+        //    The umbrella is provider-aware: with Provider=PostgreSQL it selects the PostgreSQL migrations
+        //    assembly and its LumenAuthorizationMigrationsHostedService creates/updates the "Lumen" schema on
+        //    boot (empty "Permission"/"PermissionGroup" tables). v3.0.0 dropped all catalogue machinery
+        //    (no CatalogMode, no discovery scanner, no FailFastOnMissingPermission) — Lumen never seeds
+        //    permissions. SISLAB owns the permission data and seeds it out-of-band via the SISLAB.Migrations
+        //    EF project (SeedLumenPermission* migrations), so nothing is seeded on this boot path.
+        //    ApplyMigrationsOnStartup=true keeps the schema self-provisioning.
+        //    Explicitly qualified to the AspNetCore umbrella: both it and the core package expose an
+        //    AddLumenAuthorization(IServiceCollection, string, Action<...>) with the same signature, so an
+        //    unqualified call is ambiguous. The AspNetCore one is the umbrella (core + enforcement + startup).
+        LumenAuthorizationAspNetCoreServiceCollectionExtensions.AddLumenAuthorization(
             services,
             connectionString,
             options =>
@@ -141,18 +206,7 @@ public static class IdentityModuleServiceExtensions
                 options.ApplyMigrationsOnStartup = true;
             });
 
-        // 8. Lumen Authorization — PostgreSQL migrations hosted service.
-        //    CRITICAL: registered BEFORE discovery. Hosted services run in registration order;
-        //    discovery queries the "Lumen"."Permission" table, which only exists after migrations.
-        //    Reversing the order causes 42P01 ("relation does not exist") on boot.
-        services.AddLumenAuthorizationPostgresMigrations();
-
-        // 9. Enforcement ([RequirePermission] + IUserIdAccessor) and
-        //    permission discovery/reconciliation. Run after migrations.
-        services.AddLumenAuthorizationEnforcement();
-        services.AddLumenAuthorizationDiscovery();
-
-        // 10. SISLAB tenant context (Scoped — one instance per request).
+        // 8. SISLAB tenant context (Scoped — one instance per request).
         //     The concrete TenantContext is the REQUEST tenant source: TenantResolutionMiddleware resolves
         //     it directly and populates it from the httpOnly cookie. Consumers depend on the abstraction
         //     ITenantContext, which is composed as OverridableTenantContext — a Decorator that reports the
@@ -166,17 +220,25 @@ public static class IdentityModuleServiceExtensions
             sp.GetRequiredService<TenantContext>(),
             sp.GetRequiredService<ITenantContextOverride>()));
 
-        // 11. Tenant bridge: overrides Lumen's no-op ITenantScopeAccessor with SISLAB's impl.
+        // 9. Tenant bridge: overrides Lumen's no-op ITenantScopeAccessor with SISLAB's impl.
         //     Lumen registers its no-op via TryAdd; this AddScoped wins as the last registration.
         services.AddScoped<Lumen.Authorization.Contracts.ITenantScopeAccessor, SislabTenantScopeAccessor>();
 
-        // 12. Lumen.Modularity in-process event bus.
+        // 9.1 Authorization gateway (card [E12] #101): the single anti-corruption adapter that dispatches
+        //      Lumen's authorization use cases through its MediatR pipeline and maps the results to SISLAB
+        //      Contracts DTOs. Registered AFTER AddLumenAuthorization so MediatR's IMediator (which the
+        //      gateway depends on) is available. Every profile-management handler depends on this port,
+        //      never on Lumen/MediatR directly — keeping Lumen confined to Identity's Infrastructure (§8).
+        services.AddScoped<Contracts.Authorization.ILumenAuthorizationGateway,
+            Authorization.LumenAuthorizationGateway>();
+
+        // 10. Lumen.Modularity in-process event bus.
         //     Lumen Identity's CQRS handlers publish integration events via IEventBus;
         //     without this registration the container cannot build those handlers.
         //     SISLAB does not yet consume Lumen events — registered with no handler assemblies.
         services.AddEventBus();
 
-        // 13. Dev seed (LAFTE company + admin user), behind the "Seed:Enabled" flag.
+        // 11. Dev seed (LAFTE company + admin user), behind the "Seed:Enabled" flag.
         //     Registered LAST so DevSeedHostedService runs after all migration hosted services
         //     (SISLAB + Lumen), ensuring schemas and Lumen's system seed (Administrator/User
         //     profiles) already exist when the SISLAB seed executes.

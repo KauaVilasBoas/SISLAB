@@ -95,26 +95,25 @@ On startup, hosted services apply migrations per schema:
 
 Granular authorization is provided by **Lumen.Authorization**; the scope is the SISLAB active company.
 
-**Permission code convention (enforced by Lumen 1.1.0):** the code is always
+**Permission code convention (enforced by Lumen):** the code is always
 `<Controller>.<Action>` (controller class name without the `Controller` suffix + action method name,
-both in PascalCase as in C#). Lumen's `Permission.Create` **recomputes** the code from controller +
-action and **ignores** any explicit string passed to the attribute — passing an explicit code
-(`[RequirePermission("companies.read")]`) causes enforcement to compare the attribute code against the
-stored `Controller.Action` and **always deny (403)**. Therefore decorating with **`[RequirePermission]`
-without a code** is mandatory; discovery writes `Controller.Action` and the handler derives the same.
-Codes are typed as constants in `Contracts/Authorization/IdentityPermissions.cs`.
+both in PascalCase as in C#). With a **null** attribute code Lumen derives `Controller.Action` from the
+descriptor; passing an explicit code (`[RequirePermission("companies.read")]`) causes enforcement to
+compare the attribute code against the stored `Controller.Action` and **always deny (403)**. Therefore
+decorating with **`[RequirePermission]` without a code** is mandatory. The permission rows themselves
+live only in the database, seeded by the `SISLAB.Migrations` project (see *Permission seed migration*
+below) — there are no permission-code constants in C#.
 
-**Protected endpoints (MVC controller — discovery only sees `ControllerActionDescriptor`,
+**Protected endpoints (MVC controller — enforcement only sees `ControllerActionDescriptor`,
 not Minimal API):** `CompanyMembersController` at `/api/admin/companies/active/members`:
 - `GET /` → permission `CompanyMembers.ListMembers` (read).
 - `GET /{userId}/removal-eligibility` → permission `CompanyMembers.CheckRemovalEligibility` (management).
 
-**How the Administrator profile receives the permissions:** on boot, Lumen's hosted service
-(`PermissionDiscoveryAndReconciliationHostedService`) scans the decorated controllers
-(`Discovered 2 action(s)...`), materializes each code as a `Permission` (`SyncDiscoveredAsync`) and
-**reconciles all permissions into the Administrator profile** (`ReconcileAdministratorAsync` →
-`granted 2 new permission(s)`). Idempotent: on the 2nd boot it logs *"Administrator profile already holds
-all 2 permission(s)"*. No manual permission seeding needed.
+**Lumen 3.0.0 seeds nothing.** The library never populates permissions (no discovery scanner, no
+catalogue sync): on boot its `LumenAuthorizationMigrationsHostedService` only creates the empty `Lumen`
+schema tables. SISLAB owns the permission data and applies it out-of-band via the `SISLAB.Migrations`
+EF project. Which members hold a code in a given company is owned by Lumen (profiles assigned to the
+user, scoped to the active company).
 
 **Pipeline ordering (critical):** `UseSislabTenantResolution` runs **between** `UseAuthentication` and
 `UseAuthorization` — the `PermissionAuthorizationHandler` reads the scope (active company) via
@@ -134,10 +133,39 @@ GET  /api/admin/companies/active/members                  -> 403
 GET  /api/admin/companies/active/members/{id}/removal-... -> 403
 ```
 
-> ⚠️ Run **only one API instance** at a time in dev. Stale processes (previous builds) left running
-> re-execute discovery against the same `Lumen` schema and may overwrite/duplicate permissions
-> (observed: collision on `ix_lumen_permission_code_unique`). Kill orphaned `dotnet` processes before
-> starting a new one.
+### Permission seed migration
+
+Lumen.Authorization 3.0.0 auto-migrates the `Lumen` schema on startup, but creates the permission
+tables **empty** — it never seeds permissions. SISLAB seeds the permission groups and permissions via a
+dedicated EF project, `src/SISLAB.Migrations`, whose `SeedPermissions` migration calls the
+`SeedLumenPermissionGroup` / `SeedLumenPermission` helpers (idempotent). Its own migration history lives
+in the `seed` schema, so it never collides with the module or Lumen histories.
+
+```bash
+# 1. Boot the app once so Lumen creates its schema (empty Permission/PermissionGroup tables):
+dotnet run --project src/Host/SISLAB.Api
+
+# 2. Apply the permission seed (separate terminal). SISLAB_DB is read by the design-time factory:
+$env:SISLAB_DB = "Host=localhost;Database=sislab;Username=sislab;Password=sislab"   # PowerShell
+dotnet ef database update --project src/SISLAB.Migrations
+```
+
+In CI/CD: run step 2 once the app from step 1 reports healthy. Re-running the seed is safe (idempotent).
+
+When the `Lumen` schema is reset in dev (`DROP SCHEMA "Lumen" CASCADE;`), re-run both steps; also drop
+the `seed` schema (`DROP SCHEMA IF EXISTS seed CASCADE;`) so the seed migration re-applies from scratch.
+
+**Administrator gets every permission automatically.** The follow-up `AutoGrantAdminPermissions`
+migration installs two PostgreSQL triggers on the `Lumen` schema:
+
+- `trg_auto_grant_permission_to_administrator` — on every `INSERT` into `"Lumen"."Permission"`, links the
+  new permission to the `Administrator` profile (if that profile exists).
+- `trg_auto_grant_all_permissions_to_new_administrator` — when the `Administrator` profile is created,
+  retroactively grants it every active permission.
+
+A one-off `DO` block in the migration also covers the case where the profile already existed at migration
+time. Net effect: **future migrations that add new permissions (`SeedLumenPermission`) never need explicit
+grant rows** — the trigger wires each new code to Administrator on insert.
 
 ### CSRF protection (browser / cookie flow) — #61
 
@@ -225,7 +253,8 @@ clean database (validated on SISLAB_LOCALHOST):
 |--------|-------|--------|---------------|
 | `tenancy`  | SISLAB (IdentityDbContext) | `companies`, `company_memberships` | `tenancy.__ef_migrations_history` |
 | `identity` | Lumen Identity | `Users`, `RefreshTokens`, `EmailConfirmationTokens`, `PasswordResetTokens` | `public."__EFMigrationsHistory"` |
-| `Lumen`    | Lumen Authorization | `Permission`, `PermissionGroup`, `Profile`, `PermissionProfile`, `UserProfile` (+ Administrator/User seed) | `public."__EFMigrationsHistory"` |
+| `Lumen`    | Lumen Authorization | `Permission`, `PermissionGroup`, `Profile`, `PermissionProfile`, `UserProfile` (+ Administrator/User seed). Permission rows are **empty on boot** — seeded out-of-band by `SISLAB.Migrations` (see *Permission seed migration*). | `public."__EFMigrationsHistory"` |
+| `seed`     | SISLAB (SislabSeedDbContext) | none — reference-data seed migrations only | `seed.__ef_migrations_history` |
 
 ### Schema `identity` collision — how it was resolved
 
@@ -249,9 +278,13 @@ To start from a clean state (no real data), drop the schemas and let startup re-
 DROP SCHEMA IF EXISTS identity CASCADE;
 DROP SCHEMA IF EXISTS tenancy CASCADE;
 DROP SCHEMA IF EXISTS "Lumen" CASCADE;
+DROP SCHEMA IF EXISTS seed CASCADE;   -- permission-seed migration history
 -- optional, if there is residual Lumen history in public:
 DROP TABLE IF EXISTS public."__EFMigrationsHistory";
 ```
+
+After a reset, re-apply the permission seed once the app has re-created the `Lumen` schema:
+`dotnet ef database update --project src/SISLAB.Migrations` (see *Permission seed migration*).
 
 ## 5. Known Lumen 1.0.0 package defects (worked around / documented)
 

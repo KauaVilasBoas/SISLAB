@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Permission seed project. Lumen.Authorization 3.0.0 never populates permissions: it only creates the
+    empty "Lumen" schema tables on app boot. SISLAB owns the permission data and seeds it here, out of the
+    app boot path, via idempotent EF migrations that call the SeedLumenPermissionGroup / SeedLumenPermission
+    helpers from Lumen.Authorization.Migrations.PostgreSQL. The DbContext holds no entities — its migrations
+    are pure reference-data seeds against Lumen's tables. Run with `dotnet ef database update` (see DEV_SETUP).
+    Common build properties (TargetFramework, Nullable, ImplicitUsings, warnings-as-errors) come from the
+    repo-root Directory.Build.props.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.15">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
+    <PackageReference Include="Lumen.Authorization.Migrations.PostgreSQL" Version="3.0.0" />
+  </ItemGroup>
+
+</Project>

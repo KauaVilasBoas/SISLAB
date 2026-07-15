@@ -21,6 +21,13 @@ internal sealed class CompanyRepository : ICompanyRepository
             .Include(c => c.Memberships)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
+    public Task<bool> ExistsByNameAsync(string name, CancellationToken ct = default)
+    {
+        string normalized = name.Trim();
+        return _dbContext.Companies
+            .AnyAsync(c => c.IsActive && c.Name.ToLower() == normalized.ToLower(), ct);
+    }
+
     public async Task<IReadOnlyList<Company>> ListActiveAsync(CancellationToken ct = default)
         => await _dbContext.Companies
             .Include(c => c.Memberships)

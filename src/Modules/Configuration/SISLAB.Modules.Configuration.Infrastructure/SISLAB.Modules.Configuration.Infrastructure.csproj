@@ -5,6 +5,12 @@
     <!-- Infrastructure depende de Domain + Contracts (nunca de Application, evita ciclo). -->
     <ProjectReference Include="..\SISLAB.Modules.Configuration.Domain\SISLAB.Modules.Configuration.Domain.csproj" />
     <ProjectReference Include="..\SISLAB.Modules.Configuration.Contracts\SISLAB.Modules.Configuration.Contracts.csproj" />
+    <!--
+      Public boundary (Contracts) of the Identity module: this module reacts to CompanyCreatedIntegrationEvent
+      to provision a new tenant's baseline configuration (card [E12] #75b). Inter-module communication goes
+      ONLY through the other module's *.Contracts (§2) — never Identity.Domain/Application/Infrastructure.
+    -->
+    <ProjectReference Include="..\..\Identity\SISLAB.Modules.Identity.Contracts\SISLAB.Modules.Identity.Contracts.csproj" />
     <!-- Shared infra: SislabDbContextBase, BaseDataAccess, DbConnectionFactory, ITenantContext. -->
     <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
   </ItemGroup>
