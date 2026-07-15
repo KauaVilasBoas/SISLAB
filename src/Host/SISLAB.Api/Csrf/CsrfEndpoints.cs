@@ -25,8 +25,18 @@ internal static class CsrfEndpoints
 
     private static IResult IssueToken(HttpContext context, IAntiforgery antiforgery)
     {
-        // Generates the request token and writes the readable XSRF-TOKEN cookie via Set-Cookie.
-        antiforgery.GetAndStoreTokens(context);
+        // GetAndStoreTokens writes the hidden ASP.NET Core session cookie and returns the
+        // REQUEST token (the value the SPA must echo in X-XSRF-TOKEN). We store that in a
+        // separate readable cookie so JS can read it — echoing the session cookie would fail
+        // validation because the framework expects the request token in the header, not the
+        // session token.
+        AntiforgeryTokenSet tokens = antiforgery.GetAndStoreTokens(context);
+        context.Response.Cookies.Append(CsrfServiceCollectionExtensions.CookieName, tokens.RequestToken!, new CookieOptions
+        {
+            HttpOnly = false,
+            SameSite = SameSiteMode.Strict,
+            Secure = context.Request.IsHttps,
+        });
         return Results.NoContent();
     }
 }

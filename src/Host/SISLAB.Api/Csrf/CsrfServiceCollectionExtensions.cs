@@ -26,16 +26,9 @@ public static class CsrfServiceCollectionExtensions
         services.AddAntiforgery(options =>
         {
             options.HeaderName = HeaderName;
-
-            // The SPA must read this cookie via JS to echo it in the request header,
-            // so it is intentionally NOT httpOnly. The value is an anti-CSRF token,
-            // not a credential — the credential remains the httpOnly session cookie.
-            options.Cookie.Name = CookieName;
-            options.Cookie.HttpOnly = false;
-            options.Cookie.SameSite = SameSiteMode.Strict;
-
-            // HTTPS in production; allowed over HTTP in dev (matches the active-company cookie).
-            options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+            // The ASP.NET Core session cookie keeps its auto-generated name (httpOnly, hidden).
+            // The readable XSRF-TOKEN cookie is written manually in CsrfEndpoints with the
+            // REQUEST token so the SPA can echo it in X-XSRF-TOKEN — not the session token.
         });
 
         return services;
