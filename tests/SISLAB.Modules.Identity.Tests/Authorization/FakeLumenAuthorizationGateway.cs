@@ -73,4 +73,7 @@ internal sealed class FakeLumenAuthorizationGateway : ILumenAuthorizationGateway
         RemoveCall = (userId, profileId, companyId);
         return Task.CompletedTask;
     }
+
+    /// <summary>Clears the recorded assign call, so a test can assert that a later step performs no new assignment.</summary>
+    public void ResetAssignCall() => AssignCall = null;
 }
