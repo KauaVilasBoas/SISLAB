@@ -25,9 +25,9 @@ public sealed class InventoryModule : IModule
     public void RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
         // MVC controllers of this module (StockMovements/*Controller) live in this assembly,
-        // co-located with the CQRS commands they dispatch. Registering this assembly as an
-        // ApplicationPart makes the actions discoverable by MVC (and, later, by Lumen's
-        // PermissionDiscoveryScanner). AddControllers is idempotent across modules.
+        // co-located with the CQRS commands they dispatch (cohesion). Registering this assembly as an
+        // ApplicationPart makes their actions visible to MVC so Lumen's enforcement filter can gate the
+        // [RequirePermission]-decorated ones. AddControllers is idempotent across modules.
         services
             .AddControllers()
             .AddApplicationPart(typeof(InventoryModule).Assembly);

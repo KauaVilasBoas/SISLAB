@@ -4,17 +4,16 @@ using SISLAB.SharedKernel.Messaging;
 namespace SISLAB.Modules.Identity.Application.Authorization;
 
 /// <summary>
-/// Lists every auto-discovered permission grouped by its Lumen <c>PermissionGroup</c> (card [E12] #102), so
-/// the profile-management screen can render one checkbox per permission under its group heading.
+/// Lists every permission grouped by its Lumen <c>PermissionGroup</c> (card [E12] #102), so the
+/// profile-management screen can render one checkbox per permission under its group heading.
 ///
 /// <para>When <see cref="ProfileId"/> is supplied (editing an existing profile), each permission already
 /// granted to that profile is returned with <see cref="PermissionOptionDto.Selected"/> set — pre-ticking the
 /// boxes. When it is null (creating a new profile) nothing is selected.</para>
 ///
 /// <para>Permissions are global (not tenant-scoped) and read-only: this query never creates or edits a
-/// permission, it only projects the catalogue Lumen auto-discovered from <c>&lt;Controller&gt;.&lt;Action&gt;</c>.
-/// Orphan permissions are surfaced with their <see cref="PermissionOptionDto.IsOrphan"/> flag set rather than
-/// dropped, leaving the decision to hide or de-emphasise them to the UI.</para>
+/// permission, it only projects the catalogue seeded by <c>SISLAB.Migrations</c> into <c>Lumen.Permission</c>
+/// (keyed by the <c>&lt;Controller&gt;.&lt;Action&gt;</c> convention Lumen enforces).</para>
 /// </summary>
 /// <param name="ProfileId">Optional profile whose granted permissions should be pre-selected.</param>
 public sealed record ListAvailablePermissionsQuery(Guid? ProfileId)
