@@ -44,7 +44,7 @@ export function Sidebar() {
       </div>
 
       {/* Grouped navigation */}
-      <nav className="flex-1 space-y-5 overflow-y-auto p-3">
+      <nav className="scrollbar-sidebar flex-1 space-y-5 overflow-y-auto p-3">
         {navGroups.map((group) => (
           <div key={group.title} className="space-y-1">
             <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted">
