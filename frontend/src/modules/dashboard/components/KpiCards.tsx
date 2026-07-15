@@ -1,17 +1,9 @@
 import { CalendarClock, CalendarX2, CheckCircle2, PackageMinus } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/shared/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { formatNumber } from '@/shared/lib/format';
 import { cn } from '@/shared/lib/utils';
-import type {
-  BelowMinimumSummary,
-  ExpirySummary,
-} from '@/modules/dashboard/types';
+import type { BelowMinimumSummary, ExpirySummary } from '@/modules/dashboard/types';
 
 interface KpiCardsProps {
   expiry?: ExpirySummary;
@@ -32,10 +24,30 @@ interface Kpi {
  */
 export function KpiCards({ expiry, belowMinimum, loading }: KpiCardsProps) {
   const kpis: Kpi[] = [
-    { label: 'Vencidos', value: expiry?.expired, icon: CalendarX2, accent: 'text-destructive' },
-    { label: 'A vencer (30d)', value: expiry?.expiringSoon, icon: CalendarClock, accent: 'text-amber-500' },
-    { label: 'Válidos', value: expiry?.ok, icon: CheckCircle2, accent: 'text-emerald-500' },
-    { label: 'Abaixo do mínimo', value: belowMinimum?.belowMinimumCount, icon: PackageMinus, accent: 'text-orange-500' },
+    {
+      label: 'Vencidos',
+      value: expiry?.expired,
+      icon: CalendarX2,
+      accent: 'text-status-expired',
+    },
+    {
+      label: 'A vencer (30d)',
+      value: expiry?.expiringSoon,
+      icon: CalendarClock,
+      accent: 'text-status-warning',
+    },
+    {
+      label: 'Válidos',
+      value: expiry?.ok,
+      icon: CheckCircle2,
+      accent: 'text-status-ok',
+    },
+    {
+      label: 'Abaixo do mínimo',
+      value: belowMinimum?.belowMinimumCount,
+      icon: PackageMinus,
+      accent: 'text-status-info',
+    },
   ];
 
   return (

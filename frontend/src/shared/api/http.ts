@@ -32,9 +32,7 @@ const XSRF_HEADER_NAME = 'X-XSRF-TOKEN';
 const UNSAFE_METHODS = new Set(['post', 'put', 'patch', 'delete']);
 
 function readCookie(name: string): string | null {
-  const match = document.cookie
-    .split('; ')
-    .find((row) => row.startsWith(`${name}=`));
+  const match = document.cookie.split('; ').find((row) => row.startsWith(`${name}=`));
   return match ? decodeURIComponent(match.slice(name.length + 1)) : null;
 }
 
@@ -102,12 +100,7 @@ function toApiError(error: AxiosError<unknown>): ApiError {
 
 /** Marks a response body as the SISLAB envelope so `unwrap` can decide to peel `data`. */
 function isEnvelope<T>(body: unknown): body is ApiResult<T> {
-  return (
-    typeof body === 'object' &&
-    body !== null &&
-    'success' in body &&
-    'data' in body
-  );
+  return typeof body === 'object' && body !== null && 'success' in body && 'data' in body;
 }
 
 httpClient.interceptors.response.use(

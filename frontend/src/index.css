@@ -24,6 +24,25 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+
+    /* Semantic status palette (card [E7] #43): expired/critical, warning, ok, info/entry, controlled.
+       Shared foreground is near-white for text/icons sitting on a status color. */
+    --status-expired: 0 72% 51%;
+    --status-warning: 38 92% 50%;
+    --status-ok: 142 71% 45%;
+    --status-info: 217 91% 60%;
+    --status-controlled: 262 83% 58%;
+    --status-foreground: 0 0% 100%;
+
+    /* Sidebar surface — intentionally dark in BOTH themes (prototype #0b1220).
+       Defined only here so `.dark` does not override it. */
+    --sidebar: 220 47% 8%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-muted: 215 20% 58%;
+    --sidebar-border: 220 33% 16%;
+    --sidebar-accent: 217 33% 15%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-ring: 217 91% 60%;
   }
 
   .dark {
@@ -46,6 +65,14 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+
+    /* Slightly brighter status hues so they read on the dark background. */
+    --status-expired: 0 72% 58%;
+    --status-warning: 38 92% 55%;
+    --status-ok: 142 65% 48%;
+    --status-info: 217 91% 65%;
+    --status-controlled: 262 83% 66%;
+    --status-foreground: 0 0% 100%;
   }
 }
 
@@ -55,6 +82,26 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: 'rlig' 1, 'calt' 1;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
+  }
+}
+
+@layer utilities {
+  /* Fade applied on route change (keyed by pathname in AppShell). */
+  .page-enter {
+    animation: sislab-fade-in 0.25s ease-out;
+  }
+
+  @keyframes sislab-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }

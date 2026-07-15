@@ -50,8 +50,7 @@ export const Endpoints = {
       root: '/api/admin/profiles',
       availablePermissions: '/api/admin/profiles/permissions',
       byId: (profileId: string) => `/api/admin/profiles/${profileId}`,
-      permissions: (profileId: string) =>
-        `/api/admin/profiles/${profileId}/permissions`,
+      permissions: (profileId: string) => `/api/admin/profiles/${profileId}/permissions`,
     },
   },
 
@@ -71,8 +70,7 @@ export const Endpoints = {
         `/api/inventory/stock-items/${stockItemId}/transfers`,
       disposals: (stockItemId: string) =>
         `/api/inventory/stock-items/${stockItemId}/disposals`,
-      counts: (stockItemId: string) =>
-        `/api/inventory/stock-items/${stockItemId}/counts`,
+      counts: (stockItemId: string) => `/api/inventory/stock-items/${stockItemId}/counts`,
     },
     storageLocations: {
       summary: '/api/inventory/storage-locations/summary',
