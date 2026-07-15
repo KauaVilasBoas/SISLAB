@@ -6,8 +6,10 @@ using Lumen.Modularity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SISLAB.Infrastructure.Messaging;
 using SISLAB.Infrastructure.Messaging.Behaviors;
 using SISLAB.Infrastructure.Multitenancy;
+using SISLAB.Infrastructure.Outbox;
 using SISLAB.Infrastructure.Persistence;
 using SISLAB.Modules.Identity.Contracts.Onboarding;
 using SISLAB.Modules.Identity.Domain.Companies;
@@ -66,15 +68,27 @@ public static class IdentityModuleServiceExtensions
         // 2. Domain repositories
         services.AddScoped<ICompanyRepository, CompanyRepository>();
 
-        // 2.1 Write-side unit of work for this module's commands (card [E12] #75a — signup).
-        //      Mirrors the Configuration/Notifications modules: this module raises the CompanyCreated
-        //      domain event but has no cross-module consumer yet, so the dispatcher is a no-op that just
-        //      drains aggregate events; IUnitOfWork is the shared EfUnitOfWork bound to THIS module's
-        //      DbContext. TransactionBehavior (registered per module) calls SaveChangesAsync after each
-        //      command, committing the tenancy aggregate atomically. Queries bypass it.
-        services.AddScoped<IDomainEventDispatcher, NoOpIdentityDomainEventDispatcher>();
+        // 2.1 Write-side unit of work for this module's commands (card [E12] #75a — signup; #75b — outbox).
+        //      Now a full Transactional Outbox participant (mirrors the Inventory module): on signup the
+        //      Company aggregate raises CompanyCreated; the real DomainEventDispatcher translates it and the
+        //      OutboxWriter enqueues the flattened CompanyCreatedIntegrationEvent into tenancy.outbox_messages
+        //      in the SAME transaction as the aggregate. The background OutboxDispatcher (SISLAB.Jobs) then
+        //      publishes it after commit, so tenant provisioning (Configuration) is eventual and retried on
+        //      failure — a provisioning fault never rolls back or blocks signup.
+        //      - IOutboxDbContext points at THIS module's DbContext so the outbox write shares the txn.
+        //      - OutboxWriter serializes integration events into outbox_messages.
+        //      - IUnitOfWork = EfUnitOfWork<IdentityDbContext>: SaveChanges runs from TransactionBehavior.
+        services.AddScoped<IOutboxDbContext>(sp => sp.GetRequiredService<IdentityDbContext>());
+        services.AddScoped<OutboxWriter>();
+        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         services.AddScoped<IUnitOfWork, EfUnitOfWork<IdentityDbContext>>();
         services.AddScoped(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
+
+        // 2.1.1 DomainEvent → IntegrationEvent translators. The DomainEventDispatcher resolves these by
+        //        domain-event type during SaveChanges and enqueues the flattened public contract into the
+        //        Outbox, in the aggregate's transaction. Events with no translator stay module-internal.
+        services.AddScoped<IDomainEventToIntegrationEventTranslator<Domain.Companies.Events.CompanyCreated>,
+            Messaging.CompanyCreatedEventTranslator>();
 
         // 2.2 Company onboarding gateway (card #75a): the anti-corruption adapter that provisions the
         //      coordinator user (Lumen Identity) and grants company-scoped coordinator access (Lumen

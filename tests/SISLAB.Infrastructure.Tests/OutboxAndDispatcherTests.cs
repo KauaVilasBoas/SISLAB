@@ -192,7 +192,7 @@ public sealed class OutboxDispatcherTests
     }
 
     private static OutboxDispatcher CreateDispatcher(TestOutboxDbContext context, IEventBus bus)
-        => new(context, bus, new FixedClock(Now), NullLogger<OutboxDispatcher>.Instance);
+        => new(new IOutboxDbContext[] { context }, bus, new FixedClock(Now), NullLogger<OutboxDispatcher>.Instance);
 
     private static OutboxMessage EnqueueMessage(TestOutboxDbContext context, Guid? id = null)
     {
@@ -202,6 +202,53 @@ public sealed class OutboxDispatcherTests
         return context.ChangeTracker.Entries<OutboxMessage>()
             .Select(e => e.Entity)
             .Single(m => m.Id == integrationEvent.EventId);
+    }
+
+    private static Task<List<OutboxMessage>> PendingAsync(TestOutboxDbContext context)
+        => context.OutboxMessages
+            .Where(m => m.ProcessedAtUtc == null && m.DeadLetteredAtUtc == null)
+            .ToListAsync();
+}
+
+/// <summary>
+/// Proves the multi-outbox fan-in: with more than one <see cref="IOutboxDbContext"/> registered (one per
+/// module — Inventory, Identity, …), a single dispatcher tick drains a pending message from EVERY outbox,
+/// not just the first. This is the wiring that lets the Identity outbox (card [E12] #75b) be processed by
+/// the same background job as the Inventory outbox without a per-module dispatcher.
+/// </summary>
+public sealed class MultiOutboxDispatcherTests
+{
+    private static readonly DateTime Now = new(2026, 7, 14, 10, 0, 0, DateTimeKind.Utc);
+
+    [Fact]
+    public async Task A_single_tick_drains_every_registered_outbox()
+    {
+        using TestOutboxDbContext first = OutboxWriterTests.CreateInMemoryContext();
+        using TestOutboxDbContext second = OutboxWriterTests.CreateInMemoryContext();
+        Enqueue(first);
+        Enqueue(second);
+        await first.SaveChangesAsync();
+        await second.SaveChangesAsync();
+
+        var bus = new RecordingEventBus();
+        OutboxDispatcher dispatcher = new(
+            new IOutboxDbContext[] { first, second },
+            bus,
+            new FixedClock(Now),
+            NullLogger<OutboxDispatcher>.Instance);
+
+        int published = await dispatcher.ProcessPendingAsync(batchSize: 50, maxAttempts: 5);
+
+        Assert.Equal(2, published);
+        Assert.Equal(2, bus.Published.Count);
+        Assert.Empty(await PendingAsync(first));
+        Assert.Empty(await PendingAsync(second));
+    }
+
+    private static void Enqueue(TestOutboxDbContext context)
+    {
+        var integrationEvent = new TestIntegrationEvent(Guid.NewGuid(), Now, nameof(TestIntegrationEvent));
+        new OutboxWriter(context, new FixedClock(Now)).Enqueue(integrationEvent);
     }
 
     private static Task<List<OutboxMessage>> PendingAsync(TestOutboxDbContext context)
