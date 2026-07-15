@@ -82,6 +82,8 @@ public static class InventoryModuleServiceExtensions
         //    derived, time-based signal published by the E6 job, not by the aggregate.
         services.AddScoped<IDomainEventToIntegrationEventTranslator<StockReceivedEvent>, StockReceivedEventTranslator>();
         services.AddScoped<IDomainEventToIntegrationEventTranslator<StockConsumedEvent>, StockConsumedEventTranslator>();
+        services.AddScoped<IDomainEventToIntegrationEventTranslator<StockTransferredEvent>, StockTransferredEventTranslator>();
+        services.AddScoped<IDomainEventToIntegrationEventTranslator<StockDisposedEvent>, StockDisposedEventTranslator>();
         services.AddScoped<IDomainEventToIntegrationEventTranslator<StockBelowMinimumEvent>, StockBelowMinimumEventTranslator>();
 
         // 5. Read-model projection (card [E4] #33). The single StockMovementProjectionHandler consumes
@@ -93,6 +95,8 @@ public static class InventoryModuleServiceExtensions
         services.AddScoped<IStockMovementStore, StockMovementStore>();
         services.AddScoped<IIntegrationEventHandler<StockReceivedIntegrationEvent>, StockMovementProjectionHandler>();
         services.AddScoped<IIntegrationEventHandler<StockConsumedIntegrationEvent>, StockMovementProjectionHandler>();
+        services.AddScoped<IIntegrationEventHandler<StockTransferredIntegrationEvent>, StockMovementProjectionHandler>();
+        services.AddScoped<IIntegrationEventHandler<StockDisposedIntegrationEvent>, StockMovementProjectionHandler>();
 
         // 6. Applies schema "inventory" migrations at startup (mirrors the Identity pattern).
         services.AddHostedService<InventorySchemaMigrationsHostedService>();
