@@ -58,6 +58,24 @@ public sealed class ProfilesController : SislabControllerBase
     }
 
     /// <summary>
+    /// Lists every active profile (card #103) for the profile-management "Profiles" tab. Requires the
+    /// <c>Profiles.ListProfiles</c> permission.
+    /// </summary>
+    [HttpGet(Name = "ListProfiles")]
+    [ActionName("ListProfiles")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult<IReadOnlyList<ProfileDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ListProfiles(CancellationToken ct)
+    {
+        ListProfilesResult result = await _mediator.SendAsync(new ListProfilesQuery(), ct);
+
+        return Ok(new ApiResult<IReadOnlyList<ProfileDto>>(
+            true, "Profiles retrieved.", result.Profiles));
+    }
+
+    /// <summary>
     /// Creates a profile from a name and description (card #103) and returns its new id. Permissions are set
     /// separately via <see cref="SetProfilePermissions"/>. Requires the <c>Profiles.CreateProfile</c> permission.
     /// </summary>
