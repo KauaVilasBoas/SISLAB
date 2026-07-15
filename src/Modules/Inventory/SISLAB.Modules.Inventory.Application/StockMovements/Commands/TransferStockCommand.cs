@@ -68,7 +68,7 @@ internal sealed class TransferStockCommandHandler : ICommandHandler<TransferStoc
             ?? throw new NotFoundException("StorageLocation", request.ToLocationId);
 
         destination.EnsureCanStore(item);
-        item.TransferTo(request.ToLocationId);
+        item.TransferTo(request.ToLocationId, request.OccurredOn);
 
         await _stockItems.UpdateAsync(item, cancellationToken);
 

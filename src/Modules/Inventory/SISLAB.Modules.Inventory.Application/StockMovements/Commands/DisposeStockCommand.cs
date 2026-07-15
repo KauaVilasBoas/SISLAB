@@ -63,7 +63,7 @@ internal sealed class DisposeStockCommandHandler : ICommandHandler<DisposeStockC
 
         Quantity disposed = Quantity.Of(request.Quantity, UnitOfMeasure.FromSymbol(request.Unit));
 
-        item.Dispose(disposed);
+        item.Dispose(disposed, request.OccurredOn);
 
         await _stockItems.UpdateAsync(item, cancellationToken);
 

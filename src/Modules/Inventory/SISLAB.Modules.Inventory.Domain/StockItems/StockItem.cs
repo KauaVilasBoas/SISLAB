@@ -200,7 +200,7 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
     /// Moves the whole item to another storage location. The balance is unchanged; only the location
     /// reference is updated. The controlled/location-type invariant is enforced upstream (card #23).
     /// </summary>
-    public void TransferTo(Guid destinationStorageLocationId)
+    public void TransferTo(Guid destinationStorageLocationId, DateOnly? occurredOn = null)
     {
         Guard.AgainstEmptyGuid(destinationStorageLocationId, nameof(destinationStorageLocationId));
 
@@ -210,21 +210,22 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
         Guid origin = StorageLocationId;
         StorageLocationId = destinationStorageLocationId;
 
-        RaiseDomainEvent(new StockTransferredEvent(Id, origin, destinationStorageLocationId));
+        RaiseDomainEvent(new StockTransferredEvent(
+            CompanyId, Id, origin, destinationStorageLocationId, _quantity, occurredOn));
     }
 
     /// <summary>
     /// Discards a quantity of stock (for example an expired or unusable batch), decreasing the balance.
     /// Fails if the amount exceeds the balance; disposing expired stock is always allowed.
     /// </summary>
-    public void Dispose(Quantity quantity)
+    public void Dispose(Quantity quantity, DateOnly? occurredOn = null)
     {
         Quantity disposed = EnsurePositiveOperationQuantity(quantity, "dispose");
         EnsureBalanceCovers(disposed, "dispose");
 
         _quantity = _quantity.Subtract(disposed);
 
-        RaiseDomainEvent(new StockDisposedEvent(Id, disposed, _quantity));
+        RaiseDomainEvent(new StockDisposedEvent(CompanyId, Id, disposed, _quantity, occurredOn));
     }
 
     /// <summary>
