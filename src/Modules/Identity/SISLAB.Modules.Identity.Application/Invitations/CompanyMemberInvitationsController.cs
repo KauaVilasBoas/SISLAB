@@ -43,7 +43,7 @@ public sealed class CompanyMemberInvitationsController : SislabControllerBase
     /// </summary>
     [HttpPost("invite", Name = "InviteMember")]
     [ActionName("InviteMember")]
-    [RequirePermission]
+    [RequirePermission("CompanyMembers.InviteMember")]
     [ProducesResponseType(typeof(ApiResult<InviteMemberResult>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
