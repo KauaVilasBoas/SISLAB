@@ -155,6 +155,18 @@ In CI/CD: run step 2 once the app from step 1 reports healthy. Re-running the se
 When the `Lumen` schema is reset in dev (`DROP SCHEMA "Lumen" CASCADE;`), re-run both steps; also drop
 the `seed` schema (`DROP SCHEMA IF EXISTS seed CASCADE;`) so the seed migration re-applies from scratch.
 
+**Administrator gets every permission automatically.** The follow-up `AutoGrantAdminPermissions`
+migration installs two PostgreSQL triggers on the `Lumen` schema:
+
+- `trg_auto_grant_permission_to_administrator` — on every `INSERT` into `"Lumen"."Permission"`, links the
+  new permission to the `Administrator` profile (if that profile exists).
+- `trg_auto_grant_all_permissions_to_new_administrator` — when the `Administrator` profile is created,
+  retroactively grants it every active permission.
+
+A one-off `DO` block in the migration also covers the case where the profile already existed at migration
+time. Net effect: **future migrations that add new permissions (`SeedLumenPermission`) never need explicit
+grant rows** — the trigger wires each new code to Administrator on insert.
+
 ### CSRF protection (browser / cookie flow) — #61
 
 Because the browser SPA authenticates over cookies (the httpOnly `sislab_active_company` cookie, and
