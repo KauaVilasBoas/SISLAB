@@ -86,6 +86,60 @@ public sealed class StockMovementProjectionHandlerTests
     }
 
     [Fact]
+    public async Task Projects_a_transferred_event_into_a_single_transfer_movement()
+    {
+        var transferred = new StockTransferredIntegrationEvent(
+            eventId: Guid.NewGuid(),
+            occurredOnUtc: Now,
+            companyId: Company,
+            stockItemId: Item,
+            fromStorageLocationId: Guid.NewGuid(),
+            toStorageLocationId: Guid.NewGuid(),
+            movedQuantity: 120m,
+            unit: "mL",
+            occurredOn: new DateOnly(2026, 7, 8));
+
+        await _handler.HandleAsync(transferred);
+
+        StockMovementRow row = Assert.Single(_store.Rows);
+        Assert.Equal(transferred.EventId, row.Id);
+        Assert.Equal(Company, row.CompanyId);
+        Assert.Equal(Item, row.StockItemId);
+        Assert.Equal(nameof(StockMovementType.Transferred), row.MovementType);
+        Assert.Equal(120m, row.QuantityAmount);
+        Assert.Equal("mL", row.QuantityUnit);
+        Assert.Equal(new DateOnly(2026, 7, 8), row.OccurredOn);
+        Assert.Null(row.ExperimentId);
+        Assert.Null(row.PartnerId);
+        Assert.Null(row.PerformedBy);
+    }
+
+    [Fact]
+    public async Task Projects_a_disposed_event_into_a_single_disposal_movement()
+    {
+        var disposed = new StockDisposedIntegrationEvent(
+            eventId: Guid.NewGuid(),
+            occurredOnUtc: Now,
+            companyId: Company,
+            stockItemId: Item,
+            disposedQuantity: 15m,
+            resultingQuantity: 5m,
+            unit: "mL",
+            occurredOn: new DateOnly(2026, 7, 7));
+
+        await _handler.HandleAsync(disposed);
+
+        StockMovementRow row = Assert.Single(_store.Rows);
+        Assert.Equal(disposed.EventId, row.Id);
+        Assert.Equal(nameof(StockMovementType.Disposed), row.MovementType);
+        Assert.Equal(15m, row.QuantityAmount);
+        Assert.Equal(new DateOnly(2026, 7, 7), row.OccurredOn);
+        Assert.Null(row.ExperimentId);
+        Assert.Null(row.PartnerId);
+        Assert.Null(row.PerformedBy);
+    }
+
+    [Fact]
     public async Task Falls_back_to_the_emission_instant_when_occurred_on_is_not_informed()
     {
         var consumed = new StockConsumedIntegrationEvent(

@@ -118,6 +118,49 @@ public sealed class StockEventTranslatorTests
     }
 
     [Fact]
+    public void StockTransferredEventTranslator_flattens_the_moved_balance_and_locations()
+    {
+        Guid from = Guid.NewGuid();
+        Guid to = Guid.NewGuid();
+        var occurredOn = new DateOnly(2026, 7, 8);
+        var domainEvent = new StockTransferredEvent(
+            Company, Item, from, to, MovedQuantity: Quantity.Of(120m, Ml), OccurredOn: occurredOn);
+
+        var integrationEvent = Assert.IsType<StockTransferredIntegrationEvent>(
+            new StockTransferredEventTranslator().Translate(domainEvent));
+
+        Assert.NotEqual(Guid.Empty, integrationEvent.EventId);
+        Assert.Equal(Company, integrationEvent.CompanyId);
+        Assert.Equal(Item, integrationEvent.StockItemId);
+        Assert.Equal(from, integrationEvent.FromStorageLocationId);
+        Assert.Equal(to, integrationEvent.ToStorageLocationId);
+        Assert.Equal(120m, integrationEvent.MovedQuantity);
+        Assert.Equal("mL", integrationEvent.Unit);
+        Assert.Equal(occurredOn, integrationEvent.OccurredOn);
+    }
+
+    [Fact]
+    public void StockDisposedEventTranslator_flattens_the_disposed_and_resulting_quantities()
+    {
+        var occurredOn = new DateOnly(2026, 7, 7);
+        var domainEvent = new StockDisposedEvent(
+            Company, Item,
+            DisposedQuantity: Quantity.Of(15m, Ml),
+            ResultingQuantity: Quantity.Of(5m, Ml),
+            OccurredOn: occurredOn);
+
+        var integrationEvent = Assert.IsType<StockDisposedIntegrationEvent>(
+            new StockDisposedEventTranslator().Translate(domainEvent));
+
+        Assert.Equal(Company, integrationEvent.CompanyId);
+        Assert.Equal(Item, integrationEvent.StockItemId);
+        Assert.Equal(15m, integrationEvent.DisposedQuantity);
+        Assert.Equal(5m, integrationEvent.ResultingQuantity);
+        Assert.Equal("mL", integrationEvent.Unit);
+        Assert.Equal(occurredOn, integrationEvent.OccurredOn);
+    }
+
+    [Fact]
     public void StockBelowMinimumEventTranslator_flattens_the_current_and_minimum_quantities()
     {
         var domainEvent = new StockBelowMinimumEvent(
