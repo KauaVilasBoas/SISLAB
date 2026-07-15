@@ -8,6 +8,7 @@ import { Label } from '@/shared/components/ui/label';
 import type { ApiError } from '@/shared/types/api';
 import { useAuth, type LoginOutcome } from '@/modules/auth/AuthProvider';
 import { CompanySelector } from '@/modules/auth/components/CompanySelector';
+import { useToast } from '@/shared/components/ui/toast';
 import type { CompanyMembership } from '@/modules/auth/types';
 
 type LocationState = { from?: Location } | null;
@@ -24,11 +25,11 @@ export function LoginPage() {
   const { login, selectCompany } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const toast = useToast();
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [companies, setCompanies] = useState<CompanyMembership[] | null>(null);
 
   const redirectTo = (location.state as LocationState)?.from?.pathname ?? '/';
@@ -48,32 +49,30 @@ export function LoginPage() {
       setCompanies(outcome.companies);
       return;
     }
-    // 'no-company' — the account is not linked to any company yet.
-    setError(
+    toast(
+      'error',
       'Sua conta ainda não está vinculada a nenhuma empresa. Contate o coordenador do laboratório.',
     );
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
     setSubmitting(true);
     try {
       finish(await login(identifier, password));
     } catch (err) {
-      setError(messageFor(err, 'Não foi possível entrar. Tente novamente.'));
+      toast('error', messageFor(err, 'Não foi possível entrar. Tente novamente.'));
     } finally {
       setSubmitting(false);
     }
   }
 
   async function handleSelectCompany(companyId: string) {
-    setError(null);
     try {
       await selectCompany(companyId);
       navigate(redirectTo, { replace: true });
     } catch (err) {
-      setError(messageFor(err, 'Não foi possível ativar a empresa selecionada.'));
+      toast('error', messageFor(err, 'Não foi possível ativar a empresa selecionada.'));
     }
   }
 
@@ -92,11 +91,7 @@ export function LoginPage() {
 
         <CardContent className="flex flex-col gap-6">
           {companies ? (
-            <CompanySelector
-              companies={companies}
-              onSelect={handleSelectCompany}
-              error={error}
-            />
+            <CompanySelector companies={companies} onSelect={handleSelectCompany} />
           ) : (
             <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
               <div className="flex flex-col gap-2">
@@ -124,12 +119,6 @@ export function LoginPage() {
                   required
                 />
               </div>
-
-              {error && (
-                <p className="text-sm text-destructive" role="alert">
-                  {error}
-                </p>
-              )}
 
               <Button type="submit" className="w-full" disabled={submitting}>
                 {submitting && <Loader2 className="size-4 animate-spin" aria-hidden />}

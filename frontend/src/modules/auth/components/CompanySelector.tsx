@@ -10,11 +10,9 @@ import type { CompanyMembership } from '@/modules/auth/types';
 export function CompanySelector({
   companies,
   onSelect,
-  error,
 }: {
   companies: CompanyMembership[];
   onSelect: (companyId: string) => Promise<void> | void;
-  error?: string | null;
 }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
 
@@ -49,12 +47,6 @@ export function CompanySelector({
           </li>
         ))}
       </ul>
-
-      {error && (
-        <p className="text-sm text-destructive" role="alert">
-          {error}
-        </p>
-      )}
     </div>
   );
 }
