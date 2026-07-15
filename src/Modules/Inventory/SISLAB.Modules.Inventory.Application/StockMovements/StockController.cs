@@ -66,6 +66,40 @@ public sealed class StockController : SislabControllerBase
     }
 
     /// <summary>
+    /// Lists the movement history (ledger) of a single stock item of the active company — entries,
+    /// consumptions, transfers and disposals — most recent first, optionally narrowed by movement type
+    /// and/or a business-date window, paginated. Gated by <c>Stock.ListStockMovements</c>.
+    /// </summary>
+    [HttpGet("stock-items/{stockItemId:guid}/movements")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult<PagedResult<StockMovementListItem>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ListStockMovements(
+        Guid stockItemId,
+        [FromQuery] string? type = null,
+        [FromQuery] DateOnly? from = null,
+        [FromQuery] DateOnly? to = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        PagedResult<StockMovementListItem> result = await _mediator.SendAsync(
+            new ListStockMovementsQuery
+            {
+                StockItemId = stockItemId,
+                Type = type,
+                From = from,
+                To = to,
+                Page = page,
+                PageSize = pageSize
+            },
+            ct);
+
+        return Ok(new ApiResult<PagedResult<StockMovementListItem>>(true, "Stock movements retrieved.", result));
+    }
+
+    /// <summary>
     /// Returns the per-location summary (item count, expired count, critical flag) for the master-detail
     /// left column, including empty locations.
     /// </summary>
