@@ -43,7 +43,7 @@
       business modules reference Lumen.Authorization.AspNetCore directly, pinned to the same 3.0.0 the
       Identity module already uses. No alias, no wrapper.
     -->
-    <PackageReference Include="Lumen.Authorization.AspNetCore" Version="3.0.0" />
+    <PackageReference Include="Lumen.Authorization.AspNetCore" Version="3.0.1" />
   </ItemGroup>
 
 </Project>

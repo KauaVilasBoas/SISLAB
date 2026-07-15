@@ -37,8 +37,8 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.15" />
 
     <!-- Lumen Identity: AuthN, endpoints, migrations Postgres -->
-    <PackageReference Include="Lumen.Authorization" Version="3.0.0" />
-    <PackageReference Include="Lumen.Authorization.AspNetCore" Version="3.0.0" />
+    <PackageReference Include="Lumen.Authorization" Version="3.0.1" />
+    <PackageReference Include="Lumen.Authorization.AspNetCore" Version="3.0.1" />
     <!--
       Migrations assembly (3.0.0): ships the EF migration classes for the "Lumen" schema (referenced by
       name via MigrationsAssembly) that AddLumenAuthorization applies on boot. Also exposes the
