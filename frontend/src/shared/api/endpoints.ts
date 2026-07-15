@@ -37,6 +37,7 @@ export const Endpoints = {
     /** Admin — members of the active company. */
     members: {
       list: '/api/admin/companies/active/members',
+      enriched: '/api/admin/companies/active/members/enriched',
       removalEligibility: (userId: string) =>
         `/api/admin/companies/active/members/${userId}/removal-eligibility`,
       invite: '/api/admin/companies/active/members/invite',
