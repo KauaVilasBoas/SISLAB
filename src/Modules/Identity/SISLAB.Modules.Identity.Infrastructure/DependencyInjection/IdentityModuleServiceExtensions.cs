@@ -241,6 +241,13 @@ public static class IdentityModuleServiceExtensions
         services.AddScoped<Contracts.Authorization.ILumenAuthorizationGateway,
             Authorization.LumenAuthorizationGateway>();
 
+        // 9.2 User gateway (card [E7] #105): the anti-corruption adapter that resolves a Lumen user's identity
+        //      (username/e-mail) and assigned profiles via Lumen's MediatR GetUserDetailQuery, so the enriched
+        //      members listing can be built server-side. Registered AFTER AddLumenIdentity (which registers the
+        //      MediatR IMediator it depends on); the enrich query handler depends on this port, never on Lumen.
+        services.AddScoped<Contracts.Administration.ILumenUserGateway,
+            Administration.LumenUserGateway>();
+
         // 10. Lumen.Modularity in-process event bus.
         //     Lumen Identity's CQRS handlers publish integration events via IEventBus;
         //     without this registration the container cannot build those handlers.

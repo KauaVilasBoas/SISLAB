@@ -61,6 +61,27 @@ public sealed class CompanyMembersController : SislabControllerBase
     }
 
     /// <summary>
+    /// Lists members of the active company enriched with their Lumen identity (username/e-mail) and assigned
+    /// profiles — the data the "Members" tab renders (card [E7] #105). Requires the
+    /// <c>CompanyMembers.ListEnrichedMembers</c> permission scoped to the active company.
+    /// </summary>
+    [HttpGet("enriched", Name = "ListEnrichedMembers")]
+    [ActionName("ListEnrichedMembers")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult<IReadOnlyList<EnrichedMemberDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ListEnrichedMembers(CancellationToken ct)
+    {
+        ListEnrichedCompanyMembersQueryResult result =
+            await _mediator.SendAsync(new ListEnrichedCompanyMembersQuery(GetCompanyId()), ct);
+
+        return Ok(new ApiResult<IReadOnlyList<EnrichedMemberDto>>(
+            true, "Enriched members retrieved.", result.Members));
+    }
+
+    /// <summary>
     /// Dry-runs removal eligibility for a member of the active company.
     /// Requires <c>CompanyMembers.CheckRemovalEligibility</c> permission scoped to the active company.
     ///
