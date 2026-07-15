@@ -15,9 +15,7 @@ interface ConsumptionBarChartProps {
  * between units). See https://echarts.apache.org/examples/en/index.html#chart-type-bar
  */
 function buildBarOption(series: ConsumptionSeries): EChartsCoreOption {
-  const categories = Array.from(
-    new Set(series.points.map((p) => p.bucketStart)),
-  ).sort();
+  const categories = Array.from(new Set(series.points.map((p) => p.bucketStart))).sort();
   const units = Array.from(new Set(series.points.map((p) => p.unit))).sort();
 
   const byKey = new Map(

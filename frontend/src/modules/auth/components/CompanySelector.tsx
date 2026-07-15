@@ -29,9 +29,7 @@ export function CompanySelector({
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-muted-foreground">
-        Selecione a empresa para continuar.
-      </p>
+      <p className="text-sm text-muted-foreground">Selecione a empresa para continuar.</p>
 
       <ul className="flex flex-col gap-2">
         {companies.map((company) => (

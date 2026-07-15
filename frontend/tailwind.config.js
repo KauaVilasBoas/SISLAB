@@ -43,6 +43,25 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        // Semantic status palette (card [E7] #43).
+        status: {
+          expired: 'hsl(var(--status-expired))',
+          warning: 'hsl(var(--status-warning))',
+          ok: 'hsl(var(--status-ok))',
+          info: 'hsl(var(--status-info))',
+          controlled: 'hsl(var(--status-controlled))',
+          foreground: 'hsl(var(--status-foreground))',
+        },
+        // Fixed-dark sidebar surface.
+        sidebar: {
+          DEFAULT: 'hsl(var(--sidebar))',
+          foreground: 'hsl(var(--sidebar-foreground))',
+          muted: 'hsl(var(--sidebar-muted))',
+          border: 'hsl(var(--sidebar-border))',
+          accent: 'hsl(var(--sidebar-accent))',
+          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+          ring: 'hsl(var(--sidebar-ring))',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

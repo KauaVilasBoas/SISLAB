@@ -2,11 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useLocation, useNavigate, type Location } from 'react-router-dom';
 import { FlaskConical, Loader2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-} from '@/shared/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import type { ApiError } from '@/shared/types/api';

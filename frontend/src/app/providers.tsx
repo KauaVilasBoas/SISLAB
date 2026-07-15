@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ApiError } from '@/shared/types/api';
 import { AuthProvider } from '@/modules/auth/AuthProvider';
+import { ThemeProvider } from '@/app/theme/ThemeProvider';
 
 /**
  * App-wide providers. Add new context providers (theme, auth, toaster) here so
@@ -31,8 +32,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
   );
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>{children}</AuthProvider>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>{children}</AuthProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }

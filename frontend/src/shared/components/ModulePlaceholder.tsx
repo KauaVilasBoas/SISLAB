@@ -19,8 +19,8 @@ export function ModulePlaceholder({ title, description }: ModulePlaceholderProps
         <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
           <Construction className="size-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            Tela em construção. A arquitetura está pronta — os componentes deste
-            módulo serão adicionados aqui.
+            Tela em construção. A arquitetura está pronta — os componentes deste módulo
+            serão adicionados aqui.
           </p>
         </CardContent>
       </Card>

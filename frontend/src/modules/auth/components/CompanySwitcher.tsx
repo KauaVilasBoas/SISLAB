@@ -35,7 +35,10 @@ export function CompanySwitcher() {
           ))}
         </select>
         {isPending && (
-          <Loader2 className="pointer-events-none absolute right-2 top-1.5 size-4 animate-spin text-muted-foreground" aria-hidden />
+          <Loader2
+            className="pointer-events-none absolute right-2 top-1.5 size-4 animate-spin text-muted-foreground"
+            aria-hidden
+          />
         )}
       </div>
     </label>

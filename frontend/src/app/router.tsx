@@ -2,6 +2,9 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppShell } from '@/app/layout/AppShell';
 import { DashboardPage } from '@/modules/dashboard/pages/DashboardPage';
 import { InventoryPage } from '@/modules/inventory/pages/InventoryPage';
+import { EquipmentPage } from '@/modules/inventory/pages/EquipmentPage';
+import { PartnersPage } from '@/modules/inventory/pages/PartnersPage';
+import { ControlledPage } from '@/modules/controlled/pages/ControlledPage';
 import { MembersPage } from '@/modules/identity/pages/MembersPage';
 import { ConfigurationPage } from '@/modules/configuration/pages/ConfigurationPage';
 import { AuditPage } from '@/modules/audit/pages/AuditPage';
@@ -29,6 +32,9 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <DashboardPage /> },
       { path: 'inventory', element: <InventoryPage /> },
+      { path: 'controlled', element: <ControlledPage /> },
+      { path: 'equipment', element: <EquipmentPage /> },
+      { path: 'partners', element: <PartnersPage /> },
       { path: 'members', element: <MembersPage /> },
       { path: 'configuration', element: <ConfigurationPage /> },
       { path: 'audit', element: <AuditPage /> },
