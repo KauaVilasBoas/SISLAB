@@ -10,16 +10,16 @@ namespace SISLAB.Modules.Identity.Tests.Authorization;
 
 /// <summary>
 /// Proves the anti-corruption gateway (card [E12] #101) faithfully translates Lumen's authorization API into
-/// SISLAB Contracts DTOs: permissions arrive grouped by <c>PermissionGroup</c> with the orphan flag intact,
-/// the <c>selected</c> flag reflects a profile's granted permissions, and write use cases forward to the
-/// correct Lumen commands (with the company id as <c>ScopeId</c>).
+/// SISLAB Contracts DTOs: permissions arrive grouped by <c>PermissionGroup</c> (including the ungrouped
+/// bucket), the <c>selected</c> flag reflects a profile's granted permissions, and write use cases forward to
+/// the correct Lumen commands (with the company id as <c>ScopeId</c>).
 /// </summary>
 public sealed class LumenAuthorizationGatewayTests
 {
     private static readonly Guid InventoryGroupId = new("11111111-1111-1111-1111-111111111111");
     private static readonly Guid PermCreate = new("aaaaaaaa-0000-0000-0000-000000000001");
     private static readonly Guid PermList = new("aaaaaaaa-0000-0000-0000-000000000002");
-    private static readonly Guid PermOrphan = new("aaaaaaaa-0000-0000-0000-000000000003");
+    private static readonly Guid PermUngrouped = new("aaaaaaaa-0000-0000-0000-000000000003");
     private static readonly Guid ProfileId = new("bbbbbbbb-0000-0000-0000-000000000001");
 
     private static IReadOnlyList<ListPermissionsGroupResult> SampleGroups() =>
@@ -28,14 +28,14 @@ public sealed class LumenAuthorizationGatewayTests
             InventoryGroupId,
             "Inventory",
             [
-                new ListPermissionsPermissionResult(PermCreate, "Items.Create", "Create item", IsOrphan: false),
-                new ListPermissionsPermissionResult(PermList, "Items.List", "List items", IsOrphan: false),
+                new ListPermissionsPermissionResult(PermCreate, "Items.Create", "Create item"),
+                new ListPermissionsPermissionResult(PermList, "Items.List", "List items"),
             ]),
         new ListPermissionsGroupResult(
             GroupId: null,
             "Ungrouped",
             [
-                new ListPermissionsPermissionResult(PermOrphan, "Legacy.Gone", "Legacy action", IsOrphan: true),
+                new ListPermissionsPermissionResult(PermUngrouped, "Misc.Action", "Miscellaneous action"),
             ]),
     ];
 
@@ -57,7 +57,6 @@ public sealed class LumenAuthorizationGatewayTests
         Assert.All(inventory.Permissions, p => Assert.False(p.Selected));
 
         PermissionGroupDto ungrouped = groups.Single(g => g.GroupId is null);
-        Assert.True(ungrouped.Permissions.Single().IsOrphan);
         Assert.False(ungrouped.Permissions.Single().Selected);
     }
 
@@ -76,7 +75,7 @@ public sealed class LumenAuthorizationGatewayTests
         var flat = groups.SelectMany(g => g.Permissions).ToDictionary(p => p.Id);
         Assert.True(flat[PermCreate].Selected);
         Assert.False(flat[PermList].Selected);
-        Assert.False(flat[PermOrphan].Selected);
+        Assert.False(flat[PermUngrouped].Selected);
     }
 
     [Fact]

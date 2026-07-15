@@ -19,7 +19,7 @@ public sealed class ListAvailablePermissionsQueryHandlerTests
         new PermissionGroupDto(
             Guid.NewGuid(),
             "Inventory",
-            [new PermissionOptionDto(Guid.NewGuid(), "Items.Create", "Create item", IsOrphan: false, Selected: true)]),
+            [new PermissionOptionDto(Guid.NewGuid(), "Items.Create", "Create item", Selected: true)]),
     ];
 
     [Fact]

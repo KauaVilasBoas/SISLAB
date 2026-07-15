@@ -35,7 +35,7 @@ substances cabinet), equipment management, partner (supplier/client) records, ex
 alerts, and an analytics dashboard — with an audit trail for future regulatory compliance.
 
 Identity and access management are delegated to **[Lumen](https://github.com/KauaVilasBoas/Lumen)**,
-a purpose-built IAM service consumed here as NuGet packages (`Lumen.Identity 1.0.0` + `Lumen.Authorization 1.1.0`).
+a purpose-built IAM service consumed here as NuGet packages (`Lumen.Identity 1.0.0` + `Lumen.Authorization 3.0.0`).
 Multi-tenancy is a SISLAB responsibility: a user can belong to multiple companies, switching
 active company without re-authenticating; their permissions are scoped per company.
 
@@ -79,7 +79,7 @@ flowchart TB
 
     subgraph MODS["Modules — each a self-contained vertical"]
         subgraph IDM["Identity · E1"]
-            IDC["Contracts (public boundary)\nITenantContext · IdentityPermissions · DTOs"]
+            IDC["Contracts (public boundary)\nILumenAuthorizationGateway · Profile DTOs"]
             IDI["Domain · Application · Infrastructure\nCompany aggregate · CompanyMembership\nTenantResolutionMiddleware · ActiveCompanyCookie\nIdentityDbContext (tenancy.*)"]
         end
         subgraph INV["Inventory · E3–E4"]
@@ -93,7 +93,7 @@ flowchart TB
         INFRA["Infrastructure\nModuleLoader · SislabDbContextBase · EfUnitOfWork\nOutboxWriter · OutboxDispatcher · InMemoryEventBus\nPipeline: Validation → Transaction → Logging"]
     end
 
-    LUM["Lumen NuGet packages\nLumen.Identity 1.0.0 — JWT HS256 · BCrypt · HIBP · lockout · refresh-rotation\nLumen.Authorization 1.1.0 — permission-based · tenant-scoped profiles · Redis-cached"]
+    LUM["Lumen NuGet packages\nLumen.Identity 1.0.0 — JWT HS256 · BCrypt · HIBP · lockout · refresh-rotation\nLumen.Authorization 3.0.0 — permission-based · tenant-scoped profiles · Redis-cached"]
 
     DB[("PostgreSQL\ntenancy.* — companies · company_memberships\nidentity.* — users · tokens  (Lumen Identity)\nLumen.* — permissions · profiles · user_profiles  (Lumen Authorization)\ninventory.* — items · locations · movements · equipment · partners\noutbox.* — outbox_messages")]
 
@@ -150,15 +150,15 @@ Each decision below was planned as a card on the
 | Decision | Rationale |
 |---|---|
 | **Active company in cookie, not JWT** | A claim in the JWT is frozen at issue time — switching companies would require a new login. An httpOnly + SameSite cookie holds the active `companyId`; the `TenantResolutionMiddleware` re-validates membership against the DB on every request. Company switch = new cookie, same token. The trade-off: one extra DB read per request, eliminated in E9 with per-request caching. |
-| **IAM as NuGet packages** | SISLAB delegates authentication and authorization to **Lumen**, consumed as `Lumen.Identity 1.0.0` + `Lumen.Authorization 2.0.0`. SISLAB owns tenancy (`Company`, `CompanyMembership`); Lumen owns users, tokens, and profiles; SISLAB owns the permission catalogue (see below). Clean bounded-context boundary — no shared schemas, no shared internals, references by `Guid` value only. |
-| **Lumen Authorization wiring (v2 umbrella)** | Lumen.Authorization 2.0.0 made the umbrella provider-aware: SISLAB calls `AddLumenAuthorization(connString, o => o.Provider = PostgreSQL)`. Its unified `LumenAuthorizationStartupService` applies the PostgreSQL `Lumen`-schema migrations and validates the catalogue on boot — no separate migrations/enforcement/discovery calls, and no SQL Server crash. |
-| **SISLAB owns the permission catalogue** | v2 inverted catalogue ownership: `CatalogMode = Validate` (default) only scans `[RequirePermission]` codes and warns on any missing from the DB — it never writes. SISLAB seeds every group and permission itself via `LumenPermissionCatalogSeeder`, an idempotent boot-time hosted service (raw `INSERT ... ON CONFLICT DO NOTHING` against `Lumen.PermissionGroup` / `Lumen.Permission`, deterministic UUIDs, pt-BR display names). It runs after Lumen's startup service — not an EF migration — because `IdentityDbContext` owns a different schema/history and migrates before Lumen creates its schema. |
+| **IAM as NuGet packages** | SISLAB delegates authentication and authorization to **Lumen**, consumed as `Lumen.Identity 1.0.0` + `Lumen.Authorization 3.0.0`. SISLAB owns tenancy (`Company`, `CompanyMembership`); Lumen owns users, tokens, and profiles; SISLAB owns the permission catalogue (see below). Clean bounded-context boundary — no shared schemas, no shared internals, references by `Guid` value only. |
+| **Lumen Authorization wiring (v3 umbrella)** | Lumen.Authorization 3.0.0 is a provider-aware umbrella: SISLAB calls `AddLumenAuthorization(connString, o => o.Provider = PostgreSQL)`. Its `LumenAuthorizationMigrationsHostedService` applies the PostgreSQL `Lumen`-schema migrations on boot (empty tables) — no separate migrations/enforcement/discovery calls, and no SQL Server crash. v3 dropped all catalogue machinery (no `CatalogMode`, no discovery scanner): the library never seeds permissions. |
+| **SISLAB owns the permission catalogue** | Because Lumen 3.0.0 seeds nothing, SISLAB owns the permission data and applies it out-of-band via the `SISLAB.Migrations` EF project. Its `SeedPermissions` migration calls the idempotent `SeedLumenPermissionGroup` / `SeedLumenPermission` helpers to populate every group and permission (with pt-BR display names) into `Lumen.PermissionGroup` / `Lumen.Permission`. A dedicated seed project — not a boot-time hosted service and not a module `DbContext` migration — keeps reference data out of the app boot path and off the module schemas/histories. |
 | **Schema per bounded context** | `tenancy.*` (SISLAB multi-tenancy), `identity.*` (Lumen Identity), `Lumen.*` (Lumen Authorization), `inventory.*` (Inventory module). Each `DbContext` owns its schema and its EF migrations, applied at startup by per-context hosted services. No cross-schema foreign keys — cross-references are by `Guid` id, making future extraction cheap. |
 | **Dual persistence — EF Core write, Dapper read** | Domain invariants and transactional writes use EF Core (change tracking, global query filter, aggregate roots). Analytical reads (dashboards, reports, paginated lists) use Dapper with raw PostgreSQL SQL in the Branef.SGF pattern: query, handler, and result record sealed in one file. No ORM overhead on the hot read path; no raw SQL risk on the mutation path. |
 | **Hybrid event strategy** | Domain events that enforce business invariants (e.g., "cross-module stock check") are dispatched transactionally — failure rolls back the entire operation. Side effects (integration events to other modules) are written to the `outbox.*` table in the same EF transaction and dispatched eventually by `SISLAB.Jobs`. This avoids distributed transactions while guaranteeing at-least-once delivery. |
 | **Tenant-scoped permission profiles** | The same user can hold the `Administrator` profile in company A and have no profile in company B. `Lumen.Authorization` provides `UserProfile.ScopeId` for this; SISLAB implements `ITenantScopeAccessor` returning the active `companyId`. The permission cache is keyed by `(userId, companyId)` — a company switch flushes to the scoped cache immediately. |
 | **Pipeline ordering: AuthN → TenantResolution → AuthZ** | `TenantResolutionMiddleware` must run **after** `UseAuthentication` (needs the JWT principal to look up membership) and **before** `UseAuthorization` (Lumen's `PermissionAuthorizationHandler` reads the scope via `ITenantScopeAccessor` during authorization). Wrong order = 403 on every tenant-scoped endpoint even with the correct company active. |
-| **Permission codes from code, catalogue seeded by SISLAB** | `[RequirePermission]` on a controller action derives a `Controller.Action` code. Under v2 `Validate` mode Lumen only checks each discovered code exists in the DB (warning if not); SISLAB materializes the `Permission` rows itself through `LumenPermissionCatalogSeeder`, sourced from the SharedKernel permission constants (no magic strings). Renaming a constant breaks compilation of the catalogue. |
+| **Permission codes from convention, rows seeded by SISLAB** | `[RequirePermission]` (no code) on a controller action derives its permission code by convention as `Controller.Action`; Lumen enforces it against the `Lumen.Permission` rows. Those rows are the single source of truth and live only in the DB, seeded by the `SISLAB.Migrations` `SeedPermissions` migration — there are no permission-code constants in C#. `WriteEndpointPermissionTests` guards that every write endpoint stays `[RequirePermission]`-decorated. |
 | **Architecture tests as a build gate** | ArchUnitNET rules live in `tests/SISLAB.ArchitectureTests`. A module's Domain may not reference another module's Domain; modules communicate only through `*.Contracts`; Domain may not import EF, Dapper or ASP.NET. Violations fail the build — not a code review comment. |
 | **AWS + Terraform IaC** | Production runs on Elastic Beanstalk (EC2 t3.micro) against RDS PostgreSQL. S3 + CloudFront serve the React SPA. All infrastructure is described in HCL under `infra/`, applied by GitHub Actions (`terraform plan` on PRs, `terraform apply` on main). Secrets live in SSM Parameter Store — never in source. |
 
@@ -172,7 +172,7 @@ Each decision below was planned as a card on the
 | Architecture | Modular monolith — DDD + CQRS + Outbox |
 | Write-side | EF Core 8 + PostgreSQL 15 (snake_case, schema-per-module, soft-delete) |
 | Read-side | Dapper — raw SQL, same-file query + handler + result (Branef.SGF pattern) |
-| IAM | `Lumen.Identity 1.0.0` + `Lumen.Authorization 1.1.0` (NuGet) |
+| IAM | `Lumen.Identity 1.0.0` + `Lumen.Authorization 3.0.0` (NuGet) |
 | In-process messaging | Custom `IMediator` + `IEventBus` + pipeline behaviors (Validation · Transaction · Logging) |
 | Background jobs | `BackgroundService` — Outbox dispatcher + expiry/low-stock alert workers |
 | Frontend | React 19 + Vite + TypeScript + Tailwind CSS + shadcn/ui + Apache ECharts |

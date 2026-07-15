@@ -19,12 +19,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Host\SISLAB.Api\SISLAB.Api.csproj" />
-    <!-- Test-only: the SISLAB permission catalogue (PermissionCatalog) lives in Identity Infrastructure
-         (Lumen is confined there, section 8). The anti-drift test ties that catalogue to the real controller
-         actions discovered from the module Application assemblies (already reachable via the Host). Referencing
-         the Infrastructure here is a test concern only — production Host wiring still references modules solely
-         through their Application entry point. -->
-    <ProjectReference Include="..\..\src\Modules\Identity\SISLAB.Modules.Identity.Infrastructure\SISLAB.Modules.Identity.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

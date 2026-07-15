@@ -49,7 +49,6 @@ internal sealed class LumenAuthorizationGateway : ILumenAuthorizationGateway
                         permission.Id,
                         permission.Code,
                         permission.DisplayName,
-                        permission.IsOrphan,
                         selectedIds.Contains(permission.Id)))
                     .ToList()))
             .ToList();

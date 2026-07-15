@@ -21,14 +21,18 @@ namespace SISLAB.Modules.Identity.Infrastructure.DependencyInjection;
 /// Registration order:
 /// 1. EF DbContext (SISLAB — Company/CompanyMembership, schema "tenancy")
 /// 2. Domain repositories
-/// 3. MVC controllers (required for Lumen's permission discovery scanner)
+/// 3. MVC controllers (co-located with their CQRS handlers in the Application assembly)
 /// 4. Identity schema migrations hosted service
 /// 5. Lumen Identity (AddLumenIdentity — AuthN, JWT Bearer, Lumen's own DbContext + repos)
 /// 6. Lumen Identity PostgreSQL migrations hosted service
-/// 7. Lumen Authorization (umbrella AddLumenAuthorization — v2.0.0, CatalogMode=Validate)
-/// 8. SISLAB permission-catalog seeder (hosted service AFTER Lumen startup — SISLAB owns the catalog)
-/// 9. Tenant context + scope accessor (overrides Lumen's no-op)
-/// 10. Dev seed (opt-in, registered last so it runs after all migration hosted services)
+/// 7. Lumen Authorization (umbrella AddLumenAuthorization — v3.0.0; auto-migrates the "Lumen" schema)
+/// 8. Tenant context + scope accessor (overrides Lumen's no-op)
+/// 9. Dev seed (opt-in, registered last so it runs after all migration hosted services)
+///
+/// <para>The permission catalogue is NOT seeded here. Lumen.Authorization 3.0.0 never populates
+/// permissions (no discovery, no catalogue sync — it only creates empty schema tables on boot). SISLAB
+/// owns the permission data and seeds it out-of-band via the <c>SISLAB.Migrations</c> EF project
+/// (idempotent <c>SeedLumenPermission*</c> migrations), decoupled from the app boot path.</para>
 /// </summary>
 public static class IdentityModuleServiceExtensions
 {
@@ -123,17 +127,14 @@ public static class IdentityModuleServiceExtensions
         // 6. Lumen Identity — PostgreSQL migrations hosted service
         services.AddLumenIdentityPostgresMigrations();
 
-        // 7. Lumen Authorization — v2.0.0 umbrella (AddLumenAuthorization on the AspNetCore package).
-        //    v2 inverted catalog ownership: the umbrella is now provider-aware and the unified
-        //    LumenAuthorizationStartupService applies the PostgreSQL "Lumen"-schema migrations itself
-        //    (assembly selected by Provider=PostgreSQL) — no separate AddLumenAuthorizationPostgresMigrations()
-        //    and no granular AddLumenAuthorizationEnforcement()/Discovery() calls anymore.
-        //
-        //    CatalogMode defaults to Validate: on boot Lumen scans every [RequirePermission] code and only
-        //    LOGS A WARNING for codes missing from "Lumen"."Permission" — it never writes the catalog. SISLAB
-        //    is the owner and seeds the catalog itself (step 8). FailFastOnMissingPermission stays false so a
-        //    seed gap degrades to a warning rather than aborting boot; flip it on in staging to catch drift.
-        //    ApplyMigrationsOnStartup=true so the startup service creates/updates the "Lumen" schema.
+        // 7. Lumen Authorization — v3.0.0 umbrella (AddLumenAuthorization on the AspNetCore package).
+        //    The umbrella is provider-aware: with Provider=PostgreSQL it selects the PostgreSQL migrations
+        //    assembly and its LumenAuthorizationMigrationsHostedService creates/updates the "Lumen" schema on
+        //    boot (empty "Permission"/"PermissionGroup" tables). v3.0.0 dropped all catalogue machinery
+        //    (no CatalogMode, no discovery scanner, no FailFastOnMissingPermission) — Lumen never seeds
+        //    permissions. SISLAB owns the permission data and seeds it out-of-band via the SISLAB.Migrations
+        //    EF project (SeedLumenPermission* migrations), so nothing is seeded on this boot path.
+        //    ApplyMigrationsOnStartup=true keeps the schema self-provisioning.
         //    Explicitly qualified to the AspNetCore umbrella: both it and the core package expose an
         //    AddLumenAuthorization(IServiceCollection, string, Action<...>) with the same signature, so an
         //    unqualified call is ambiguous. The AspNetCore one is the umbrella (core + enforcement + startup).
@@ -144,21 +145,9 @@ public static class IdentityModuleServiceExtensions
             {
                 options.Provider = DatabaseProvider.PostgreSQL;
                 options.ApplyMigrationsOnStartup = true;
-                // CatalogMode = Validate (default) — SISLAB owns the catalog via LumenPermissionCatalogSeeder.
             });
 
-        // 8. SISLAB permission-catalog seeder — hosted service registered IMMEDIATELY AFTER the Lumen umbrella.
-        //    Hosted services run sequentially in registration order, so this executes once
-        //    LumenAuthorizationStartupService has applied the "Lumen"-schema migrations (the "Permission" /
-        //    "PermissionGroup" tables exist). Since v2 no longer syncs the catalog, SISLAB inserts every group
-        //    and every [RequirePermission] code with idempotent raw SQL (INSERT ... ON CONFLICT DO NOTHING),
-        //    including the pt-BR DisplayName. This is a boot-time seeder rather than an EF migration on
-        //    IdentityDbContext because those two DbContexts own different schemas/histories and IdentityDbContext's
-        //    migration hosted service (step 4) runs BEFORE Lumen creates its schema — a migration there would hit
-        //    42P01. Failure is swallowed so a seed hiccup never blocks boot (Validate would only warn anyway).
-        services.AddHostedService<Authorization.LumenPermissionCatalogSeeder>();
-
-        // 9. SISLAB tenant context (Scoped — one instance per request).
+        // 8. SISLAB tenant context (Scoped — one instance per request).
         //     The concrete TenantContext is the REQUEST tenant source: TenantResolutionMiddleware resolves
         //     it directly and populates it from the httpOnly cookie. Consumers depend on the abstraction
         //     ITenantContext, which is composed as OverridableTenantContext — a Decorator that reports the
@@ -172,11 +161,11 @@ public static class IdentityModuleServiceExtensions
             sp.GetRequiredService<TenantContext>(),
             sp.GetRequiredService<ITenantContextOverride>()));
 
-        // 10. Tenant bridge: overrides Lumen's no-op ITenantScopeAccessor with SISLAB's impl.
+        // 9. Tenant bridge: overrides Lumen's no-op ITenantScopeAccessor with SISLAB's impl.
         //     Lumen registers its no-op via TryAdd; this AddScoped wins as the last registration.
         services.AddScoped<Lumen.Authorization.Contracts.ITenantScopeAccessor, SislabTenantScopeAccessor>();
 
-        // 10.1 Authorization gateway (card [E12] #101): the single anti-corruption adapter that dispatches
+        // 9.1 Authorization gateway (card [E12] #101): the single anti-corruption adapter that dispatches
         //      Lumen's authorization use cases through its MediatR pipeline and maps the results to SISLAB
         //      Contracts DTOs. Registered AFTER AddLumenAuthorization so MediatR's IMediator (which the
         //      gateway depends on) is available. Every profile-management handler depends on this port,
@@ -184,13 +173,13 @@ public static class IdentityModuleServiceExtensions
         services.AddScoped<Contracts.Authorization.ILumenAuthorizationGateway,
             Authorization.LumenAuthorizationGateway>();
 
-        // 11. Lumen.Modularity in-process event bus.
+        // 10. Lumen.Modularity in-process event bus.
         //     Lumen Identity's CQRS handlers publish integration events via IEventBus;
         //     without this registration the container cannot build those handlers.
         //     SISLAB does not yet consume Lumen events — registered with no handler assemblies.
         services.AddEventBus();
 
-        // 12. Dev seed (LAFTE company + admin user), behind the "Seed:Enabled" flag.
+        // 11. Dev seed (LAFTE company + admin user), behind the "Seed:Enabled" flag.
         //     Registered LAST so DevSeedHostedService runs after all migration hosted services
         //     (SISLAB + Lumen), ensuring schemas and Lumen's system seed (Administrator/User
         //     profiles) already exist when the SISLAB seed executes.

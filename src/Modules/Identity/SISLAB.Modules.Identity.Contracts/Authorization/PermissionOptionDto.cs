@@ -7,10 +7,6 @@ namespace SISLAB.Modules.Identity.Contracts.Authorization;
 /// <param name="Id">The Lumen permission id — the value sent back when setting a profile's permissions.</param>
 /// <param name="Code">The permission code (<c>&lt;Controller&gt;.&lt;Action&gt;</c>), the enforcement key.</param>
 /// <param name="DisplayName">Human-readable label for the checkbox.</param>
-/// <param name="IsOrphan">
-/// True when Lumen flagged the permission as orphan (no longer backed by a live controller action). The UI
-/// should hide or visually de-emphasise these; they are surfaced (not dropped) so the flag stays honest.
-/// </param>
 /// <param name="Selected">
 /// True when this permission is already granted to the profile the query was scoped to. Always false when the
 /// query carried no <c>profileId</c> (a fresh profile has nothing selected yet).
@@ -19,5 +15,4 @@ public sealed record PermissionOptionDto(
     Guid Id,
     string Code,
     string DisplayName,
-    bool IsOrphan,
     bool Selected);

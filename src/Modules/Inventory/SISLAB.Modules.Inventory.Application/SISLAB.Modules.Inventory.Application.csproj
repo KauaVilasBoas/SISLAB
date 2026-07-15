@@ -40,10 +40,10 @@
       documented relaxation of section 8 ("consume Lumen only inside the Identity module"): the granular
       authorization attribute must decorate the controller that hosts the action, and Lumen's discovery
       scanner only sees ControllerActionDescriptors — a proxy attribute would be invisible to it. So the
-      business modules reference Lumen.Authorization.AspNetCore directly, pinned to the same 2.0.0 the
+      business modules reference Lumen.Authorization.AspNetCore directly, pinned to the same 3.0.0 the
       Identity module already uses. No alias, no wrapper.
     -->
-    <PackageReference Include="Lumen.Authorization.AspNetCore" Version="2.0.0" />
+    <PackageReference Include="Lumen.Authorization.AspNetCore" Version="3.0.0" />
   </ItemGroup>
 
 </Project>

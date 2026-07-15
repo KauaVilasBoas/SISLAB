@@ -20,10 +20,9 @@ public sealed class IdentityModule : IModule
         services.AddIdentityModule(configuration);
 
         // MVC controllers of this module (Administration/*Controller) live in this assembly,
-        // co-located with the CQRS queries they dispatch. Registering this assembly as an
-        // ApplicationPart makes [RequirePermission]-decorated actions discoverable by Lumen's
-        // PermissionDiscoveryScanner (which iterates ControllerActionDescriptors only —
-        // Minimal API is invisible to it). AddControllers is idempotent across modules.
+        // co-located with the CQRS queries they dispatch (cohesion). Registering this assembly as an
+        // ApplicationPart makes their [RequirePermission]-decorated actions visible to MVC so Lumen's
+        // enforcement filter can gate them. AddControllers is idempotent across modules.
         services
             .AddControllers()
             .AddApplicationPart(typeof(IdentityModule).Assembly);
