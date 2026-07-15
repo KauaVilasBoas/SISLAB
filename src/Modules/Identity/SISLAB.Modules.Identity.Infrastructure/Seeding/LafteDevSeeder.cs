@@ -50,6 +50,12 @@ public sealed class LafteDevSeeder
     private const string AcmeCompanyName = "ACME";
     private const string AcmeTaxId = "00000000000272";
 
+    // The Administrator profile. Lumen.Authorization 3.0.0 no longer seeds any system profile (it seeds
+    // nothing at all), so SISLAB now owns it: the dev seeder ensures it by name, creating it if absent.
+    // Resolving by name keeps the seed idempotent without depending on a fixed id the library no longer exposes.
+    private const string AdministratorProfileName = "Administrator";
+    private const string AdministratorProfileDescription = "Full access to every SISLAB capability (demo seed).";
+
     // Lumen's internal DbContexts, resolved by type (no public interface exposes them).
     private static readonly Type LumenIdentityDbContextType =
         typeof(IUserRepository).Assembly.GetType("Lumen.Identity.Persistence.IdentityDbContext")!;
@@ -62,6 +68,7 @@ public sealed class LafteDevSeeder
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IUserProfileRepository _userProfileRepository;
+    private readonly IProfileRepository _profileRepository;
     private readonly IServiceProvider _serviceProvider;
     private readonly DevSeedOptions _options;
     private readonly ILogger<LafteDevSeeder> _logger;
@@ -72,6 +79,7 @@ public sealed class LafteDevSeeder
         IUserRepository userRepository,
         IPasswordHasher passwordHasher,
         IUserProfileRepository userProfileRepository,
+        IProfileRepository profileRepository,
         IServiceProvider serviceProvider,
         DevSeedOptions options,
         ILogger<LafteDevSeeder> logger)
@@ -81,6 +89,7 @@ public sealed class LafteDevSeeder
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
         _userProfileRepository = userProfileRepository;
+        _profileRepository = profileRepository;
         _serviceProvider = serviceProvider;
         _options = options;
         _logger = logger;
@@ -204,10 +213,14 @@ public sealed class LafteDevSeeder
     /// <summary>
     /// Ensures the Administrator profile is assigned to the admin, scoped to LAFTE
     /// (<c>ScopeId = companyId</c>). Idempotent via <see cref="IUserProfileRepository.FindActiveAsync"/>.
+    ///
+    /// <para>Lumen.Authorization 3.0.0 seeds no system profile, so SISLAB owns the Administrator profile:
+    /// it is resolved by name and created on first run (<see cref="Profile.Create"/>). Its permission grants
+    /// are managed through the profile-management UI (or the Lumen backoffice), not by this demo seeder.</para>
     /// </summary>
     private async Task EnsureAdministratorProfileAsync(Guid adminUserId, Guid companyId, CancellationToken ct)
     {
-        Guid administratorProfileId = SystemProfiles.AdministratorId;
+        Guid administratorProfileId = await EnsureAdministratorProfileExistsAsync(ct);
 
         UserProfile? existing = await _userProfileRepository.FindActiveAsync(
             adminUserId, administratorProfileId, companyId, ct);
@@ -222,6 +235,25 @@ public sealed class LafteDevSeeder
         await SaveLumenAuthorizationAsync(ct);
 
         _logger.LogInformation("Administrator profile assigned to admin (scope LAFTE={CompanyId}).", companyId);
+    }
+
+    /// <summary>
+    /// Resolves the SISLAB-owned Administrator profile by name, creating it on first run. Idempotent: the
+    /// profile name is the stable key (Lumen 3.0.0 exposes no fixed system-profile id).
+    /// </summary>
+    private async Task<Guid> EnsureAdministratorProfileExistsAsync(CancellationToken ct)
+    {
+        Profile? existing = await _profileRepository.FindByNameAsync(AdministratorProfileName, ct);
+        if (existing is not null)
+            return existing.Id;
+
+        Profile administrator = Profile.Create(
+            AdministratorProfileName, AdministratorProfileDescription, isSystem: true);
+        await _profileRepository.InsertAsync(administrator, ct);
+        await SaveLumenAuthorizationAsync(ct);
+
+        _logger.LogInformation("Administrator profile created (Id={ProfileId}).", administrator.Id);
+        return administrator.Id;
     }
 
     private Task SaveLumenIdentityAsync(CancellationToken ct)

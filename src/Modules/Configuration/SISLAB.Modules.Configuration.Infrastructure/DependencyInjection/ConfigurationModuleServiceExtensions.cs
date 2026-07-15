@@ -12,6 +12,7 @@ using SISLAB.Modules.Configuration.Infrastructure.Messaging;
 using SISLAB.Modules.Configuration.Infrastructure.Persistence;
 using SISLAB.Modules.Configuration.Infrastructure.Provisioning;
 using SISLAB.Modules.Configuration.Infrastructure.Repositories;
+using SISLAB.Modules.Identity.Contracts.Events;
 using SISLAB.SharedKernel.Messaging;
 
 namespace SISLAB.Modules.Configuration.Infrastructure.DependencyInjection;
@@ -67,6 +68,15 @@ public static class ConfigurationModuleServiceExtensions
         // 4. Per-tenant defaults provisioner: seeds ExpiryPolicy(30) + base categories/units for a company,
         //    idempotently and deterministically. Reused by the dev/onboarding seed (card #75 wires the trigger).
         services.AddScoped<TenantConfigurationProvisioner>();
+
+        // 4.1 Cross-module reaction (card [E12] #75b): provision a new tenant's baseline configuration when the
+        //      Identity module signals CompanyCreatedIntegrationEvent. The Identity Outbox writes the event on
+        //      signup; the background Outbox dispatcher publishes it via IEventBus AFTER commit, which resolves
+        //      this handler in-process. It is eventual (off the signup transaction) and idempotent, so an Outbox
+        //      retry after a failure re-runs it safely. Registered against the closed IIntegrationEventHandler<T>
+        //      so the InMemoryEventBus resolves it by event type.
+        services.AddScoped<IIntegrationEventHandler<CompanyCreatedIntegrationEvent>,
+            ProvisionTenantOnCompanyCreatedHandler>();
 
         // 5. Applies schema "configuration" migrations at startup (mirrors the other modules).
         services.AddHostedService<ConfigurationSchemaMigrationsHostedService>();

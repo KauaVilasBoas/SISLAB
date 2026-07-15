@@ -8,10 +8,9 @@ namespace SISLAB.Infrastructure.AspNetCore;
 /// Base class for every SISLAB MVC controller.
 ///
 /// Lives in shared Infrastructure (not the Host) on purpose: module controllers are
-/// physically hosted inside each module's Infrastructure project so Lumen's
-/// PermissionDiscoveryScanner can materialize their [RequirePermission] codes. The Host
-/// cannot be referenced by a module, so a Host-based base class would be unreachable.
-/// Shared Infrastructure is referenced by every module and already carries
+/// hosted inside each module's Application project, co-located with their CQRS handlers.
+/// The Host cannot be referenced by a module, so a Host-based base class would be
+/// unreachable. Shared Infrastructure is referenced by every module and already carries
 /// Microsoft.AspNetCore.App, making it the single reachable home for the base type.
 ///
 /// Controllers dispatch via IMediator and NEVER touch repositories, DbContext or Dapper

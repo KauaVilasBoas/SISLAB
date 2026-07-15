@@ -18,7 +18,16 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Modules\Configuration\SISLAB.Modules.Configuration.Domain\SISLAB.Modules.Configuration.Domain.csproj" />
+    <!-- Infrastructure: exercises the provisioner + the CompanyCreated integration-event handler (card #75b)
+         against the real ConfigurationDbContext (EF InMemory), plus Identity.Contracts for the event type. -->
+    <ProjectReference Include="..\..\src\Modules\Configuration\SISLAB.Modules.Configuration.Infrastructure\SISLAB.Modules.Configuration.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\SISLAB.Modules.Identity.Contracts\SISLAB.Modules.Identity.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Shared\SISLAB.SharedKernel\SISLAB.SharedKernel.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- EF Core InMemory provider to spin up a ConfigurationDbContext without a live database. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.15" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,0 +1,16 @@
+SISLAB — Você foi convidado
+
+Olá.
+
+Você recebeu um convite para participar de {{CompanyName}} no SISLAB,
+o Sistema de Gestão de Laboratório.
+
+Para aceitar o convite e acessar o sistema, acesse o link abaixo:
+
+{{AcceptUrl}}
+
+Este convite expira em alguns dias. Se você não esperava este convite,
+ignore este e-mail com segurança.
+
+SISLAB — Sistema de Gestão de Laboratório.
+Este é um e-mail automático, não responda.

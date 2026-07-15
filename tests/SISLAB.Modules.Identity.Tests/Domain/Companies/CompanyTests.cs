@@ -192,6 +192,29 @@ public sealed class CompanyTests
     }
 
     // ---------------------------------------------------------------------------
+    // Company.IsMember (tenant-isolation guard for profile assignment, card #104)
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void IsMember_ForKnownMember_ReturnsTrue()
+    {
+        Company company = Company.Create("Lab");
+        Guid userId = Guid.NewGuid();
+        company.AddMember(userId);
+
+        Assert.True(company.IsMember(userId));
+    }
+
+    [Fact]
+    public void IsMember_ForUnknownUser_ReturnsFalse()
+    {
+        Company company = Company.Create("Lab");
+        company.AddMember(Guid.NewGuid());
+
+        Assert.False(company.IsMember(Guid.NewGuid()));
+    }
+
+    // ---------------------------------------------------------------------------
     // CompanyMembership properties
     // ---------------------------------------------------------------------------
 

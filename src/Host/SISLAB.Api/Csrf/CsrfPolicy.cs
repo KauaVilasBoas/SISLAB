@@ -24,6 +24,9 @@ internal static class CsrfPolicy
     [
         // Auth endpoints run before a session cookie is issued (login/refresh/register/reset).
         "/api/auth",
+        // Self-service company signup is anonymous and runs before any session exists (card [E12] #75a) —
+        // there is no session cookie to forge, exactly like the auth endpoints above.
+        "/api/companies/signup",
         "/health",
         "/swagger"
     ];

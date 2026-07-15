@@ -98,5 +98,15 @@ internal sealed record ControllerAction(
         Method.GetCustomAttributes()
             .Any(a => a.GetType().Name == "RequirePermissionAttribute");
 
+    /// <summary>
+    /// True when the action (or its controller) is explicitly <c>[AllowAnonymous]</c>. Such an endpoint has no
+    /// authenticated principal or active tenant, so it cannot be permission-gated — it is excluded from the
+    /// write-permission requirement. Public self-service company signup (card [E12] #75a) is the only such write.
+    /// </summary>
+    public bool IsAnonymous =>
+        Method.GetCustomAttributes().Any(a => a.GetType().Name == "AllowAnonymousAttribute")
+        || Controller.GetCustomAttributes(inherit: true)
+            .Any(a => a.GetType().Name == "AllowAnonymousAttribute");
+
     public override string ToString() => $"{Controller.Name}.{Method.Name} ({PermissionCode})";
 }
