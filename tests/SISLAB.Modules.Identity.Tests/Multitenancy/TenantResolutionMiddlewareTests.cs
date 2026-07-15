@@ -173,6 +173,9 @@ public sealed class TenantResolutionMiddlewareTests
         public Task<Company?> FindByIdAsync(Guid id, CancellationToken ct = default)
             => Task.FromResult<Company?>(null);
 
+        public Task<bool> ExistsByNameAsync(string name, CancellationToken ct = default)
+            => Task.FromResult(false);
+
         public Task<IReadOnlyList<Company>> ListActiveAsync(CancellationToken ct = default)
             => Task.FromResult<IReadOnlyList<Company>>([]);
 

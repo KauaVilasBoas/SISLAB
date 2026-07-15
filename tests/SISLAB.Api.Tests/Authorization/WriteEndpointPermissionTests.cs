@@ -26,7 +26,7 @@ public sealed class WriteEndpointPermissionTests
     public void EveryWriteEndpoint_MustHave_RequirePermission()
     {
         List<string> undecorated = ControllerActionCatalog.Writes
-            .Where(action => !action.HasRequirePermission)
+            .Where(action => !action.IsAnonymous && !action.HasRequirePermission)
             .Select(action => action.ToString())
             .ToList();
 

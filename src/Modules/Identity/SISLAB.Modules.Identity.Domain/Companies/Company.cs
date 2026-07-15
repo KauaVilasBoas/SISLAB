@@ -1,3 +1,4 @@
+using SISLAB.Modules.Identity.Domain.Companies.Events;
 using SISLAB.SharedKernel.Domain;
 
 namespace SISLAB.Modules.Identity.Domain.Companies;
@@ -52,6 +53,33 @@ public sealed class Company : AggregateRoot<Guid>
             throw new ArgumentException("Company name cannot be empty.", nameof(name));
 
         return new Company(Guid.NewGuid(), name.Trim(), taxId?.Trim(), DateTime.UtcNow);
+    }
+
+    /// <summary>
+    /// Factory for self-service signup (card [E12] #75a): creates a brand-new tenant already bound to its
+    /// initial coordinator. The coordinator is added as the company's first member in the same operation, so
+    /// a signed-up company can never exist without the member who owns it, and the aggregate raises
+    /// <see cref="CompanyCreated"/> — the single fact downstream provisioning (card #75b) reacts to.
+    ///
+    /// <para>The coordinator's authorization (the "Coordinator" role) is a Lumen concern granted outside the
+    /// aggregate by assigning a company-scoped profile — SISLAB models no roles. This factory owns only the
+    /// tenancy invariant: new company + its founding membership + the creation event, atomically.</para>
+    /// </summary>
+    /// <param name="name">Company display name; must not be empty.</param>
+    /// <param name="coordinatorUserId">Lumen user id of the initial coordinator; must not be empty.</param>
+    /// <param name="taxId">Optional tax identifier.</param>
+    public static Company Register(string name, Guid coordinatorUserId, string? taxId = null)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Company name cannot be empty.", nameof(name));
+        if (coordinatorUserId == Guid.Empty)
+            throw new ArgumentException("Coordinator user id cannot be empty.", nameof(coordinatorUserId));
+
+        var company = new Company(Guid.NewGuid(), name.Trim(), taxId?.Trim(), DateTime.UtcNow);
+        company.AddMember(coordinatorUserId);
+        company.RaiseDomainEvent(new CompanyCreated(company.Id, company.Name, coordinatorUserId));
+
+        return company;
     }
 
     /// <summary>
