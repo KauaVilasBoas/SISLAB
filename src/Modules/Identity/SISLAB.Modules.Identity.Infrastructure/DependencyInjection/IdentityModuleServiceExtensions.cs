@@ -6,9 +6,15 @@ using Lumen.Modularity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SISLAB.Infrastructure.Messaging.Behaviors;
 using SISLAB.Infrastructure.Multitenancy;
+using SISLAB.Infrastructure.Persistence;
+using SISLAB.Modules.Identity.Contracts.Onboarding;
 using SISLAB.Modules.Identity.Domain.Companies;
+using SISLAB.Modules.Identity.Infrastructure.Messaging;
 using SISLAB.Modules.Identity.Infrastructure.Multitenancy;
+using SISLAB.Modules.Identity.Infrastructure.Onboarding;
+using SISLAB.SharedKernel.Messaging;
 using SISLAB.SharedKernel.Multitenancy;
 using SISLAB.Modules.Identity.Infrastructure.Persistence;
 using SISLAB.Modules.Identity.Infrastructure.Persistence.Repositories;
@@ -59,6 +65,22 @@ public static class IdentityModuleServiceExtensions
 
         // 2. Domain repositories
         services.AddScoped<ICompanyRepository, CompanyRepository>();
+
+        // 2.1 Write-side unit of work for this module's commands (card [E12] #75a — signup).
+        //      Mirrors the Configuration/Notifications modules: this module raises the CompanyCreated
+        //      domain event but has no cross-module consumer yet, so the dispatcher is a no-op that just
+        //      drains aggregate events; IUnitOfWork is the shared EfUnitOfWork bound to THIS module's
+        //      DbContext. TransactionBehavior (registered per module) calls SaveChangesAsync after each
+        //      command, committing the tenancy aggregate atomically. Queries bypass it.
+        services.AddScoped<IDomainEventDispatcher, NoOpIdentityDomainEventDispatcher>();
+        services.AddScoped<IUnitOfWork, EfUnitOfWork<IdentityDbContext>>();
+        services.AddScoped(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
+
+        // 2.2 Company onboarding gateway (card #75a): the anti-corruption adapter that provisions the
+        //      coordinator user (Lumen Identity) and grants company-scoped coordinator access (Lumen
+        //      Authorization) for self-service signup. The signup handler depends on this port, never on
+        //      Lumen directly, keeping Lumen confined to Infrastructure (§8).
+        services.AddScoped<ICompanyOnboardingGateway, LumenCompanyOnboardingGateway>();
 
         // 3. MVC controllers for the module live in the Application assembly (co-located with the
         //    CQRS queries they dispatch). Their ApplicationPart is registered by IdentityModule

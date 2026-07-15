@@ -1,5 +1,6 @@
 using System.Reflection;
 using Lumen.Authorization.AspNetCore;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace SISLAB.ArchitectureTests;
@@ -19,6 +20,11 @@ namespace SISLAB.ArchitectureTests;
 /// <see cref="RequirePermissionAttribute"/> is <c>Inherited = true</c> and targets both Method and
 /// Class, so decorating the controller class satisfies the rule for all its actions — hence the
 /// method-OR-class check below mirrors Lumen's own enforcement semantics.
+///
+/// <para><b>Anonymous carve-out:</b> an action explicitly marked <c>[AllowAnonymous]</c> is exempt. Such an
+/// endpoint has no authenticated principal and no active tenant, so it <i>cannot</i> be permission-gated —
+/// requiring <c>[RequirePermission]</c> there would be nonsensical. The only write in this category is public
+/// self-service company signup (card [E12] #75a). Everything else must still be gated.</para>
 /// </summary>
 public sealed class WriteEndpointAuthorizationTests
 {
@@ -65,7 +71,7 @@ public sealed class WriteEndpointAuthorizationTests
             "every controller-hosting assembly is still referenced and discoverable.");
 
         MethodInfo[] unguarded = writeActions
-            .Where(action => !IsPermissionGated(action))
+            .Where(action => !IsAnonymous(action) && !IsPermissionGated(action))
             .ToArray();
 
         Assert.True(
@@ -93,4 +99,13 @@ public sealed class WriteEndpointAuthorizationTests
     private static bool IsPermissionGated(MethodInfo method) =>
         method.GetCustomAttribute<RequirePermissionAttribute>(inherit: true) is not null
         || method.DeclaringType!.GetCustomAttribute<RequirePermissionAttribute>(inherit: true) is not null;
+
+    /// <summary>
+    /// A write action is exempt when it (or its controller) is explicitly <c>[AllowAnonymous]</c>: an
+    /// unauthenticated endpoint has no principal/tenant to permission-check. Public company signup is the
+    /// only such write.
+    /// </summary>
+    private static bool IsAnonymous(MethodInfo method) =>
+        method.GetCustomAttribute<AllowAnonymousAttribute>(inherit: true) is not null
+        || method.DeclaringType!.GetCustomAttribute<AllowAnonymousAttribute>(inherit: true) is not null;
 }

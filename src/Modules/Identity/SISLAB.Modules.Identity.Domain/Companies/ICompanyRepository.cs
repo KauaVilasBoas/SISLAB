@@ -8,6 +8,12 @@ public interface ICompanyRepository
 {
     Task<Company?> FindByIdAsync(Guid id, CancellationToken ct = default);
 
+    /// <summary>
+    /// Whether an active company with the given name already exists (case-insensitive). Used by self-service
+    /// signup to reject a duplicate company name before creating the tenant (card [E12] #75a).
+    /// </summary>
+    Task<bool> ExistsByNameAsync(string name, CancellationToken ct = default);
+
     Task<IReadOnlyList<Company>> ListActiveAsync(CancellationToken ct = default);
 
     /// <summary>
