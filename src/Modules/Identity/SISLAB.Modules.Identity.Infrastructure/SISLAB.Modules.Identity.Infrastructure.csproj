@@ -45,7 +45,7 @@
       SeedLumenPermissionGroup / SeedLumenPermission helpers used by the SISLAB.Migrations seed project —
       SISLAB owns the permission data and seeds it via a dedicated EF migration, not at boot time.
     -->
-    <PackageReference Include="Lumen.Authorization.Migrations.PostgreSQL" Version="3.0.0" />
+    <PackageReference Include="Lumen.Authorization.Migrations.PostgreSQL" Version="3.0.1" />
     <PackageReference Include="Lumen.Identity" Version="1.0.0" />
     <PackageReference Include="Lumen.Identity.AspNetCore" Version="1.0.0" />
     <PackageReference Include="Lumen.Identity.Migrations.PostgreSQL" Version="1.0.1" />
