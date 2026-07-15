@@ -17,6 +17,12 @@ namespace SISLAB.Infrastructure.Outbox;
 /// message once the limit is reached) and continues with the remaining messages — a failed message is
 /// retried on the next run until it is dead-lettered, so one poison message never blocks the batch.
 ///
+/// <para>Each module that participates in the Transactional Outbox owns its own <c>outbox_messages</c>
+/// table (in its own schema, so the aggregate write and the outbox write share a single local
+/// transaction). This dispatcher drains <b>every</b> registered <see cref="IOutboxDbContext"/> per tick —
+/// injected as an <see cref="IEnumerable{T}"/> so N modules (Inventory, Identity, …) fan in without any
+/// per-module dispatcher or ambiguous single-context registration.</para>
+///
 /// The host worker (SISLAB.Jobs) is responsible for creating the DI scope and invoking
 /// <see cref="ProcessPendingAsync"/>. This component is stateless and thread-safe.
 /// </summary>
@@ -27,35 +33,51 @@ public sealed class OutboxDispatcher
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    private readonly IOutboxDbContext _outboxContext;
+    private readonly IReadOnlyList<IOutboxDbContext> _outboxContexts;
     private readonly IEventBus _eventBus;
     private readonly IClock _clock;
     private readonly ILogger<OutboxDispatcher> _logger;
 
     public OutboxDispatcher(
-        IOutboxDbContext outboxContext,
+        IEnumerable<IOutboxDbContext> outboxContexts,
         IEventBus eventBus,
         IClock clock,
         ILogger<OutboxDispatcher> logger)
     {
-        _outboxContext = outboxContext;
+        _outboxContexts = outboxContexts.ToList();
         _eventBus = eventBus;
         _clock = clock;
         _logger = logger;
     }
 
-    /// <param name="batchSize">Maximum messages processed per invocation.</param>
+    /// <param name="batchSize">Maximum messages processed per outbox per invocation.</param>
     /// <param name="maxAttempts">
     /// Failed-delivery attempts a message tolerates before it is dead-lettered and dropped from the
     /// pending set.
     /// </param>
-    /// <returns>Number of messages successfully published in this run.</returns>
+    /// <returns>Number of messages successfully published across every outbox in this run.</returns>
     public async Task<int> ProcessPendingAsync(
         int batchSize = 50,
         int maxAttempts = 5,
         CancellationToken cancellationToken = default)
     {
-        List<OutboxMessage> pending = await _outboxContext.OutboxMessages
+        int totalPublished = 0;
+
+        // Each registered module outbox is drained independently: a failure or empty batch in one never
+        // stops the others. Every context is a distinct DbContext with its own outbox_messages table.
+        foreach (IOutboxDbContext outboxContext in _outboxContexts)
+            totalPublished += await ProcessOutboxAsync(outboxContext, batchSize, maxAttempts, cancellationToken);
+
+        return totalPublished;
+    }
+
+    private async Task<int> ProcessOutboxAsync(
+        IOutboxDbContext outboxContext,
+        int batchSize,
+        int maxAttempts,
+        CancellationToken cancellationToken)
+    {
+        List<OutboxMessage> pending = await outboxContext.OutboxMessages
             .Where(m => m.ProcessedAtUtc == null && m.DeadLetteredAtUtc == null)
             .OrderBy(m => m.OccurredOnUtc)
             .Take(batchSize)
@@ -106,7 +128,7 @@ public sealed class OutboxDispatcher
         }
 
         // Persist ProcessedAtUtc / AttemptCount / DeadLetteredAtUtc / Error marks in the same context scope.
-        await _outboxContext.SaveChangesAsync(cancellationToken);
+        await outboxContext.SaveChangesAsync(cancellationToken);
 
         // Derive the backlog signal from what we already know instead of a second COUNT round-trip: a full
         // batch means there may be more pending messages; a short batch means the pending set is drained.
