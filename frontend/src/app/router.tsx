@@ -6,15 +6,26 @@ import { MembersPage } from '@/modules/identity/pages/MembersPage';
 import { ConfigurationPage } from '@/modules/configuration/pages/ConfigurationPage';
 import { AuditPage } from '@/modules/audit/pages/AuditPage';
 import { NotificationsPage } from '@/modules/notifications/pages/NotificationsPage';
+import { LoginPage } from '@/modules/auth/pages/LoginPage';
+import { RequireAuth } from '@/modules/auth/components/RequireAuth';
 
 /**
- * Central route table. Each module contributes its mother screen under the
- * authenticated AppShell. Paths align with app/navigation.ts.
+ * Central route table (card [E7] #44). /login is public and lives OUTSIDE the AppShell;
+ * every AppShell route is wrapped in <RequireAuth>, which redirects to /login (preserving the
+ * attempted location) when there is no session. Paths align with app/navigation.ts.
  */
 export const router = createBrowserRouter([
   {
+    path: '/login',
+    element: <LoginPage />,
+  },
+  {
     path: '/',
-    element: <AppShell />,
+    element: (
+      <RequireAuth>
+        <AppShell />
+      </RequireAuth>
+    ),
     children: [
       { index: true, element: <DashboardPage /> },
       { path: 'inventory', element: <InventoryPage /> },

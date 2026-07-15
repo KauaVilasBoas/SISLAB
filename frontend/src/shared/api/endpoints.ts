@@ -10,6 +10,21 @@
  */
 export const Endpoints = {
   identity: {
+    /** Session auth (card [E7] #44) — httpOnly cookie bridge over Lumen. */
+    auth: {
+      login: '/api/auth/login',
+      logout: '/api/auth/logout',
+      refresh: '/api/auth/refresh',
+      me: '/api/me',
+      /** Arms the readable XSRF-TOKEN cookie for the double-submit CSRF defense. */
+      csrf: '/api/auth/csrf',
+    },
+    /** Active-company selection/switching (post-login, httpOnly cookie). */
+    activeCompany: {
+      mine: '/api/companies/mine',
+      activate: (companyId: string) => `/api/companies/${companyId}/activate`,
+      active: '/api/companies/active',
+    },
     /** Public self-service onboarding — POST company signup with coordinator. */
     companies: {
       signup: '/api/companies/signup',

@@ -97,7 +97,17 @@ if (!string.IsNullOrWhiteSpace(pgConnectionString))
 }
 
 // ---------------------------------------------------------------------------
-// CORS base (origins tightened in E7 when the React SPA comes online)
+// CORS (card [E7] #44 — the React SPA now authenticates over httpOnly cookies).
+//
+// Credentialed CORS (Access-Control-Allow-Credentials) is INCOMPATIBLE with the
+// wildcard origin: the browser rejects "*" together with credentials. So:
+//   - explicit origins configured  → WithOrigins(...).AllowCredentials() so the
+//     cross-origin SPA can send/receive the session cookie;
+//   - no origins configured (dev with the Vite same-origin proxy) → AllowAnyOrigin()
+//     WITHOUT credentials — same-origin proxied calls don't need CORS credentials, and
+//     mixing "*" with credentials would throw at request time.
+// In dev appsettings, Cors:AllowedOrigins already lists http://localhost:5173, so a SPA
+// hitting the API directly (no proxy) still works with credentials.
 // ---------------------------------------------------------------------------
 builder.Services.AddCors(options =>
 {
@@ -108,9 +118,15 @@ builder.Services.AddCors(options =>
             .Get<string[]>() ?? [];
 
         if (allowedOrigins.Length > 0)
-            policy.WithOrigins(allowedOrigins);
+        {
+            policy
+                .WithOrigins(allowedOrigins)
+                .AllowCredentials(); // the SPA sends the httpOnly session cookie cross-origin
+        }
         else
-            policy.AllowAnyOrigin(); // dev only — no explicit origin configured
+        {
+            policy.AllowAnyOrigin(); // dev only — no explicit origin; cannot combine with credentials
+        }
 
         policy
             .AllowAnyHeader()
