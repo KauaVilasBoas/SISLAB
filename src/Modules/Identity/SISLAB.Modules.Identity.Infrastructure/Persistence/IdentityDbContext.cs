@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SISLAB.Infrastructure.Outbox;
 using SISLAB.Infrastructure.Persistence;
 using SISLAB.Modules.Identity.Domain.Companies;
+using SISLAB.Modules.Identity.Domain.Invitations;
 using SISLAB.Modules.Identity.Infrastructure.Persistence.Configurations;
 
 namespace SISLAB.Modules.Identity.Infrastructure.Persistence;
@@ -26,6 +27,7 @@ public sealed class IdentityDbContext : SislabDbContextBase, IOutboxDbContext
 
     public DbSet<Company> Companies => Set<Company>();
     public DbSet<CompanyMembership> CompanyMemberships => Set<CompanyMembership>();
+    public DbSet<CompanyInvitation> CompanyInvitations => Set<CompanyInvitation>();
 
     /// <inheritdoc />
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -43,6 +45,7 @@ public sealed class IdentityDbContext : SislabDbContextBase, IOutboxDbContext
 
         modelBuilder.ApplyConfiguration(new CompanyConfiguration());
         modelBuilder.ApplyConfiguration(new CompanyMembershipConfiguration());
+        modelBuilder.ApplyConfiguration(new CompanyInvitationConfiguration());
         modelBuilder.ApplyConfiguration(new OutboxMessageConfiguration());
     }
 }

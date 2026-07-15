@@ -11,10 +11,15 @@ using SISLAB.Infrastructure.Messaging.Behaviors;
 using SISLAB.Infrastructure.Multitenancy;
 using SISLAB.Infrastructure.Outbox;
 using SISLAB.Infrastructure.Persistence;
+using SISLAB.Modules.Identity.Contracts.Events;
+using SISLAB.Modules.Identity.Contracts.Invitations;
 using SISLAB.Modules.Identity.Contracts.Onboarding;
 using SISLAB.Modules.Identity.Domain.Companies;
+using SISLAB.Modules.Identity.Domain.Invitations;
+using SISLAB.Modules.Identity.Infrastructure.Invitations;
 using SISLAB.Modules.Identity.Infrastructure.Messaging;
 using SISLAB.Modules.Identity.Infrastructure.Multitenancy;
+using SISLAB.Modules.Identity.Infrastructure.Notifications;
 using SISLAB.Modules.Identity.Infrastructure.Onboarding;
 using SISLAB.SharedKernel.Messaging;
 using SISLAB.SharedKernel.Multitenancy;
@@ -67,6 +72,7 @@ public static class IdentityModuleServiceExtensions
 
         // 2. Domain repositories
         services.AddScoped<ICompanyRepository, CompanyRepository>();
+        services.AddScoped<ICompanyInvitationRepository, CompanyInvitationRepository>();
 
         // 2.1 Write-side unit of work for this module's commands (card [E12] #75a — signup; #75b — outbox).
         //      Now a full Transactional Outbox participant (mirrors the Inventory module): on signup the
@@ -89,6 +95,23 @@ public static class IdentityModuleServiceExtensions
         //        Outbox, in the aggregate's transaction. Events with no translator stay module-internal.
         services.AddScoped<IDomainEventToIntegrationEventTranslator<Domain.Companies.Events.CompanyCreated>,
             Messaging.CompanyCreatedEventTranslator>();
+
+        // 2.1.2 Member-invitation translator (card #75c): MemberInvited → MemberInvitedIntegrationEvent, enqueued
+        //        in the tenancy Outbox in the invite transaction. The e-mail handler below consumes it after commit.
+        services.AddScoped<IDomainEventToIntegrationEventTranslator<Domain.Invitations.Events.MemberInvited>,
+            Messaging.MemberInvitedEventTranslator>();
+
+        // 2.1.3 Invitation e-mail consumer (card #75c): reacts to the published MemberInvitedIntegrationEvent to
+        //        render and send the branded MemberInvitation e-mail. Eventual + retried via the Outbox, so a
+        //        mail failure never rolls back or blocks the invitation. Registered against the closed
+        //        IIntegrationEventHandler<T> so the InMemoryEventBus resolves it by event type.
+        services.AddScoped<SISLAB.SharedKernel.Messaging.IIntegrationEventHandler<MemberInvitedIntegrationEvent>,
+            SendInvitationEmailOnMemberInvitedHandler>();
+
+        // 2.3 Member-invitation gateway (card #75c): the anti-corruption adapter that resolves or provisions the
+        //      invitee's Lumen account when an invitation is accepted (Fork 1: link existing, else create). The
+        //      accept handler depends on this port, never on Lumen directly (Lumen stays in Infrastructure, §8).
+        services.AddScoped<IMemberInvitationGateway, LumenMemberInvitationGateway>();
 
         // 2.2 Company onboarding gateway (card #75a): the anti-corruption adapter that provisions the
         //      coordinator user (Lumen Identity) and grants company-scoped coordinator access (Lumen
