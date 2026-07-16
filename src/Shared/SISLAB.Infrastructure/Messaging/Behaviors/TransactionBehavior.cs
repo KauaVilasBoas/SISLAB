@@ -5,26 +5,26 @@ namespace SISLAB.Infrastructure.Messaging.Behaviors;
 
 /// <summary>
 /// Pipeline behavior that wraps a <see cref="ICommand"/> or <see cref="ICommand{TResult}"/>
-/// handler in a transaction via <see cref="IUnitOfWork"/>.
+/// handler in a transaction via all registered <see cref="IUnitOfWork"/> instances.
 ///
-/// For Commands: calls SaveChangesAsync after the handler succeeds. Exceptions propagate
-/// naturally — EF discards in-memory changes when the transaction is not committed.
+/// For Commands: calls SaveChangesAsync on every registered IUnitOfWork after the handler
+/// succeeds. Each module registers its own IUnitOfWork (e.g. EfUnitOfWork&lt;InventoryDbContext&gt;,
+/// EfUnitOfWork&lt;ConfigurationDbContext&gt;) — injecting IEnumerable&lt;IUnitOfWork&gt; ensures the
+/// correct module's DbContext is committed regardless of registration order.
+/// SaveChanges on a DbContext with no tracked changes is a no-op, so iterating all is safe.
+///
 /// For Queries (IQuery): no-op — queries must not trigger write transactions.
-///
-/// EF Core does not use explicit transactions by default — each SaveChangesAsync is atomic.
-/// Explicit IDbContextTransaction is only needed when multiple SaveChanges calls must be
-/// grouped in a single transaction.
 ///
 /// Pipeline order: ValidationBehavior → LoggingBehavior → TransactionBehavior → Handler
 /// </summary>
 public sealed class TransactionBehavior<TRequest, TResult> : IPipelineBehavior<TRequest, TResult>
     where TRequest : IRequest<TResult>
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IEnumerable<IUnitOfWork> _unitOfWorks;
 
-    public TransactionBehavior(IUnitOfWork unitOfWork)
+    public TransactionBehavior(IEnumerable<IUnitOfWork> unitOfWorks)
     {
-        _unitOfWork = unitOfWork;
+        _unitOfWorks = unitOfWorks;
     }
 
     /// <inheritdoc />
@@ -39,7 +39,8 @@ public sealed class TransactionBehavior<TRequest, TResult> : IPipelineBehavior<T
 
         TResult result = await next();
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        foreach (IUnitOfWork unitOfWork in _unitOfWorks)
+            await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return result;
     }
