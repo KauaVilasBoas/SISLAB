@@ -12,6 +12,7 @@ import {
   Presentation,
   FlaskConical,
   FlaskRound,
+  QrCode,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -110,6 +111,12 @@ export const navGroups: NavGroup[] = [
         label: 'Controlados',
         description: 'Saldo por frasco',
         icon: ShieldCheck,
+      },
+      {
+        path: '/labels',
+        label: 'Etiquetas QR',
+        description: 'Gerar e imprimir QR',
+        icon: QrCode,
       },
       {
         path: '/equipment',
