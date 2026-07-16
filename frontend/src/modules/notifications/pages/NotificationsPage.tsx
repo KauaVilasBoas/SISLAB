@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { CheckCheck } from 'lucide-react';
 import { PageHeader } from '@/shared/components/PageHeader';
 import { Button } from '@/shared/components/ui/button';
 import { useToast } from '@/shared/components/ui/toast';
 import type { ApiError } from '@/shared/types/api';
 import {
+  useMarkAllAsRead,
   useMarkNotificationAsRead,
   useNotifications,
   useUnreadCount,
@@ -14,8 +16,8 @@ import { NotificationsList } from '@/modules/notifications/components/Notificati
  * Notifications inbox — the mother screen (card [E7] #65). Owns the filter (all vs. unread-only) and page
  * state, fetches the paginated list and the unread count via TanStack Query, and composes the presentational
  * <NotificationsList>. Marking a row as read is optimistic (the query layer flips the cache and decrements the
- * badge immediately); a failure surfaces as a toast and the cache rolls back. No "marcar todas" here — that
- * endpoint does not exist yet (out of scope for this card).
+ * badge immediately); a failure surfaces as a toast and the cache rolls back. "Marcar todas" acknowledges the
+ * whole inbox in one optimistic call (card [E7] #65), disabled while there is nothing unread.
  */
 export function NotificationsPage() {
   const toast = useToast();
@@ -26,6 +28,7 @@ export function NotificationsPage() {
   const listQuery = useNotifications(unreadOnly, page);
   const unreadCountQuery = useUnreadCount();
   const markAsRead = useMarkNotificationAsRead();
+  const markAllAsRead = useMarkAllAsRead();
 
   const items = listQuery.data?.items ?? [];
   const totalPages = listQuery.data?.totalPages ?? 0;
@@ -48,6 +51,18 @@ export function NotificationsPage() {
     });
   }
 
+  function handleMarkAllAsRead() {
+    markAllAsRead.mutate(undefined, {
+      onError: (error) => {
+        toast(
+          'error',
+          (error as unknown as ApiError)?.message ??
+            'Não foi possível marcar todas como lidas.',
+        );
+      },
+    });
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -61,13 +76,24 @@ export function NotificationsPage() {
             ? `${unreadCount} não ${unreadCount === 1 ? 'lida' : 'lidas'}`
             : 'Nenhuma não lida'}
         </p>
-        <div className="inline-flex rounded-md border p-0.5">
-          <FilterTab active={!unreadOnly} onClick={() => switchFilter(false)}>
-            Todas
-          </FilterTab>
-          <FilterTab active={unreadOnly} onClick={() => switchFilter(true)}>
-            Não lidas
-          </FilterTab>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleMarkAllAsRead}
+            disabled={unreadCount === 0 || markAllAsRead.isPending}
+          >
+            <CheckCheck className="size-4" />
+            Marcar todas como lidas
+          </Button>
+          <div className="inline-flex rounded-md border p-0.5">
+            <FilterTab active={!unreadOnly} onClick={() => switchFilter(false)}>
+              Todas
+            </FilterTab>
+            <FilterTab active={unreadOnly} onClick={() => switchFilter(true)}>
+              Não lidas
+            </FilterTab>
+          </div>
         </div>
       </div>
 
