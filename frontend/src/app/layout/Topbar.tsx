@@ -1,9 +1,10 @@
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Bell, Search } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { CompanySwitcher } from '@/modules/auth/components/CompanySwitcher';
 import { ThemeToggle } from '@/app/theme/ThemeToggle';
 import { navItems } from '@/app/navigation';
+import { useUnreadCount } from '@/modules/notifications/api/notifications.queries';
 
 /** Resolves the current screen's title/subtitle from the nav config (longest matching path). */
 function useScreenHeading(): { title: string; subtitle: string } {
@@ -28,6 +29,10 @@ function useScreenHeading(): { title: string; subtitle: string } {
  */
 export function Topbar() {
   const { title, subtitle } = useScreenHeading();
+  const navigate = useNavigate();
+  const { data: unread } = useUnreadCount();
+  const unreadCount = unread?.unreadCount ?? 0;
+  const badgeLabel = unreadCount > 9 ? '9+' : String(unreadCount);
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-4 border-b bg-background px-4 md:px-6">
@@ -54,10 +59,19 @@ export function Topbar() {
         <Button
           variant="ghost"
           size="icon"
-          aria-label="Notificações"
+          className="relative"
+          aria-label={
+            unreadCount > 0 ? `Notificações (${unreadCount} não lidas)` : 'Notificações'
+          }
           title="Notificações"
+          onClick={() => navigate('/notifications')}
         >
           <Bell className="size-5" />
+          {unreadCount > 0 ? (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-status-expired px-1 text-[10px] font-semibold leading-none text-status-foreground">
+              {badgeLabel}
+            </span>
+          ) : null}
         </Button>
         <ThemeToggle />
       </div>
