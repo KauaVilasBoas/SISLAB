@@ -60,6 +60,28 @@ public sealed class AuditQueryParametersTests
     }
 
     [Fact]
+    public void List_passes_the_entity_id_filter_through_for_the_per_item_log()
+    {
+        ListAuditEntriesQueryHandler handler = BuildListHandler(Company);
+
+        Guid item = Guid.NewGuid();
+        AuditEntriesQueryParameters parameters =
+            handler.BuildParameters(new ListAuditEntriesQuery { EntityId = item });
+
+        Assert.Equal(item, parameters.EntityId);
+    }
+
+    [Fact]
+    public void List_leaves_the_entity_id_filter_null_when_not_provided()
+    {
+        ListAuditEntriesQueryHandler handler = BuildListHandler(Company);
+
+        AuditEntriesQueryParameters parameters = handler.BuildParameters(new ListAuditEntriesQuery());
+
+        Assert.Null(parameters.EntityId);
+    }
+
+    [Fact]
     public void List_makes_the_To_bound_exclusive_upper_by_adding_one_day()
     {
         ListAuditEntriesQueryHandler handler = BuildListHandler(Company);
