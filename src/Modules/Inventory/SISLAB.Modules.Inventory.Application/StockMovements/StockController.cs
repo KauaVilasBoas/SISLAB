@@ -47,6 +47,7 @@ public sealed class StockController : SislabControllerBase
         [FromQuery] Guid? storageLocationId,
         [FromQuery] string? category,
         [FromQuery] string? search,
+        [FromQuery] bool? isControlled = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
@@ -57,6 +58,7 @@ public sealed class StockController : SislabControllerBase
                 StorageLocationId = storageLocationId,
                 Category = category,
                 Search = search,
+                IsControlled = isControlled,
                 Page = page,
                 PageSize = pageSize
             },

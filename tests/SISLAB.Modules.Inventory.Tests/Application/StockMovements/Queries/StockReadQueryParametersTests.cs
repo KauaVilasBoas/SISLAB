@@ -134,6 +134,24 @@ public sealed class StockReadQueryParametersTests
     }
 
     [Fact]
+    public void List_query_defaults_the_controlled_filter_to_null()
+    {
+        StockItemsQueryParameters parameters =
+            _itemsHandler.BuildParameters(new ListStockItemsQuery(), ExpectedWarningWindowDays);
+
+        Assert.Null(parameters.IsControlled);
+    }
+
+    [Fact]
+    public void List_query_passes_the_controlled_filter_through()
+    {
+        StockItemsQueryParameters parameters =
+            _itemsHandler.BuildParameters(new ListStockItemsQuery { IsControlled = true }, ExpectedWarningWindowDays);
+
+        Assert.True(parameters.IsControlled);
+    }
+
+    [Fact]
     public void Summary_query_takes_the_company_from_the_tenant_context()
     {
         LocationsSummaryQueryParameters parameters = _summaryHandler.BuildParameters();
