@@ -139,3 +139,71 @@ export function useMarkNotificationAsRead() {
     },
   });
 }
+
+// ---------------------------------------------------------------------------
+// Mutation — mark ALL as read (idempotent)
+// ---------------------------------------------------------------------------
+
+/**
+ * Marks every unread notification of the active company as read in one call (card [E7] #65, backend
+ * `POST /notifications/read-all`, idempotent). Optimistic and symmetric to {@link useMarkNotificationAsRead}:
+ * the badge is zeroed and every cached list row is flipped to read immediately, so the bell and the inbox react
+ * before the round-trip. On error the touched caches roll back; on settle the whole module is invalidated so the
+ * server truth (including the unread-only list emptying) is reconciled. Returns how many rows the server flipped.
+ */
+export function useMarkAllAsRead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => api.post<number>(Endpoints.notifications.readAll),
+
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: notificationKeys.all });
+
+      const previousLists = queryClient.getQueriesData<PagedResult<NotificationListItem>>(
+        {
+          queryKey: notificationKeys.lists(),
+        },
+      );
+      const previousCount = queryClient.getQueryData<UnreadNotificationsCount>(
+        notificationKeys.unreadCount(),
+      );
+
+      const nowIso = new Date().toISOString();
+
+      // Flip every row to read across all cached list pages (kept visible on the "all" list; the
+      // unread-only list is reconciled on invalidation at settle).
+      for (const [key, page] of previousLists) {
+        if (!page) continue;
+        queryClient.setQueryData<PagedResult<NotificationListItem>>(key, {
+          ...page,
+          items: page.items.map((item) =>
+            item.isRead
+              ? item
+              : { ...item, isRead: true, readAtUtc: item.readAtUtc ?? nowIso },
+          ),
+        });
+      }
+
+      // The whole inbox is acknowledged — the badge goes to zero.
+      queryClient.setQueryData<UnreadNotificationsCount>(notificationKeys.unreadCount(), {
+        unreadCount: 0,
+      });
+
+      return { previousLists, previousCount };
+    },
+
+    onError: (_error, _variables, context) => {
+      context?.previousLists.forEach(([key, data]) =>
+        queryClient.setQueryData(key, data),
+      );
+      if (context?.previousCount) {
+        queryClient.setQueryData(notificationKeys.unreadCount(), context.previousCount);
+      }
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+    },
+  });
+}
