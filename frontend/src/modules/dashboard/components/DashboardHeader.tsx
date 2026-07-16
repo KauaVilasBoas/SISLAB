@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Boxes } from 'lucide-react';
+import { Boxes, QrCode } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { useAuth } from '@/modules/auth/AuthProvider';
 import { greetingFor } from '@/modules/dashboard/components/dashboard-presentation';
@@ -25,12 +25,20 @@ export function DashboardHeader() {
           Resumo do estoque, do consumo e dos alertas ativos do laboratório.
         </p>
       </div>
-      <Button asChild>
-        <Link to="/inventory">
-          <Boxes />
-          Ir para o estoque
-        </Link>
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button asChild variant="outline">
+          <Link to="/quick-consumption">
+            <QrCode />
+            Registro rápido
+          </Link>
+        </Button>
+        <Button asChild>
+          <Link to="/inventory">
+            <Boxes />
+            Ir para o estoque
+          </Link>
+        </Button>
+      </div>
     </div>
   );
 }
