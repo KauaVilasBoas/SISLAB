@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using SISLAB.Infrastructure.AspNetCore;
 using SISLAB.Modules.Inventory.Application.StockMovements.Commands;
 using SISLAB.Modules.Inventory.Application.StockMovements.Queries;
+using SISLAB.SharedKernel.Exceptions;
 using SISLAB.SharedKernel.Http;
 using SISLAB.SharedKernel.Messaging;
 
@@ -65,6 +66,26 @@ public sealed class StockController : SislabControllerBase
             ct);
 
         return Ok(new ApiResult<PagedResult<StockItemListItem>>(true, "Stock items retrieved.", result));
+    }
+
+    /// <summary>
+    /// Returns the single stock item of the active company identified by <paramref name="stockItemId"/> — the
+    /// "item card" the mobile quick-consumption flow (card [E7] #63) loads after scanning its QR: name, lot,
+    /// on-hand balance and unit, controlled flag and the storage location it lives in. An id that is unknown
+    /// or belongs to another company is a 404 (the read query keeps the mandatory <c>WHERE company_id</c>, so
+    /// a foreign id is indistinguishable from a missing one). Only <c>[Authorize]</c>, mirroring the other
+    /// read-side stock-item lookups (listing, expiring, below-minimum) — not permission-gated.
+    /// </summary>
+    [HttpGet("stock-items/{stockItemId:guid}")]
+    [ProducesResponseType(typeof(ApiResult<StockItemDetail>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetStockItem(Guid stockItemId, CancellationToken ct)
+    {
+        StockItemDetail item = await _mediator.SendAsync(new GetStockItemDetailQuery(stockItemId), ct)
+            ?? throw new NotFoundException("StockItem", stockItemId);
+
+        return Ok(new ApiResult<StockItemDetail>(true, "Stock item retrieved.", item));
     }
 
     /// <summary>

@@ -32,7 +32,9 @@ public sealed record GetStockItemDetailQuery(Guid StockItemId) : IQuery<StockIte
 /// <summary>
 /// Flat read row for a single stock item (card [E5] #35). Enxuto by design: it exposes the primitives the
 /// public boundary needs — item, category, current and minimum quantity with their units, month-granularity
-/// validity, storage location and controlled flag — never the <c>StockItem</c> aggregate or its value objects.
+/// validity, storage location, controlled flag and current lot — never the <c>StockItem</c> aggregate or its
+/// value objects. <see cref="Lot"/> is optional (last in the record) — added for the mobile quick-consumption
+/// item card (card [E7] #63); it is <see langword="null"/> for items received without a lot.
 /// </summary>
 public sealed record StockItemDetail(
     Guid Id,
@@ -47,7 +49,8 @@ public sealed record StockItemDetail(
     Guid StorageLocationId,
     string? StorageLocationName,
     bool IsControlled,
-    Guid CompanyId);
+    Guid CompanyId,
+    string? Lot = null);
 
 internal sealed class GetStockItemDetailQueryHandler
     : BaseDataAccess, IQueryHandler<GetStockItemDetailQuery, StockItemDetail?>
@@ -70,7 +73,8 @@ internal sealed class GetStockItemDetailQueryHandler
             v.storage_location_id      AS storagelocationid,
             v.storage_location_name    AS storagelocationname,
             v.is_controlled            AS iscontrolled,
-            v.company_id               AS companyid
+            v.company_id               AS companyid,
+            v.lot_code                 AS lot
         FROM inventory.stock_view AS v
         WHERE v.company_id = @CompanyId
           AND v.id = @StockItemId;
