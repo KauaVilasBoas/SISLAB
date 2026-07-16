@@ -62,7 +62,7 @@ export function QrScanner({ active, onScan, hint }: QrScannerProps) {
             {active && !starting && (
               <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-gradient-to-t from-black/70 to-transparent p-3 text-xs text-white">
                 <ScanLine className="size-4" />
-                Aponte a câmera para o QR do item
+                Aponte a câmera para o QR do item ou local
               </div>
             )}
           </>
