@@ -22,6 +22,9 @@ public sealed record ListAuditEntriesQuery : PagedQuery<PagedResult<AuditEntryLi
     /// <summary>Optional filter: only entries affecting this entity type (e.g. <c>StockItem</c>, <c>Equipment</c>).</summary>
     public string? EntityType { get; init; }
 
+    /// <summary>Optional filter: only entries affecting this specific entity id (e.g. one controlled item — the "log" per-item view, card [E7] #62).</summary>
+    public Guid? EntityId { get; init; }
+
     /// <summary>Optional filter: only entries of this business action (e.g. <c>consumption</c>, <c>maintenance</c>).</summary>
     public string? Action { get; init; }
 
@@ -64,6 +67,7 @@ internal sealed class ListAuditEntriesQueryHandler
             FROM audit.audit_entries AS a
             WHERE a.company_id = @CompanyId
               AND (@EntityType IS NULL OR a.entity_type = @EntityType)
+              AND (@EntityId   IS NULL OR a.entity_id = @EntityId)
               AND (@Action     IS NULL OR a.action = @Action)
               AND (@From       IS NULL OR a.occurred_at_utc >= @From)
               AND (@To         IS NULL OR a.occurred_at_utc < @ToExclusive)

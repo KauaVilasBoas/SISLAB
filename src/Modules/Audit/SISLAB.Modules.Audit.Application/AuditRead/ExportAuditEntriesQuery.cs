@@ -17,6 +17,9 @@ public sealed record ExportAuditEntriesQuery : IQuery<IReadOnlyList<AuditEntryLi
     /// <summary>Optional filter: only entries affecting this entity type.</summary>
     public string? EntityType { get; init; }
 
+    /// <summary>Optional filter: only entries affecting this specific entity id.</summary>
+    public Guid? EntityId { get; init; }
+
     /// <summary>Optional filter: only entries of this business action.</summary>
     public string? Action { get; init; }
 
@@ -44,6 +47,7 @@ internal sealed class ExportAuditEntriesQueryHandler
         FROM audit.audit_entries AS a
         WHERE a.company_id = @CompanyId
           AND (@EntityType IS NULL OR a.entity_type = @EntityType)
+          AND (@EntityId   IS NULL OR a.entity_id = @EntityId)
           AND (@Action     IS NULL OR a.action = @Action)
           AND (@From       IS NULL OR a.occurred_at_utc >= @From)
           AND (@To         IS NULL OR a.occurred_at_utc < @ToExclusive)
