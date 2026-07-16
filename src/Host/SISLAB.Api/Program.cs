@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Serilog;
 using SISLAB.Api.Csrf;
@@ -54,6 +55,18 @@ Assembly[] moduleAssemblies =
 ];
 
 ModuleLoader.RegisterModules(builder.Services, builder.Configuration, moduleAssemblies);
+
+// ---------------------------------------------------------------------------
+// JSON serialization for the MVC controllers contributed by the modules.
+// Enums cross the API boundary as their NAME, not their ordinal: the SPA read
+// models are typed against the string values (e.g. EquipmentStatus "Available",
+// CalibrationStatus "Overdue", PartnerType "Supplier", ExpiryStatusView "Expired"),
+// and names stay stable if an enum is ever reordered — ordinals would silently
+// shift. Configured on the MVC JsonOptions (not just the Minimal-API ones) so it
+// applies regardless of the order in which the modules call AddControllers().
+// ---------------------------------------------------------------------------
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options =>
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 // ---------------------------------------------------------------------------
 // Background jobs (E6 #39) — run in-process with the API (Fork #1 → C).

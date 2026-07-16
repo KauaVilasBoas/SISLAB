@@ -50,7 +50,7 @@ public sealed class TransactionBehaviorTests
     public async Task Calls_SaveChanges_for_command()
     {
         var unitOfWork = new FakeUnitOfWork();
-        var behavior = new TransactionBehavior<PingCommand, string>(unitOfWork);
+        var behavior = new TransactionBehavior<PingCommand, string>([unitOfWork]);
 
         string result = await behavior.HandleAsync(new PingCommand("x"), () => Task.FromResult("done"));
 
@@ -62,7 +62,7 @@ public sealed class TransactionBehaviorTests
     public async Task Does_not_call_SaveChanges_for_query()
     {
         var unitOfWork = new FakeUnitOfWork();
-        var behavior = new TransactionBehavior<PingQuery, string>(unitOfWork);
+        var behavior = new TransactionBehavior<PingQuery, string>([unitOfWork]);
 
         _ = await behavior.HandleAsync(new PingQuery("x"), () => Task.FromResult("done"));
 
