@@ -47,6 +47,8 @@ public sealed record PartnerListItem(
     string Name,
     PartnerType Type,
     string? Cnpj,
+    string? Email,
+    string? Notes,
     bool IsActive);
 
 internal sealed class ListPartnersQueryHandler
@@ -64,6 +66,8 @@ internal sealed class ListPartnersQueryHandler
                 p.name,
                 p.type,
                 p.document,
+                p.contact_email,
+                p.description,
                 p.is_active,
                 ROW_NUMBER() OVER (ORDER BY p.name ASC, p.id ASC) AS row_number,
                 (COUNT(*)    OVER ())::int                        AS total_rows
@@ -81,9 +85,11 @@ internal sealed class ListPartnersQueryHandler
             id,
             name,
             type,
-            document  AS cnpj,
-            is_active AS isactive,
-            total_rows AS totalrows
+            document      AS cnpj,
+            contact_email AS email,
+            description   AS notes,
+            is_active     AS isactive,
+            total_rows    AS totalrows
         FROM records
         WHERE row_number BETWEEN @FirstResult AND @LastResult
         ORDER BY row_number;
@@ -144,10 +150,12 @@ internal sealed class ListPartnersQueryHandler
         string Name,
         PartnerType Type,
         string? Cnpj,
+        string? Email,
+        string? Notes,
         bool IsActive,
         int TotalRows)
     {
-        public PartnerListItem ToListItem() => new(Id, Name, Type, Cnpj, IsActive);
+        public PartnerListItem ToListItem() => new(Id, Name, Type, Cnpj, Email, Notes, IsActive);
     }
 }
 
