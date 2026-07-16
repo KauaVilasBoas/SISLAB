@@ -14,4 +14,18 @@ public interface INotificationRepository
 
     /// <summary>Stages a mutation to an already-tracked notification (e.g. after <c>MarkAsRead</c>).</summary>
     Task UpdateAsync(Notification notification, CancellationToken ct = default);
+
+    /// <summary>
+    /// Acknowledges <b>all</b> of the active company's unread notifications in one set-based operation, stamping
+    /// the read instant with <paramref name="readAtUtc"/> (from <c>IClock</c>, never the database clock), and
+    /// returns how many were flipped. Idempotent: with nothing unread it changes nothing and returns <c>0</c>.
+    /// </summary>
+    /// <remarks>
+    /// This is a deliberate bulk exception to the "mutate one loaded aggregate" rule: acknowledging the whole
+    /// inbox is a single UPDATE over the unread rows, so it does not load N aggregates just to flip a flag. It is
+    /// implicitly tenant-scoped to the active company; the read event of each row is not raised, which is
+    /// intentional — under Option A a notification is a terminal effect with no downstream consumer of the read
+    /// event (the module wires a no-op domain-event dispatcher).
+    /// </remarks>
+    Task<int> MarkAllAsReadForActiveCompanyAsync(DateTime readAtUtc, CancellationToken ct = default);
 }

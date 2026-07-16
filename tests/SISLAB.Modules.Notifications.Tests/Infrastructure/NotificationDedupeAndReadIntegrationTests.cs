@@ -172,6 +172,50 @@ public sealed class NotificationDedupeAndReadIntegrationTests : IAsyncLifetime
     }
 
     // -------------------------------------------------------------------------------------------------
+    // Bulk acknowledge (card #65 — "marcar todas como lidas"): tenant-scoped + idempotent
+    // -------------------------------------------------------------------------------------------------
+
+    [DockerAvailableFact]
+    public async Task Mark_all_read_acknowledges_only_the_active_company_and_returns_the_count()
+    {
+        await PublisherFor(CompanyA).RaiseAsync(ExpiryRequest("expiry:stock_item:a1:2026-07"));
+        await PublisherFor(CompanyA).RaiseAsync(ExpiryRequest("expiry:stock_item:a2:2026-07"));
+        await PublisherFor(CompanyB).RaiseAsync(ExpiryRequest("expiry:stock_item:b1:2026-07"));
+
+        var store = new NotificationStore(_connectionFactory);
+        int marked = await store.MarkAllReadAsync(CompanyA, Now);
+
+        Assert.Equal(2, marked);                              // A's two rows, never B's
+        Assert.Equal(0, await CountUnreadRowsAsync(CompanyA)); // A's inbox is fully acknowledged
+        Assert.Equal(1, await CountUnreadRowsAsync(CompanyB)); // B is untouched — tenant isolation holds
+    }
+
+    [DockerAvailableFact]
+    public async Task Mark_all_read_is_idempotent_a_second_run_marks_nothing()
+    {
+        await PublisherFor(CompanyA).RaiseAsync(ExpiryRequest("expiry:stock_item:a1:2026-07"));
+        await PublisherFor(CompanyA).RaiseAsync(ExpiryRequest("expiry:stock_item:a2:2026-07"));
+
+        var store = new NotificationStore(_connectionFactory);
+
+        int firstRun = await store.MarkAllReadAsync(CompanyA, Now);
+        int secondRun = await store.MarkAllReadAsync(CompanyA, Now.AddHours(2));
+
+        Assert.Equal(2, firstRun);  // both flipped on the first pass
+        Assert.Equal(0, secondRun); // nothing left unread — a clean no-op
+    }
+
+    [DockerAvailableFact]
+    public async Task Mark_all_read_on_an_empty_inbox_returns_zero()
+    {
+        var store = new NotificationStore(_connectionFactory);
+
+        int marked = await store.MarkAllReadAsync(CompanyA, Now);
+
+        Assert.Equal(0, marked);
+    }
+
+    // -------------------------------------------------------------------------------------------------
     // Wiring helpers
     // -------------------------------------------------------------------------------------------------
 
