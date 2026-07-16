@@ -59,6 +59,8 @@ export const Endpoints = {
     stockItems: {
       list: '/api/inventory/stock-items',
       create: '/api/inventory/stock-items',
+      /** Single item card (name, lot, balance, storage location) — feeds the mobile QR flow (#63). */
+      byId: (stockItemId: string) => `/api/inventory/stock-items/${stockItemId}`,
       expiring: '/api/inventory/stock-items/expiring',
       expirySummary: '/api/inventory/stock-items/expiry-summary',
       belowMinimum: '/api/inventory/stock-items/below-minimum',
