@@ -133,7 +133,7 @@ export function ControlledPage() {
           <h2 className="text-sm font-semibold">
             Trilha de auditoria
             <Badge variant="muted" className="ml-2 align-middle">
-              append-only
+              Registros permanentes
             </Badge>
           </h2>
           <p className="text-xs text-muted-foreground">

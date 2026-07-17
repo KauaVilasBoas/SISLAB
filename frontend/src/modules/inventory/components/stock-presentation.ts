@@ -3,6 +3,7 @@ import type {
   ExpiryStatus,
   StockItemListItem,
   StockMovementType,
+  StorageLocationType,
 } from '@/modules/inventory/types';
 
 /** Formats month-granularity validity (year, month) as "MM/YYYY", or a dash when absent. */
@@ -26,6 +27,28 @@ export function expiryStatusPresentation(status: ExpiryStatus): {
     case 'NotApplicable':
     default:
       return { label: 'N/A', variant: 'muted' };
+  }
+}
+
+/**
+ * Colour + tooltip for the small expiry status dot the table renders next to the validity date, so a
+ * scanning operator spots at-risk lots without reading the badge. Mirrors the badge classification:
+ * red = expired, amber = expiring soon, green = ok, neutral = not applicable.
+ */
+export function expiryDotPresentation(status: ExpiryStatus): {
+  className: string;
+  title: string;
+} {
+  switch (status) {
+    case 'Expired':
+      return { className: 'bg-destructive', title: 'Vencido' };
+    case 'ExpiringSoon':
+      return { className: 'bg-amber-500', title: 'A vencer' };
+    case 'Ok':
+      return { className: 'bg-emerald-500', title: 'Validade em dia' };
+    case 'NotApplicable':
+    default:
+      return { className: 'bg-muted-foreground/40', title: 'Sem validade' };
   }
 }
 
@@ -79,4 +102,31 @@ export const MOVEMENT_TYPES: StockMovementType[] = [
   'Consumed',
   'Transferred',
   'Disposed',
+];
+
+/** Portuguese label for a storage location type, from the real LAFTE layout (card [E7] #112). */
+export function storageLocationTypeLabel(type: StorageLocationType): string {
+  switch (type) {
+    case 'GeneralStorage':
+      return 'Almoxarifado';
+    case 'ReagentCabinet':
+      return 'Armário de reagentes';
+    case 'Refrigerated':
+      return 'Refrigerado';
+    case 'Controlled':
+      return 'Controlados';
+    case 'Partner':
+      return 'Parceiros';
+    default:
+      return type;
+  }
+}
+
+/** The storage location types in the order the create dropdown lists them. */
+export const STORAGE_LOCATION_TYPES: StorageLocationType[] = [
+  'GeneralStorage',
+  'ReagentCabinet',
+  'Refrigerated',
+  'Controlled',
+  'Partner',
 ];

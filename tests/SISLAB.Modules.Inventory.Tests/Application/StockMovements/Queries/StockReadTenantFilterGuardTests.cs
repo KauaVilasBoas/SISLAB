@@ -31,6 +31,7 @@ public sealed class StockReadTenantFilterGuardTests
     {
         "ListStockItemsQueryHandler",        // #29 items by location/category
         "ListStockMovementsQueryHandler",    // #47 per-item movement ledger
+        "ListRecentMovementsQueryHandler",   // #47 cross-item recent-movements panel
         "GetLocationsSummaryQueryHandler",   // #29 per-location summary
         "GetExpirySummaryQueryHandler",      // #30 expiry donut
         "ListExpiringItemsQueryHandler",     // #30 expiring items
