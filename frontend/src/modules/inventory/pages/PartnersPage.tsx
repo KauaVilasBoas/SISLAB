@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { PageHeader } from '@/shared/components/PageHeader';
 import { Button } from '@/shared/components/ui/button';
+import { RequirePermission } from '@/modules/auth/PermissionsProvider';
+import { Permissions } from '@/modules/auth/permissions';
 import { usePartnerList } from '@/modules/inventory/api/partner.queries';
 import { PartnersFilterBar } from '@/modules/inventory/components/PartnersFilterBar';
 import { PartnersGrid } from '@/modules/inventory/components/PartnersGrid';
@@ -37,10 +39,12 @@ export function PartnersPage() {
         title="Parceiros"
         description="Fornecedores e parceiros que enviam substâncias para teste."
         actions={
-          <Button onClick={() => setCreating(true)}>
-            <Plus className="size-4" />
-            Novo parceiro
-          </Button>
+          <RequirePermission code={Permissions.partners.register}>
+            <Button onClick={() => setCreating(true)}>
+              <Plus className="size-4" />
+              Novo parceiro
+            </Button>
+          </RequirePermission>
         }
       />
 

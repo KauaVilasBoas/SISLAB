@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
+import { RequirePermission, usePermissions } from '@/modules/auth/PermissionsProvider';
+import { Permissions } from '@/modules/auth/permissions';
 import type { StockItemListItem } from '@/modules/inventory/types';
 import {
   containerStateLabel,
@@ -28,11 +30,17 @@ interface StockItemDetailSheetProps {
 
 type MovementKind = 'entry' | 'consumption' | 'transfer' | 'disposal';
 
-const MOVEMENTS: { kind: MovementKind; label: string; icon: typeof PackagePlus }[] = [
-  { kind: 'entry', label: 'Entrada', icon: PackagePlus },
-  { kind: 'consumption', label: 'Consumo', icon: TrendingDown },
-  { kind: 'transfer', label: 'Transferir', icon: ArrowRightLeft },
-  { kind: 'disposal', label: 'Descartar', icon: Trash2 },
+const MOVEMENTS: {
+  kind: MovementKind;
+  label: string;
+  icon: typeof PackagePlus;
+  /** Permission code of the endpoint this movement calls — the button only shows if the user holds it. */
+  permission: string;
+}[] = [
+  { kind: 'entry', label: 'Entrada', icon: PackagePlus, permission: Permissions.stock.registerEntry },
+  { kind: 'consumption', label: 'Consumo', icon: TrendingDown, permission: Permissions.stock.registerConsumption },
+  { kind: 'transfer', label: 'Transferir', icon: ArrowRightLeft, permission: Permissions.stock.transfer },
+  { kind: 'disposal', label: 'Descartar', icon: Trash2, permission: Permissions.stock.dispose },
 ];
 
 /**
@@ -44,7 +52,11 @@ const MOVEMENTS: { kind: MovementKind; label: string; icon: typeof PackagePlus }
  */
 export function StockItemDetailSheet({ item, onEdit, onClose }: StockItemDetailSheetProps) {
   const [movement, setMovement] = useState<MovementKind | null>(null);
+  const { hasPermission } = usePermissions();
   const expiry = expiryStatusPresentation(item.expiryStatus);
+
+  // Only the movements the user may perform; the whole section is dropped when none are allowed.
+  const allowedMovements = MOVEMENTS.filter((m) => hasPermission(m.permission));
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -72,10 +84,12 @@ export function StockItemDetailSheet({ item, onEdit, onClose }: StockItemDetailS
             <p className="text-sm text-muted-foreground">{item.category}</p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <Button variant="outline" size="sm" onClick={onEdit}>
-              <Pencil className="size-3.5" />
-              Editar
-            </Button>
+            <RequirePermission code={Permissions.stock.updateItem}>
+              <Button variant="outline" size="sm" onClick={onEdit}>
+                <Pencil className="size-3.5" />
+                Editar
+              </Button>
+            </RequirePermission>
             <button
               type="button"
               onClick={onClose}
@@ -123,30 +137,32 @@ export function StockItemDetailSheet({ item, onEdit, onClose }: StockItemDetailS
             />
           </dl>
 
-          <section className="space-y-3">
-            <h3 className="text-sm font-medium">Movimentações</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {MOVEMENTS.map(({ kind, label, icon: Icon }) => (
-                <Button
-                  key={kind}
-                  variant={movement === kind ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setMovement((prev) => (prev === kind ? null : kind))}
-                >
-                  <Icon className="size-3.5" />
-                  {label}
-                </Button>
-              ))}
-            </div>
+          {allowedMovements.length > 0 ? (
+            <section className="space-y-3">
+              <h3 className="text-sm font-medium">Movimentações</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {allowedMovements.map(({ kind, label, icon: Icon }) => (
+                  <Button
+                    key={kind}
+                    variant={movement === kind ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setMovement((prev) => (prev === kind ? null : kind))}
+                  >
+                    <Icon className="size-3.5" />
+                    {label}
+                  </Button>
+                ))}
+              </div>
 
-            {movement ? (
-              <StockMovementForms
-                kind={movement}
-                item={item}
-                onDone={() => setMovement(null)}
-              />
-            ) : null}
-          </section>
+              {movement ? (
+                <StockMovementForms
+                  kind={movement}
+                  item={item}
+                  onDone={() => setMovement(null)}
+                />
+              ) : null}
+            </section>
+          ) : null}
         </div>
       </aside>
     </div>,

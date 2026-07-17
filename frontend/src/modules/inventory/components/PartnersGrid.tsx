@@ -5,6 +5,8 @@ import { Button } from '@/shared/components/ui/button';
 import type { ApiError } from '@/shared/types/api';
 import type { PagedResult } from '@/shared/types/api';
 import { useToast } from '@/shared/components/ui/toast';
+import { RequirePermission } from '@/modules/auth/PermissionsProvider';
+import { Permissions } from '@/modules/auth/permissions';
 import {
   useDeactivatePartner,
   useReactivatePartner,
@@ -129,20 +131,27 @@ function PartnerCard({
         )}
 
         <div className="mt-auto flex gap-2 pt-2">
-          <Button variant="outline" size="sm" onClick={() => onEdit(partner)}>
-            <Pencil className="size-3.5" />
-            Editar
-          </Button>
-          <Button variant="outline" size="sm" disabled={pending} onClick={toggleActive}>
-            {pending ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : partner.isActive ? (
-              <PowerOff className="size-3.5" />
-            ) : (
-              <Power className="size-3.5" />
-            )}
-            {partner.isActive ? 'Desativar' : 'Reativar'}
-          </Button>
+          <RequirePermission code={Permissions.partners.update}>
+            <Button variant="outline" size="sm" onClick={() => onEdit(partner)}>
+              <Pencil className="size-3.5" />
+              Editar
+            </Button>
+          </RequirePermission>
+          {/* Toggle gated by the action it will call: deactivate when active, reactivate when inactive. */}
+          <RequirePermission
+            code={partner.isActive ? Permissions.partners.deactivate : Permissions.partners.reactivate}
+          >
+            <Button variant="outline" size="sm" disabled={pending} onClick={toggleActive}>
+              {pending ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : partner.isActive ? (
+                <PowerOff className="size-3.5" />
+              ) : (
+                <Power className="size-3.5" />
+              )}
+              {partner.isActive ? 'Desativar' : 'Reativar'}
+            </Button>
+          </RequirePermission>
         </div>
       </CardContent>
     </Card>
