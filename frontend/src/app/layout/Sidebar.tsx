@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { FlaskConical, QrCode, LogOut } from 'lucide-react';
 import { navGroups, type NavItem } from '@/app/navigation';
 import { useAuth } from '@/modules/auth/AuthProvider';
+import { usePermissions } from '@/modules/auth/PermissionsProvider';
 import { cn } from '@/shared/lib/utils';
 
 /** Two-letter initials from a display name or e-mail, for the avatar chip. */
@@ -19,6 +20,23 @@ function initialsOf(value: string): string {
  * and a footer with the signed-in user + logout.
  */
 export function Sidebar() {
+  const { hasAnyPermission, isReady } = usePermissions();
+
+  // Hide a nav item whose read endpoints are permission-gated when the user holds none of the required codes.
+  // While the permission set is still resolving, gated items stay hidden (they pop in once ready) so we never
+  // flash a link the user cannot use; ungated items (permissionAny absent) are always shown.
+  function canSeeNavItem(item: NavItem): boolean {
+    if (!item.permissionAny) return true;
+    if (!isReady) return false;
+    return hasAnyPermission(item.permissionAny);
+  }
+
+  // Drop groups that end up with no visible items (e.g. an operator without any admin permission loses the
+  // whole "Administração" section rather than seeing an empty heading).
+  const visibleGroups = navGroups
+    .map((group) => ({ ...group, items: group.items.filter(canSeeNavItem) }))
+    .filter((group) => group.items.length > 0);
+
   return (
     <aside className="hidden w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
       {/* Brand */}
@@ -44,7 +62,7 @@ export function Sidebar() {
 
       {/* Grouped navigation */}
       <nav className="scrollbar-sidebar flex-1 space-y-5 overflow-y-auto p-3">
-        {navGroups.map((group) => (
+        {visibleGroups.map((group) => (
           <div key={group.title} className="space-y-1">
             <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted">
               {group.title}

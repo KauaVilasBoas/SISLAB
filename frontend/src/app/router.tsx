@@ -15,6 +15,8 @@ import { NotificationsPage } from '@/modules/notifications/pages/NotificationsPa
 import { LoginPage } from '@/modules/auth/pages/LoginPage';
 import { InvitationAcceptPage } from '@/modules/identity/pages/InvitationAcceptPage';
 import { RequireAuth } from '@/modules/auth/components/RequireAuth';
+import { RequirePermissionRoute } from '@/modules/auth/components/RequirePermissionRoute';
+import { Permissions } from '@/modules/auth/permissions';
 
 /**
  * Central route table (card [E7] #44). /login is public and lives OUTSIDE the AppShell;
@@ -45,8 +47,24 @@ export const router = createBrowserRouter([
       { path: 'controlled', element: <ControlledPage /> },
       { path: 'equipment', element: <EquipmentPage /> },
       { path: 'partners', element: <PartnersPage /> },
-      { path: 'members', element: <MembersPage /> },
-      { path: 'members/profiles/:profileId', element: <ProfileEditPage /> },
+      {
+        path: 'members',
+        element: (
+          <RequirePermissionRoute
+            codes={[Permissions.members.listEnriched, Permissions.profiles.listProfiles]}
+          >
+            <MembersPage />
+          </RequirePermissionRoute>
+        ),
+      },
+      {
+        path: 'members/profiles/:profileId',
+        element: (
+          <RequirePermissionRoute codes={[Permissions.profiles.listProfiles]}>
+            <ProfileEditPage />
+          </RequirePermissionRoute>
+        ),
+      },
       { path: 'configuration', element: <ConfigurationPage /> },
       { path: 'audit', element: <AuditPage /> },
       { path: 'notifications', element: <NotificationsPage /> },
