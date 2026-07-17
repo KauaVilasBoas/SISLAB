@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit" Version="2.5.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Domain (aggregate/strategy inputs) + Application (handlers, strategy, CSV parser, queries) under test. -->
+    <ProjectReference Include="..\..\src\Modules\Experiments\SISLAB.Modules.Experiments.Domain\SISLAB.Modules.Experiments.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Experiments\SISLAB.Modules.Experiments.Application\SISLAB.Modules.Experiments.Application.csproj" />
+    <!-- Audit.Contracts: the IAuditActorAccessor port the write handlers depend on (faked in tests). -->
+    <ProjectReference Include="..\..\src\Modules\Audit\SISLAB.Modules.Audit.Contracts\SISLAB.Modules.Audit.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Shared\SISLAB.SharedKernel\SISLAB.SharedKernel.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

@@ -42,6 +42,10 @@ public sealed class ModuleIsolationTests
     private const string ConfigurationApplicationAssembly = "SISLAB.Modules.Configuration.Application";
     private const string ConfigurationContractsAssembly = "SISLAB.Modules.Configuration.Contracts";
     private const string ConfigurationInfrastructureAssembly = "SISLAB.Modules.Configuration.Infrastructure";
+    private const string ExperimentsDomainAssembly = "SISLAB.Modules.Experiments.Domain";
+    private const string ExperimentsApplicationAssembly = "SISLAB.Modules.Experiments.Application";
+    private const string ExperimentsContractsAssembly = "SISLAB.Modules.Experiments.Contracts";
+    private const string ExperimentsInfrastructureAssembly = "SISLAB.Modules.Experiments.Infrastructure";
     private const string SharedKernelAssembly = "SISLAB.SharedKernel";
     private const string InfrastructureAssembly = "SISLAB.Infrastructure";
     private const string JobsAssembly = "SISLAB.Jobs";
@@ -715,6 +719,145 @@ public sealed class ModuleIsolationTests
             .Types().That().ResideInAssembly(InventoryApplicationAssembly)
             .Should().NotDependOnAnyTypesThat()
             .ResideInAssembly(ConfigurationInfrastructureAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Experiments module (card [E11] #68). New bounded context (the in vitro viability slice). Same isolation
+    // rules as the other modules:
+    // (c) its Domain never touches EF Core, Dapper or ASP.NET;
+    // (a+b) its Domain never depends on another module's Domain;
+    // (b) its public Contracts boundary stays clean (no Domain/Application/Infrastructure/EF), so a consumer
+    //     that references only Contracts (e.g. Inventory correlating cost) cannot reach the internals through it.
+    // ---------------------------------------------------------------------------------------------
+
+    /// <summary>(c) Domain do Experiments não deve referenciar SISLAB.Infrastructure.</summary>
+    [Fact]
+    public void ExperimentsDomain_ShouldNotDependOn_Infrastructure()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ExperimentsDomainAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(InfrastructureAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(c) Domain do Experiments não deve referenciar EF Core.</summary>
+    [Fact]
+    public void ExperimentsDomain_ShouldNotDependOn_EntityFramework()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ExperimentsDomainAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInNamespace("Microsoft.EntityFrameworkCore")
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(c) Domain do Experiments não deve usar Dapper.</summary>
+    [Fact]
+    public void ExperimentsDomain_ShouldNotDependOn_Dapper()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ExperimentsDomainAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInNamespace("Dapper")
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(c) Domain do Experiments não deve depender de ASP.NET Core.</summary>
+    [Fact]
+    public void ExperimentsDomain_ShouldNotDependOn_AspNetCore()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ExperimentsDomainAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInNamespace("Microsoft.AspNetCore")
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(a+b) Domain do Experiments não deve depender do Domain do Inventory.</summary>
+    [Fact]
+    public void ExperimentsDomain_ShouldNotDependOn_InventoryDomain()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ExperimentsDomainAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(InventoryDomainAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(a+b) Domain do Experiments não deve depender do Domain do Identity.</summary>
+    [Fact]
+    public void ExperimentsDomain_ShouldNotDependOn_IdentityDomain()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ExperimentsDomainAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(IdentityDomainAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(b) O boundary público (Contracts) do Experiments não deve depender do seu Domain interno.</summary>
+    [Fact]
+    public void ExperimentsContracts_ShouldNotDependOn_ExperimentsDomain()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ExperimentsContractsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(ExperimentsDomainAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(b) O boundary público (Contracts) do Experiments não deve depender da Application do módulo.</summary>
+    [Fact]
+    public void ExperimentsContracts_ShouldNotDependOn_ExperimentsApplication()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ExperimentsContractsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(ExperimentsApplicationAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(b) O boundary público (Contracts) do Experiments não deve depender da Infrastructure do módulo.</summary>
+    [Fact]
+    public void ExperimentsContracts_ShouldNotDependOn_ExperimentsInfrastructure()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ExperimentsContractsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(ExperimentsInfrastructureAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(b) O boundary público (Contracts) do Experiments não deve depender de EF Core.</summary>
+    [Fact]
+    public void ExperimentsContracts_ShouldNotDependOn_EntityFramework()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ExperimentsContractsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInNamespace("Microsoft.EntityFrameworkCore")
             .WithoutRequiringPositiveResults();
 
         rule.Check(Architecture);

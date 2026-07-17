@@ -11,6 +11,8 @@ import { QuickConsumptionPage } from '@/modules/quick-consumption/pages/QuickCon
 import { MembersPage } from '@/modules/identity/pages/MembersPage';
 import { ProfileEditPage } from '@/modules/identity/pages/ProfileEditPage';
 import { ConfigurationPage } from '@/modules/configuration/pages/ConfigurationPage';
+import { ExperimentsPage } from '@/modules/experiments/pages/ExperimentsPage';
+import { ExperimentDetailPage } from '@/modules/experiments/pages/ExperimentDetailPage';
 import { AuditPage } from '@/modules/audit/pages/AuditPage';
 import { NotificationsPage } from '@/modules/notifications/pages/NotificationsPage';
 import { LoginPage } from '@/modules/auth/pages/LoginPage';
@@ -82,6 +84,10 @@ export const router = createBrowserRouter([
         ),
       },
       { path: 'configuration', element: <ConfigurationPage /> },
+      // Experiments (card [E11] #68) — visible to every member for now (list/detail reads are only
+      // [Authorize]-gated; the write actions are permission-gated on the backend).
+      { path: 'experiments', element: <ExperimentsPage /> },
+      { path: 'experiments/:id', element: <ExperimentDetailPage /> },
       { path: 'audit', element: <AuditPage /> },
       { path: 'notifications', element: <NotificationsPage /> },
       { path: '*', element: <Navigate to="/" replace /> },

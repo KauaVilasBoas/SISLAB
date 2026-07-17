@@ -1,0 +1,183 @@
+using Lumen.Authorization.AspNetCore;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using SISLAB.Infrastructure.AspNetCore;
+using SISLAB.Modules.Experiments.Application.Experiments.Commands;
+using SISLAB.Modules.Experiments.Application.Experiments.Queries;
+using SISLAB.SharedKernel.Http;
+using SISLAB.SharedKernel.Messaging;
+
+namespace SISLAB.Modules.Experiments.Application.Experiments;
+
+/// <summary>
+/// HTTP boundary for the Experiments module (decision card #68 — the in vitro viability slice). It groups the
+/// write side (create → design plate → import reading → calculate) and the read side (list / detail / plate
+/// result). The controller only dispatches CQRS requests through <see cref="IMediator"/> and maps the result to
+/// the uniform <see cref="ApiResult"/>/<see cref="ApiResult{T}"/> envelope; it never touches repositories, the
+/// DbContext or Dapper, and never maps errors — those bubble up to the exception-handling middleware.
+/// </summary>
+/// <remarks>
+/// Tenant-scoped: every request runs against the active company resolved from the httpOnly cookie (EF Core
+/// global query filter + <c>ITenantContext</c> on the write side; the read side keeps the mandatory
+/// <c>WHERE company_id = @CompanyId</c>), never from the request body. Each state-changing action is gated by
+/// Lumen's <c>[RequirePermission]</c>; the reads are page-level <c>[Authorize]</c>.
+/// </remarks>
+[Route("api/experiments")]
+[Authorize]
+public sealed class ExperimentsController : SislabControllerBase
+{
+    private readonly IMediator _mediator;
+
+    public ExperimentsController(IMediator mediator) => _mediator = mediator;
+
+    /// <summary>Lists the active company's experiments, paginated, optionally filtered by status/type.</summary>
+    [HttpGet]
+    [ProducesResponseType(typeof(ApiResult<PagedResult<ExperimentListItem>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> List(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? status = null,
+        [FromQuery] string? type = null,
+        CancellationToken ct = default)
+    {
+        PagedResult<ExperimentListItem> result = await _mediator.SendAsync(
+            new ListExperimentsQuery { Page = page, PageSize = pageSize, Status = status, Type = type },
+            ct);
+
+        return Ok(new ApiResult<PagedResult<ExperimentListItem>>(true, "Experiments retrieved.", result));
+    }
+
+    /// <summary>Returns a single experiment's detail — header, steps, plate wells and the calculation snapshot.</summary>
+    [HttpGet("{experimentId:guid}")]
+    [ProducesResponseType(typeof(ApiResult<ExperimentDetail>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Get(Guid experimentId, CancellationToken ct)
+    {
+        ExperimentDetail detail = await _mediator.SendAsync(new GetExperimentQuery(experimentId), ct);
+        return Ok(new ApiResult<ExperimentDetail>(true, "Experiment retrieved.", detail));
+    }
+
+    /// <summary>Returns the experiment's plate as the 8×12 grid, with readings and (if calculated) % viability.</summary>
+    [HttpGet("{experimentId:guid}/plate-result")]
+    [ProducesResponseType(typeof(ApiResult<PlateReadingResult>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetPlateResult(Guid experimentId, CancellationToken ct)
+    {
+        PlateReadingResult result = await _mediator.SendAsync(new GetPlateReadingResultQuery(experimentId), ct);
+        return Ok(new ApiResult<PlateReadingResult>(true, "Plate result retrieved.", result));
+    }
+
+    /// <summary>Creates a new plate experiment (viability or nitric oxide) for the active company. Returns the new id.</summary>
+    [HttpPost]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult<Guid>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Create([FromBody] CreateExperimentRequest body, CancellationToken ct)
+    {
+        Guid id = await _mediator.SendAsync(
+            new CreateExperimentCommand(body.Type, body.Title, body.Description, body.CompoundPartnerId),
+            ct);
+
+        return Ok(new ApiResult<Guid>(true, "Experiment created.", id));
+    }
+
+    /// <summary>Lays out the experiment's 8×12 plate (replaces the whole design). Moves a draft into progress.</summary>
+    [HttpPost("{experimentId:guid}/design-plate")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> DesignPlate(
+        Guid experimentId,
+        [FromBody] DesignPlateRequest body,
+        CancellationToken ct)
+    {
+        IReadOnlyList<PlateWellDefinition> wells = body.Wells
+            .Select(w => new PlateWellDefinition(w.Row, w.Column, w.Role, w.ConcentrationUm, w.SampleId))
+            .ToList();
+
+        await _mediator.SendAsync(new DesignPlateCommand(experimentId, wells), ct);
+
+        return Ok(new ApiResult(true, "Plate designed."));
+    }
+
+    /// <summary>Imports the plate reader's raw absorbance from the canonical <c>well,absorbance</c> CSV.</summary>
+    [HttpPost("{experimentId:guid}/import-reading")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ImportReading(
+        Guid experimentId,
+        [FromBody] ImportReadingRequest body,
+        CancellationToken ct)
+    {
+        await _mediator.SendAsync(new ImportPlateReadingCommand(experimentId, body.CsvContent), ct);
+        return Ok(new ApiResult(true, "Plate reading imported."));
+    }
+
+    /// <summary>Runs the versioned calculation (viability or nitric oxide) and freezes the result snapshot.</summary>
+    [HttpPost("{experimentId:guid}/calculate")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Calculate(Guid experimentId, CancellationToken ct)
+    {
+        await _mediator.SendAsync(new CalculateExperimentCommand(experimentId), ct);
+        return Ok(new ApiResult(true, "Calculation applied."));
+    }
+
+    /// <summary>
+    /// Exports the calculated experiment as a GraphPad Prism-compatible CSV (card [E11] #79). Any member may
+    /// export — it is a read of the frozen snapshot, so it is page-level <c>[Authorize]</c>, not permission-gated.
+    /// </summary>
+    [HttpGet("{experimentId:guid}/export")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Export(Guid experimentId, CancellationToken ct)
+    {
+        ExperimentExportDto export = await _mediator.SendAsync(new ExportExperimentQuery(experimentId), ct);
+
+        return File(
+            System.Text.Encoding.UTF8.GetBytes(export.CsvContent),
+            export.ContentType,
+            export.FileName);
+    }
+}
+
+/// <summary>Request body to create a plate experiment; the company comes from the session, never the payload.</summary>
+public sealed record CreateExperimentRequest(
+    SISLAB.Modules.Experiments.Domain.Experiments.ExperimentType Type,
+    string Title,
+    string? Description,
+    Guid? CompoundPartnerId);
+
+/// <summary>Request body to design the plate: the full set of wells.</summary>
+public sealed record DesignPlateRequest(IReadOnlyList<DesignPlateWellRequest> Wells);
+
+/// <summary>One well in a plate-design request.</summary>
+public sealed record DesignPlateWellRequest(
+    char Row,
+    int Column,
+    SISLAB.Modules.Experiments.Domain.Plates.WellRole Role,
+    decimal? ConcentrationUm,
+    string? SampleId);
+
+/// <summary>Request body to import a plate reading — the canonical <c>well,absorbance</c> CSV as text.</summary>
+public sealed record ImportReadingRequest(string CsvContent);

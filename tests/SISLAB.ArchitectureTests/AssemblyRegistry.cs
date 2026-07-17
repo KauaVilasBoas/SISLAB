@@ -38,6 +38,13 @@ internal static class AssemblyRegistry
             typeof(Modules.Configuration.Application.ConfigurationModule).Assembly,        // Configuration.Application
             typeof(Modules.Configuration.Contracts.ILabConfiguration).Assembly,            // Configuration.Contracts
             typeof(Modules.Configuration.Infrastructure.Persistence.ConfigurationDbContext).Assembly, // Configuration.Infrastructure
+            // Experiments module (card [E11] #68): all four projects loaded so the module-isolation rules can
+            // evaluate the Domain internals (the Experiment aggregate + strategy) and the public Contracts
+            // boundary (the ExperimentCalculated integration event) against real types.
+            typeof(Modules.Experiments.Domain.Experiments.Experiment).Assembly,                          // Experiments.Domain
+            typeof(Modules.Experiments.Application.ExperimentsModule).Assembly,                          // Experiments.Application
+            typeof(Modules.Experiments.Contracts.Events.ExperimentCalculatedIntegrationEvent).Assembly,  // Experiments.Contracts
+            typeof(Modules.Experiments.Infrastructure.Persistence.ExperimentsDbContext).Assembly,        // Experiments.Infrastructure
             // Jobs host library (E6 #39): loaded so the Host-style isolation rules can be evaluated
             // against real types — it must depend only on shared Infrastructure/module Application,
             // never on a module's internal Domain.

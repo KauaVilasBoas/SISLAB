@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Domain: depende apenas de SharedKernel. Nunca referencia infra, EF, ASP.NET ou Domain de outro módulo. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.SharedKernel\SISLAB.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

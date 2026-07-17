@@ -129,6 +129,24 @@ export const Endpoints = {
     units: '/api/configuration/units',
   },
 
+  /** Experiments module — in vitro cell-viability slice (card [E11] #68). */
+  experiments: {
+    /** Paginated list + create. */
+    root: '/api/experiments',
+    /** Single experiment detail (header, steps, plate wells, calculation snapshot). */
+    byId: (id: string) => `/api/experiments/${id}`,
+    /** The 8×12 plate result grid (readings + % viability). */
+    plateResult: (id: string) => `/api/experiments/${id}/plate-result`,
+    /** Lay out the plate wells. */
+    designPlate: (id: string) => `/api/experiments/${id}/design-plate`,
+    /** Import the reader's absorbance (canonical well,absorbance CSV). */
+    importReading: (id: string) => `/api/experiments/${id}/import-reading`,
+    /** Run the versioned calculation (viability or nitric oxide). */
+    calculate: (id: string) => `/api/experiments/${id}/calculate`,
+    /** Download the GraphPad Prism-compatible CSV export. */
+    export: (id: string) => `/api/experiments/${id}/export`,
+  },
+
   audit: {
     entries: '/api/audit/entries',
     entriesExport: '/api/audit/entries/export',
