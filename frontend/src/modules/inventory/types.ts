@@ -170,6 +170,11 @@ export interface RegisterConsumptionRequest {
   unit: string;
   experimentId: string | null;
   occurredOn: string | null;
+  /**
+   * The lot the operator chose to draw from first (card [E7] #111). When null the backend draws the
+   * balance FEFO automatically (first-expired-first-out) — the picker defaults to that behaviour.
+   */
+  preferredBatchId: string | null;
 }
 
 /** Request body for a transfer between storage locations (POST /stock-items/{id}/transfers). */
@@ -185,6 +190,25 @@ export interface DisposeStockRequest {
   unit: string;
   reason: string;
   occurredOn: string | null;
+}
+
+/**
+ * An available batch of a stock item (GET /api/inventory/stock-batches/{id}) — mirrors the backend
+ * StockBatchItem. Feeds the consumption lot picker (card [E7] #111): each lot's code, month-granularity
+ * validity, remaining balance and (cost-gated) unit cost. The list already arrives FEFO-ordered from the
+ * backend (validity ascending, batches without an expiry last), so the first row is the FEFO default.
+ */
+export interface StockBatchItem {
+  batchId: string;
+  lotCode: string | null;
+  expiryYear: number | null;
+  expiryMonth: number | null;
+  remainingQuantity: number;
+  unit: string;
+  /** Unit price in BRL; null for donations / no-invoice items. */
+  unitCostBrl: number | null;
+  /** When the batch was received, ISO UTC timestamp. */
+  receivedAtUtc: string;
 }
 
 /**

@@ -52,6 +52,32 @@ export function expiryDotPresentation(status: ExpiryStatus): {
   }
 }
 
+/**
+ * Classifies a batch's month-granularity validity (year, month) into the shared {@link ExpiryStatus}, so the
+ * consumption lot picker (card [E7] #111) can colour each lot with the SAME semantics the table uses —
+ * red = expired, amber = expiring soon, neutral = no validity. Unlike the item listing (whose status the
+ * backend derives), a batch row only carries year/month, so the picker derives it client-side from the
+ * current month: a validity strictly before this month is `Expired`, within `warningMonths` ahead is
+ * `ExpiringSoon`, otherwise `Ok`. Kept intentionally coarse (month precision) — the backend remains the
+ * authority; this only drives a non-blocking visual cue (expiry only alerts, never blocks consumption).
+ */
+export function batchExpiryStatus(
+  year: number | null,
+  month: number | null,
+  warningMonths = 1,
+): ExpiryStatus {
+  if (year === null || month === null) return 'NotApplicable';
+
+  const now = new Date();
+  const currentMonths = now.getFullYear() * 12 + now.getMonth(); // month is 0-based
+  const batchMonths = year * 12 + (month - 1);
+  const delta = batchMonths - currentMonths;
+
+  if (delta < 0) return 'Expired';
+  if (delta <= warningMonths) return 'ExpiringSoon';
+  return 'Ok';
+}
+
 /** Portuguese label for the aggregate's container state ("Open"/"Closed"). */
 export function containerStateLabel(state: string): string {
   switch (state) {
