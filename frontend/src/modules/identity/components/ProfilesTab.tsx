@@ -4,6 +4,8 @@ import { Loader2, Pencil, Plus, ShieldCheck } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
+import { RequirePermission } from '@/modules/auth/PermissionsProvider';
+import { Permissions } from '@/modules/auth/permissions';
 import type { ProfileDto } from '@/modules/identity/types';
 import { useProfiles } from '@/modules/identity/api/identity.queries';
 import { ProfileEditorModal } from '@/modules/identity/components/ProfileEditorModal';
@@ -21,10 +23,12 @@ export function ProfilesTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-end">
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="size-4" />
-          Novo perfil
-        </Button>
+        <RequirePermission code={Permissions.profiles.createProfile}>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" />
+            Novo perfil
+          </Button>
+        </RequirePermission>
       </div>
 
       {profiles.isLoading ? (

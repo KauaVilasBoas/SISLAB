@@ -7,6 +7,8 @@ import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { useToast } from '@/shared/components/ui/toast';
 import type { ApiError } from '@/shared/types/api';
+import { RequirePermission } from '@/modules/auth/PermissionsProvider';
+import { Permissions } from '@/modules/auth/permissions';
 import { useCreateUnit, useUnits } from '@/modules/configuration/api/configuration.queries';
 import {
   CatalogueEmpty,
@@ -22,10 +24,12 @@ export function UnitsTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-end">
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="size-4" />
-          Nova unidade
-        </Button>
+        <RequirePermission code={Permissions.configuration.createUnit}>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" />
+            Nova unidade
+          </Button>
+        </RequirePermission>
       </div>
 
       {units.isLoading ? (

@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui
 import { Badge } from '@/shared/components/ui/badge';
 import { cn } from '@/shared/lib/utils';
 import type { ApiError } from '@/shared/types/api';
+import { usePermissions } from '@/modules/auth/PermissionsProvider';
+import { Permissions } from '@/modules/auth/permissions';
 import type { PermissionGroupDto } from '@/modules/identity/types';
 import {
   useAvailablePermissions,
@@ -21,11 +23,13 @@ import {
 function IndeterminateCheckbox({
   checked,
   indeterminate,
+  disabled = false,
   onChange,
   onClick,
 }: {
   checked: boolean;
   indeterminate: boolean;
+  disabled?: boolean;
   onChange: () => void;
   onClick: (e: MouseEvent) => void;
 }) {
@@ -37,8 +41,9 @@ function IndeterminateCheckbox({
     <input
       ref={ref}
       type="checkbox"
-      className="size-4 shrink-0 cursor-pointer rounded border-input"
+      className="size-4 shrink-0 cursor-pointer rounded border-input disabled:cursor-not-allowed disabled:opacity-60"
       checked={checked}
+      disabled={disabled}
       onChange={onChange}
       onClick={onClick}
     />
@@ -50,12 +55,15 @@ function PermissionAccordionGroup({
   group,
   selectedIds,
   initialOpen,
+  disabled,
   onToggle,
   onToggleAll,
 }: {
   group: PermissionGroupDto;
   selectedIds: Set<string>;
   initialOpen: boolean;
+  /** Read-only mode: the user may view the profile's permissions but not change them. */
+  disabled: boolean;
   onToggle: (id: string) => void;
   onToggleAll: (permissionIds: string[]) => void;
 }) {
@@ -77,6 +85,7 @@ function PermissionAccordionGroup({
         <IndeterminateCheckbox
           checked={allSelected}
           indeterminate={someSelected}
+          disabled={disabled}
           onChange={() => onToggleAll(permissionIds)}
           onClick={(e) => e.stopPropagation()}
         />
@@ -106,12 +115,16 @@ function PermissionAccordionGroup({
             {group.permissions.map((permission) => (
               <label
                 key={permission.id}
-                className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-muted/40"
+                className={cn(
+                  'flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors',
+                  disabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer hover:bg-muted/40',
+                )}
               >
                 <input
                   type="checkbox"
-                  className="size-4 shrink-0 rounded border-input"
+                  className="size-4 shrink-0 rounded border-input disabled:cursor-not-allowed"
                   checked={selectedIds.has(permission.id)}
+                  disabled={disabled}
                   onChange={() => onToggle(permission.id)}
                 />
                 <span>{permission.displayName}</span>
@@ -132,7 +145,21 @@ export function ProfileEditPage() {
   const profile = profiles.data?.find((p) => p.id === profileId);
   const isSystem = profile?.isSystem ?? false;
 
-  const permissions = useAvailablePermissions(profileId, !!profileId && !isSystem);
+  // A system profile is never editable; otherwise editing the identity requires Profiles.UpdateProfile and
+  // editing the permission set requires Profiles.SetProfilePermissions. Without either the page is read-only
+  // (fields disabled, save buttons hidden) — the user can still inspect the profile via Profiles.ListProfiles.
+  const { hasPermission } = usePermissions();
+  const canEditIdentity = !isSystem && hasPermission(Permissions.profiles.updateProfile);
+  const canEditPermissions = !isSystem && hasPermission(Permissions.profiles.setProfilePermissions);
+  const canEdit = canEditIdentity || canEditPermissions;
+
+  // The permission catalogue endpoint is itself gated by Profiles.ListAvailablePermissions; only fetch it when
+  // the user holds that code, otherwise it would 403 (the section then shows the profile as read-only info).
+  const canListPermissions = hasPermission(Permissions.profiles.listAvailablePermissions);
+  const permissions = useAvailablePermissions(
+    profileId,
+    !!profileId && !isSystem && canListPermissions,
+  );
 
   const updateProfile = useUpdateProfile();
   const setPermissions = useSetPermissions();
@@ -193,13 +220,15 @@ export function ProfileEditPage() {
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!profileId) return;
+    if (!profileId || !canEdit) return;
     try {
-      await updateProfile.mutateAsync({
-        profileId,
-        body: { name: name.trim(), description: description.trim() },
-      });
-      if (!isSystem) {
+      if (canEditIdentity) {
+        await updateProfile.mutateAsync({
+          profileId,
+          body: { name: name.trim(), description: description.trim() },
+        });
+      }
+      if (canEditPermissions) {
         await setPermissions.mutateAsync({
           profileId,
           permissionIds: [...selectedIds],
@@ -265,7 +294,7 @@ export function ProfileEditPage() {
           )}
         </div>
 
-        {!isSystem && (
+        {canEdit && (
           <div className="flex shrink-0 items-center gap-2 pt-1">
             <Button type="button" variant="outline" onClick={goBack} disabled={saving}>
               Cancelar
@@ -291,7 +320,7 @@ export function ProfileEditPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              disabled={isSystem}
+              disabled={!canEditIdentity}
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -301,7 +330,7 @@ export function ProfileEditPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Opcional"
-              disabled={isSystem}
+              disabled={!canEditIdentity}
             />
           </div>
           {isSystem && (
@@ -341,21 +370,28 @@ export function ProfileEditPage() {
                     group={group}
                     selectedIds={selectedIds}
                     initialOpen={group.permissions.some((p) => p.selected)}
+                    disabled={!canEditPermissions}
                     onToggle={toggle}
                     onToggleAll={toggleAll}
                   />
                 ))}
 
-                {/* Sticky save at the bottom of the permissions section */}
-                <div className="flex items-center justify-between border-t pt-4">
-                  <span className="text-xs text-muted-foreground">
-                    {selectedIds.size} de {totalPermissions} selecionadas
-                  </span>
-                  <Button type="submit" disabled={saving}>
-                    {saving && <Loader2 className="size-4 animate-spin" />}
-                    Salvar permissões
-                  </Button>
-                </div>
+                {/* Sticky save at the bottom of the permissions section — only when the user may change them. */}
+                {canEditPermissions ? (
+                  <div className="flex items-center justify-between border-t pt-4">
+                    <span className="text-xs text-muted-foreground">
+                      {selectedIds.size} de {totalPermissions} selecionadas
+                    </span>
+                    <Button type="submit" disabled={saving}>
+                      {saving && <Loader2 className="size-4 animate-spin" />}
+                      Salvar permissões
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="border-t pt-4 text-xs text-muted-foreground">
+                    Você pode visualizar as permissões deste perfil, mas não tem permissão para alterá-las.
+                  </p>
+                )}
               </>
             ) : (
               <p className="text-sm text-muted-foreground">
