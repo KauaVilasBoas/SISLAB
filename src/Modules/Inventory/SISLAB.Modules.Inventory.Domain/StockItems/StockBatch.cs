@@ -48,7 +48,10 @@ public sealed class StockBatch : Entity<Guid>
         : base(id)
     {
         InitialQuantity = initialQuantity;
-        RemainingQuantity = initialQuantity;
+        // A DISTINCT instance from InitialQuantity (same amount/unit). EF maps both as separate owned
+        // entities, and one owned instance cannot be shared across two owned navigations — sharing it makes
+        // EF fail to save with "owned entity without any reference to its owner".
+        RemainingQuantity = Quantity.Of(initialQuantity.Value, initialQuantity.Unit);
         Lot = lot;
         Expiry = expiry;
         UnitCostBrl = unitCostBrl;
