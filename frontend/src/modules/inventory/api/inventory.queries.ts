@@ -11,6 +11,7 @@ import type {
   RegisterStockEntryRequest,
   RegisterStockItemRequest,
   RegisterStorageLocationRequest,
+  StockBatchItem,
   StockItemFilters,
   StockItemListItem,
   StockMovementListItem,
@@ -34,6 +35,10 @@ export const inventoryKeys = {
     [...inventoryKeys.stockItems(), 'list', filters, page] as const,
   movements: (stockItemId: string, filters: StockMovementsFilter, page: number) =>
     [...inventoryKeys.stockItems(), 'movements', stockItemId, filters, page] as const,
+  // Nested under stockItems() so a movement mutation (entry adds a batch, consumption draws one down)
+  // refreshes the lot picker automatically — the picker must never offer a depleted or stale lot.
+  batches: (stockItemId: string) =>
+    [...inventoryKeys.stockItems(), 'batches', stockItemId] as const,
   // Nested under stockItems() so the movement mutations, which invalidate that namespace, also refresh
   // the cross-item recent-activity panel after an entry/consumption/transfer/disposal.
   recentMovements: (top: number) =>
@@ -106,6 +111,23 @@ export function useRecentMovements(top = 20) {
     queryKey: inventoryKeys.recentMovements(top),
     queryFn: () =>
       api.get<RecentMovementItem[]>(Endpoints.inventory.stockMovements.recent, { top }),
+    staleTime: 30_000,
+  });
+}
+
+/**
+ * Available batches (remaining balance > 0) of a stock item, FEFO-ordered, for the consumption lot picker
+ * (card [E7] #111). The backend already orders them FEFO (validity ascending, no-expiry last), so the first
+ * row is the FEFO default the aggregate would draw next. Disabled until an item is selected and until the
+ * picker is actually opened (`enabled`), so an unused picker never fetches. Nested under the stock-items
+ * namespace, so a movement mutation refreshes it automatically.
+ */
+export function useStockBatches(stockItemId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: inventoryKeys.batches(stockItemId ?? ''),
+    queryFn: () =>
+      api.get<StockBatchItem[]>(Endpoints.inventory.stockBatches.byItem(stockItemId as string)),
+    enabled: Boolean(stockItemId) && enabled,
     staleTime: 30_000,
   });
 }

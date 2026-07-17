@@ -9,10 +9,12 @@ import {
   useDisposeStock,
   useRegisterConsumption,
   useRegisterEntry,
+  useStockBatches,
   useStorageLocations,
   useTransferStock,
 } from '@/modules/inventory/api/inventory.queries';
 import { usePartnerList } from '@/modules/inventory/api/partner.queries';
+import { BatchSelect } from '@/modules/inventory/components/BatchSelect';
 import type { StockItemListItem } from '@/modules/inventory/types';
 
 type MovementKind = 'entry' | 'consumption' | 'transfer' | 'disposal';
@@ -212,8 +214,11 @@ function ConsumptionForm({
 }) {
   const toast = useToast();
   const consume = useRegisterConsumption(item.id);
+  const batches = useStockBatches(item.id);
   const [quantity, setQuantity] = useState('');
   const [experimentId, setExperimentId] = useState('');
+  // '' = automatic FEFO (the backend picks the lot). A specific id draws from that lot first (card #111).
+  const [preferredBatchId, setPreferredBatchId] = useState('');
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -224,6 +229,8 @@ function ConsumptionForm({
         // Sent only when the operator typed an id — the field is optional (no picker until E11).
         experimentId: experimentId.trim() || null,
         occurredOn: null,
+        // Null when no lot was chosen: the backend then draws FEFO / average cost automatically (card #111).
+        preferredBatchId: preferredBatchId || null,
       });
       toast('success', 'Consumo registrado.');
       onDone();
@@ -255,6 +262,13 @@ function ConsumptionForm({
           autoFocus
         />
       </Field>
+
+      <BatchSelect
+        batches={batches.data ?? []}
+        value={preferredBatchId}
+        onChange={setPreferredBatchId}
+        loading={batches.isLoading}
+      />
 
       <Field label="Experimento (opcional)" htmlFor="consume-experiment">
         <Input

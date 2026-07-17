@@ -77,6 +77,10 @@ export const Endpoints = {
       movements: (stockItemId: string) =>
         `/api/inventory/stock-items/${stockItemId}/movements`,
     },
+    stockBatches: {
+      /** Available batches (remaining > 0) of an item, FEFO-ordered — feeds the consumption lot picker (#111). */
+      byItem: (stockItemId: string) => `/api/inventory/stock-batches/${stockItemId}`,
+    },
     stockMovements: {
       /** Cross-item recent-activity feed (latest N movements of the active company) — card [E7] #47. */
       recent: '/api/inventory/stock-movements/recent',

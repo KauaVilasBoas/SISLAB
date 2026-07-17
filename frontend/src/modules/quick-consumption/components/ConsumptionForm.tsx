@@ -3,7 +3,11 @@ import { Loader2, User } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Field } from '@/modules/inventory/components/form-controls';
-import { useRegisterConsumption } from '@/modules/inventory/api/inventory.queries';
+import {
+  useRegisterConsumption,
+  useStockBatches,
+} from '@/modules/inventory/api/inventory.queries';
+import { BatchSelect } from '@/modules/inventory/components/BatchSelect';
 import { useAuth } from '@/modules/auth/AuthProvider';
 import { useToast } from '@/shared/components/ui/toast';
 import type { ApiError } from '@/shared/types/api';
@@ -39,10 +43,14 @@ export function ConsumptionForm({ item, onConfirmed }: ConsumptionFormProps) {
   const { user } = useAuth();
   const toast = useToast();
   const consume = useRegisterConsumption(item.id);
+  const batches = useStockBatches(item.id);
 
   const [quantity, setQuantity] = useState(item.quantity > 0 ? 1 : 0);
   const [experimentId, setExperimentId] = useState('');
   const [occurredOn, setOccurredOn] = useState(todayIso());
+  // '' = automatic FEFO (the backend picks the lot). Kept optional so the quick flow stays frictionless
+  // with a good default; a specific id draws from that lot first (card #111).
+  const [preferredBatchId, setPreferredBatchId] = useState('');
 
   const today = todayIso();
   const responsible = user?.username || user?.email || 'Você';
@@ -60,6 +68,8 @@ export function ConsumptionForm({ item, onConfirmed }: ConsumptionFormProps) {
         // Sent only when the operator typed an id — the field is optional (no picker until E11).
         experimentId: experimentId.trim() || null,
         occurredOn,
+        // Null when no lot was chosen: the backend then draws FEFO / average cost automatically (card #111).
+        preferredBatchId: preferredBatchId || null,
       });
       toast('success', `Baixa de ${quantity} ${item.unit} registrada.`);
       onConfirmed();
@@ -87,6 +97,14 @@ export function ConsumptionForm({ item, onConfirmed }: ConsumptionFormProps) {
           </p>
         )}
       </Field>
+
+      <BatchSelect
+        id="qc-batch"
+        batches={batches.data ?? []}
+        value={preferredBatchId}
+        onChange={setPreferredBatchId}
+        loading={batches.isLoading}
+      />
 
       <Field label="Experimento (opcional)" htmlFor="qc-experiment">
         <Input
