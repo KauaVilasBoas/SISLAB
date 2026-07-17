@@ -17,12 +17,14 @@ public sealed record StockReceivedIntegrationEvent : IIntegrationEvent
         DateTime occurredOnUtc,
         Guid companyId,
         Guid stockItemId,
+        Guid stockBatchId,
         decimal receivedQuantity,
         decimal resultingQuantity,
         string unit,
         string? lotCode,
         int? expiryYear,
         int? expiryMonth,
+        decimal? unitCostBrl = null,
         DateOnly? occurredOn = null,
         Guid? supplierPartnerId = null)
     {
@@ -30,12 +32,14 @@ public sealed record StockReceivedIntegrationEvent : IIntegrationEvent
         OccurredOnUtc = occurredOnUtc;
         CompanyId = companyId;
         StockItemId = stockItemId;
+        StockBatchId = stockBatchId;
         ReceivedQuantity = receivedQuantity;
         ResultingQuantity = resultingQuantity;
         Unit = unit;
         LotCode = lotCode;
         ExpiryYear = expiryYear;
         ExpiryMonth = expiryMonth;
+        UnitCostBrl = unitCostBrl;
         OccurredOn = occurredOn;
         SupplierPartnerId = supplierPartnerId;
     }
@@ -53,6 +57,9 @@ public sealed record StockReceivedIntegrationEvent : IIntegrationEvent
 
     public Guid StockItemId { get; }
 
+    /// <summary>The batch (receipt) this entry created (card [E4] #109); the ledger row points at it.</summary>
+    public Guid StockBatchId { get; }
+
     public decimal ReceivedQuantity { get; }
 
     public decimal ResultingQuantity { get; }
@@ -68,6 +75,9 @@ public sealed record StockReceivedIntegrationEvent : IIntegrationEvent
 
     /// <summary>Expiry month (1-12) of the received quantity, or <see langword="null"/> when it has no expiry.</summary>
     public int? ExpiryMonth { get; }
+
+    /// <summary>Unit cost in BRL of the received batch (card [E4] #109), or <see langword="null"/> for donations.</summary>
+    public decimal? UnitCostBrl { get; }
 
     /// <summary>
     /// Business date the entry occurred on (operator-supplied), or <see langword="null"/> when not

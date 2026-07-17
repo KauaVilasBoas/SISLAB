@@ -72,9 +72,11 @@ public sealed class UpdateStockItemCommandHandlerTests
             item.Id, "DMSO", Category, location.Id, MinimumQuantity: 5m, Brand: null, Application: null));
 
         StockItem persisted = items.LastUpdated!;
+        // The metadata edit never touches the batch ledger: the balance and the batches' lot/expiry are intact.
         Assert.Equal(100m, persisted.Quantity.Value);
-        Assert.Null(persisted.Lot);
-        Assert.Null(persisted.Expiry);
+        StockBatch batch = Assert.Single(persisted.Batches);
+        Assert.Null(batch.Lot);
+        Assert.Null(batch.Expiry);
     }
 
     [Fact]

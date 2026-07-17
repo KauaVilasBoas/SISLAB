@@ -49,8 +49,10 @@ public sealed class StockItemTests
         Assert.Equal(ContainerState.Closed, item.ContainerState);
         Assert.Equal("Anestesia", item.Application);
         Assert.True(item.IsControlled);
-        Assert.Equal("L-2026-01", item.Lot!.Code);
-        Assert.Equal(ExpiryDate.FromYearMonth(2027, 6), item.Expiry);
+        // Lot and expiry now live on the item's first batch (the opening receipt), not the aggregate root.
+        StockBatch opening = Assert.Single(item.Batches);
+        Assert.Equal("L-2026-01", opening.Lot!.Code);
+        Assert.Equal(ExpiryDate.FromYearMonth(2027, 6), opening.Expiry);
         Assert.Equal(Quantity.Of(5m, UnitOfMeasure.Ampoule), item.Quantity);
     }
 
@@ -146,7 +148,7 @@ public sealed class StockItemTests
     }
 
     [Fact]
-    public void RegisterEntry_increases_the_balance_and_updates_lot_and_expiry()
+    public void RegisterEntry_adds_a_new_batch_with_its_lot_and_expiry_and_increases_the_balance()
     {
         StockItem item = NewItem(initial: 100m);
         Lot lot = Lot.FromCode("BATCH-42")!;
@@ -154,9 +156,25 @@ public sealed class StockItemTests
 
         item.RegisterEntry(Quantity.Of(50m, Ml), lot, expiry);
 
+        // A receipt creates a new batch (it does not merge into the existing one); the balance is the sum.
         Assert.Equal(Quantity.Of(150m, Ml), item.Quantity);
-        Assert.Equal(lot, item.Lot);
-        Assert.Equal(expiry, item.Expiry);
+        Assert.Equal(2, item.Batches.Count);
+        StockBatch received = item.Batches.Single(batch => Equals(batch.Lot, lot));
+        Assert.Equal(expiry, received.Expiry);
+        Assert.Equal(Quantity.Of(50m, Ml), received.RemainingQuantity);
+    }
+
+    [Fact]
+    public void RegisterEntry_carries_the_batch_and_unit_cost_on_StockReceived()
+    {
+        StockItem item = NewItem(initial: 100m);
+
+        item.RegisterEntry(Quantity.Of(50m, Ml), unitCostBrl: 12.50m);
+
+        StockReceivedEvent received = Assert.IsType<StockReceivedEvent>(Assert.Single(item.DomainEvents));
+        Assert.Equal(12.50m, received.UnitCostBrl);
+        StockBatch batch = item.Batches.Single(b => b.UnitCostBrl == 12.50m);
+        Assert.Equal(batch.Id, received.BatchId);
     }
 
     [Fact]
@@ -389,5 +407,142 @@ public sealed class StockItemTests
         item.ClearDomainEvents();
 
         Assert.Empty(item.DomainEvents);
+    }
+
+    // ---- Batch model / FEFO (card [E4] #109 / #111) ------------------------------------------------------
+
+    /// <summary>Registers a zero-balance item (no opening batch) so batches can be added deterministically.</summary>
+    private static StockItem EmptyItem(decimal minimum = 0m) =>
+        StockItem.Register(
+            name: "DMSO",
+            categoryId: Category,
+            storageLocationId: Location,
+            initialQuantity: Quantity.Zero(Ml),
+            minimumQuantity: Quantity.Of(minimum, Ml));
+
+    [Fact]
+    public void Register_with_a_zero_opening_balance_creates_no_batch()
+    {
+        StockItem item = EmptyItem();
+
+        Assert.Empty(item.Batches);
+        Assert.True(item.Quantity.IsZero);
+    }
+
+    [Fact]
+    public void Consumption_draws_the_earliest_expiring_batch_first_fefo()
+    {
+        StockItem item = EmptyItem();
+        item.RegisterEntry(Quantity.Of(30m, Ml), Lot.FromCode("LATE"), ExpiryDate.FromYearMonth(2028, 12));
+        item.RegisterEntry(Quantity.Of(30m, Ml), Lot.FromCode("EARLY"), ExpiryDate.FromYearMonth(2027, 1));
+        item.ClearDomainEvents();
+
+        item.RegisterConsumption(Quantity.Of(10m, Ml));
+
+        StockBatch early = item.Batches.Single(b => Equals(b.Lot, Lot.FromCode("EARLY")));
+        StockBatch late = item.Batches.Single(b => Equals(b.Lot, Lot.FromCode("LATE")));
+        Assert.Equal(Quantity.Of(20m, Ml), early.RemainingQuantity); // drawn first
+        Assert.Equal(Quantity.Of(30m, Ml), late.RemainingQuantity);  // untouched
+    }
+
+    [Fact]
+    public void Batches_without_an_expiry_are_drawn_last_under_fefo()
+    {
+        StockItem item = EmptyItem();
+        item.RegisterEntry(Quantity.Of(20m, Ml), Lot.FromCode("NO-EXPIRY"));
+        item.RegisterEntry(Quantity.Of(20m, Ml), Lot.FromCode("DATED"), ExpiryDate.FromYearMonth(2027, 6));
+        item.ClearDomainEvents();
+
+        item.RegisterConsumption(Quantity.Of(20m, Ml));
+
+        StockBatch dated = item.Batches.Single(b => Equals(b.Lot, Lot.FromCode("DATED")));
+        StockBatch noExpiry = item.Batches.Single(b => Equals(b.Lot, Lot.FromCode("NO-EXPIRY")));
+        Assert.True(dated.RemainingQuantity.IsZero);                    // dated drawn first
+        Assert.Equal(Quantity.Of(20m, Ml), noExpiry.RemainingQuantity); // undated untouched
+    }
+
+    [Fact]
+    public void Consumption_spills_across_batches_and_reports_one_allocation_per_batch()
+    {
+        StockItem item = EmptyItem();
+        item.RegisterEntry(Quantity.Of(10m, Ml), Lot.FromCode("A"), ExpiryDate.FromYearMonth(2027, 1), unitCostBrl: 2m);
+        item.RegisterEntry(Quantity.Of(10m, Ml), Lot.FromCode("B"), ExpiryDate.FromYearMonth(2027, 6), unitCostBrl: 3m);
+        item.ClearDomainEvents();
+
+        item.RegisterConsumption(Quantity.Of(15m, Ml));
+
+        StockConsumedEvent consumed = Assert.IsType<StockConsumedEvent>(Assert.Single(item.DomainEvents));
+        Assert.Equal(2, consumed.Allocations.Count);
+        // Earliest-expiring batch (A) fully drawn at its cost, then the remainder from B.
+        Assert.Equal(10m, consumed.Allocations[0].Quantity.Value);
+        Assert.Equal(2m, consumed.Allocations[0].UnitCostBrl);
+        Assert.Equal(5m, consumed.Allocations[1].Quantity.Value);
+        Assert.Equal(3m, consumed.Allocations[1].UnitCostBrl);
+    }
+
+    [Fact]
+    public void A_preferred_batch_is_drawn_first_then_fefo_covers_the_remainder()
+    {
+        StockItem item = EmptyItem();
+        item.RegisterEntry(Quantity.Of(10m, Ml), Lot.FromCode("EARLY"), ExpiryDate.FromYearMonth(2027, 1));
+        item.RegisterEntry(Quantity.Of(10m, Ml), Lot.FromCode("PREF"), ExpiryDate.FromYearMonth(2028, 1));
+        StockBatch preferred = item.Batches.Single(b => Equals(b.Lot, Lot.FromCode("PREF")));
+        item.ClearDomainEvents();
+
+        item.RegisterConsumption(Quantity.Of(5m, Ml), preferredBatchId: preferred.Id);
+
+        // The preferred (later-expiring) batch is drawn even though FEFO would pick EARLY first.
+        Assert.Equal(Quantity.Of(5m, Ml), preferred.RemainingQuantity);
+        StockBatch early = item.Batches.Single(b => Equals(b.Lot, Lot.FromCode("EARLY")));
+        Assert.Equal(Quantity.Of(10m, Ml), early.RemainingQuantity);
+    }
+
+    [Fact]
+    public void ClassifyExpiry_uses_the_earliest_expiring_batch_with_balance()
+    {
+        StockItem item = EmptyItem();
+        item.RegisterEntry(Quantity.Of(10m, Ml), Lot.FromCode("OLD"), ExpiryDate.FromYearMonth(2020, 1));
+        item.RegisterEntry(Quantity.Of(10m, Ml), Lot.FromCode("NEW"), ExpiryDate.FromYearMonth(2030, 1));
+
+        ExpiryStatus? status = item.ClassifyExpiry(FixedClock.On(2026, 7, 11), TimeSpan.FromDays(30));
+
+        Assert.Equal(ExpiryStatus.Expired, status);
+    }
+
+    [Fact]
+    public void RegisterEntry_rejects_a_negative_unit_cost()
+    {
+        StockItem item = NewItem(initial: 100m);
+
+        Assert.Throws<DomainException>(() => item.RegisterEntry(Quantity.Of(10m, Ml), unitCostBrl: -1m));
+    }
+
+    [Fact]
+    public void RegisterEntry_accepts_a_null_unit_cost_for_donations()
+    {
+        StockItem item = EmptyItem();
+
+        item.RegisterEntry(Quantity.Of(10m, Ml), unitCostBrl: null);
+
+        StockBatch batch = Assert.Single(item.Batches);
+        Assert.Null(batch.UnitCostBrl);
+    }
+
+    [Fact]
+    public void Disposal_draws_the_earliest_expiring_batch_first_to_clear_expired_stock()
+    {
+        StockItem item = EmptyItem();
+        item.RegisterEntry(Quantity.Of(10m, Ml), Lot.FromCode("EXPIRED"), ExpiryDate.FromYearMonth(2020, 1));
+        item.RegisterEntry(Quantity.Of(10m, Ml), Lot.FromCode("VALID"), ExpiryDate.FromYearMonth(2030, 1));
+        item.ClearDomainEvents();
+
+        item.Dispose(Quantity.Of(10m, Ml));
+
+        StockBatch expired = item.Batches.Single(b => Equals(b.Lot, Lot.FromCode("EXPIRED")));
+        StockBatch valid = item.Batches.Single(b => Equals(b.Lot, Lot.FromCode("VALID")));
+        Assert.True(expired.RemainingQuantity.IsZero);
+        Assert.Equal(Quantity.Of(10m, Ml), valid.RemainingQuantity);
+        StockDisposedEvent disposed = Assert.IsType<StockDisposedEvent>(Assert.Single(item.DomainEvents));
+        Assert.Equal(expired.Id, Assert.Single(disposed.Allocations).BatchId);
     }
 }

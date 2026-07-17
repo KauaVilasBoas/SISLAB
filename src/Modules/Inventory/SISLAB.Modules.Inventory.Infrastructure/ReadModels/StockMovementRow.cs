@@ -21,6 +21,8 @@ internal sealed record StockMovementRow(
     DateOnly OccurredOn,
     Guid? ExperimentId,
     Guid? PartnerId,
+    Guid? StockBatchId,
+    decimal? UnitCostBrl,
     DateTime CreatedAtUtc)
 {
     /// <summary>Always null from this projection — see the type remarks.</summary>

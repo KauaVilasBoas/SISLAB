@@ -18,6 +18,7 @@ public sealed record StockConsumedIntegrationEvent : IIntegrationEvent
         decimal consumedQuantity,
         decimal resultingQuantity,
         string unit,
+        IReadOnlyList<StockBatchAllocationDto> allocations,
         DateOnly? occurredOn = null,
         Guid? experimentId = null)
     {
@@ -28,6 +29,7 @@ public sealed record StockConsumedIntegrationEvent : IIntegrationEvent
         ConsumedQuantity = consumedQuantity;
         ResultingQuantity = resultingQuantity;
         Unit = unit;
+        Allocations = allocations;
         OccurredOn = occurredOn;
         ExperimentId = experimentId;
     }
@@ -51,6 +53,12 @@ public sealed record StockConsumedIntegrationEvent : IIntegrationEvent
 
     /// <summary>Symbol of the item's unit of measure (e.g. "mL", "g").</summary>
     public string Unit { get; }
+
+    /// <summary>
+    /// The per-batch slices this consumption was drawn from under FEFO (card [E4] #109), each with the batch
+    /// it came from and its unit cost — so the read model projects one costed ledger row per slice.
+    /// </summary>
+    public IReadOnlyList<StockBatchAllocationDto> Allocations { get; }
 
     /// <summary>
     /// Business date the consumption occurred on (operator-supplied), or <see langword="null"/> when not

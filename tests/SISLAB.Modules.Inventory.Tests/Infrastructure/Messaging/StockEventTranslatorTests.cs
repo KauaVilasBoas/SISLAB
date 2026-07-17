@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using SISLAB.Infrastructure.Messaging;
 using SISLAB.Infrastructure.Outbox;
 using SISLAB.Modules.Inventory.Contracts.Events;
+using SISLAB.Modules.Inventory.Domain.StockItems;
 using SISLAB.Modules.Inventory.Domain.StockItems.Events;
 using SISLAB.Modules.Inventory.Domain.ValueObjects;
 using SISLAB.Modules.Inventory.Infrastructure.Messaging;
@@ -24,16 +25,22 @@ public sealed class StockEventTranslatorTests
     private static readonly UnitOfMeasure Ml = UnitOfMeasure.Milliliter;
     private static readonly Guid Company = Guid.NewGuid();
     private static readonly Guid Item = Guid.NewGuid();
+    private static readonly Guid Batch = Guid.NewGuid();
+
+    /// <summary>A single FEFO allocation for the movement events, so the translators have slices to flatten.</summary>
+    private static IReadOnlyList<BatchAllocation> OneAllocation(decimal quantity, decimal? unitCost = null) =>
+        new[] { new BatchAllocation(Batch, Quantity.Of(quantity, Ml), unitCost) };
 
     [Fact]
-    public void StockReceivedEventTranslator_flattens_quantity_lot_and_expiry()
+    public void StockReceivedEventTranslator_flattens_quantity_lot_expiry_batch_and_cost()
     {
         var domainEvent = new StockReceivedEvent(
-            Company, Item,
+            Company, Item, Batch,
             ReceivedQuantity: Quantity.Of(20m, Ml),
             ResultingQuantity: Quantity.Of(120m, Ml),
             Lot: Lot.FromCode("L-2026-01"),
-            Expiry: ExpiryDate.FromYearMonth(2027, 6));
+            Expiry: ExpiryDate.FromYearMonth(2027, 6),
+            UnitCostBrl: 9.90m);
 
         var integrationEvent = Assert.IsType<StockReceivedIntegrationEvent>(
             new StockReceivedEventTranslator().Translate(domainEvent));
@@ -42,12 +49,14 @@ public sealed class StockEventTranslatorTests
         Assert.Equal(domainEvent.OccurredOnUtc, integrationEvent.OccurredOnUtc);
         Assert.Equal(Company, integrationEvent.CompanyId);
         Assert.Equal(Item, integrationEvent.StockItemId);
+        Assert.Equal(Batch, integrationEvent.StockBatchId);
         Assert.Equal(20m, integrationEvent.ReceivedQuantity);
         Assert.Equal(120m, integrationEvent.ResultingQuantity);
         Assert.Equal("mL", integrationEvent.Unit);
         Assert.Equal("L-2026-01", integrationEvent.LotCode);
         Assert.Equal(2027, integrationEvent.ExpiryYear);
         Assert.Equal(6, integrationEvent.ExpiryMonth);
+        Assert.Equal(9.90m, integrationEvent.UnitCostBrl);
     }
 
     [Fact]
@@ -56,11 +65,12 @@ public sealed class StockEventTranslatorTests
         Guid supplier = Guid.NewGuid();
         var occurredOn = new DateOnly(2026, 7, 10);
         var domainEvent = new StockReceivedEvent(
-            Company, Item,
+            Company, Item, Batch,
             ReceivedQuantity: Quantity.Of(20m, Ml),
             ResultingQuantity: Quantity.Of(120m, Ml),
             Lot: null,
             Expiry: null,
+            UnitCostBrl: null,
             OccurredOn: occurredOn,
             SupplierPartnerId: supplier);
 
@@ -74,20 +84,24 @@ public sealed class StockEventTranslatorTests
     public void StockReceivedEventTranslator_leaves_lot_and_expiry_null_when_absent()
     {
         var domainEvent = new StockReceivedEvent(
-            Company, Item, Quantity.Of(5m, Ml), Quantity.Of(5m, Ml), Lot: null, Expiry: null);
+            Company, Item, Batch, Quantity.Of(5m, Ml), Quantity.Of(5m, Ml), Lot: null, Expiry: null, UnitCostBrl: null);
 
         var integrationEvent = (StockReceivedIntegrationEvent)new StockReceivedEventTranslator().Translate(domainEvent);
 
         Assert.Null(integrationEvent.LotCode);
         Assert.Null(integrationEvent.ExpiryYear);
         Assert.Null(integrationEvent.ExpiryMonth);
+        Assert.Null(integrationEvent.UnitCostBrl);
     }
 
     [Fact]
-    public void StockConsumedEventTranslator_flattens_the_quantities()
+    public void StockConsumedEventTranslator_flattens_the_quantities_and_allocations()
     {
         var domainEvent = new StockConsumedEvent(
-            Company, Item, ConsumedQuantity: Quantity.Of(30m, Ml), ResultingQuantity: Quantity.Of(70m, Ml));
+            Company, Item,
+            ConsumedQuantity: Quantity.Of(30m, Ml),
+            ResultingQuantity: Quantity.Of(70m, Ml),
+            Allocations: OneAllocation(30m, unitCost: 4m));
 
         var integrationEvent = Assert.IsType<StockConsumedIntegrationEvent>(
             new StockConsumedEventTranslator().Translate(domainEvent));
@@ -97,6 +111,10 @@ public sealed class StockEventTranslatorTests
         Assert.Equal(30m, integrationEvent.ConsumedQuantity);
         Assert.Equal(70m, integrationEvent.ResultingQuantity);
         Assert.Equal("mL", integrationEvent.Unit);
+        StockBatchAllocationDto slice = Assert.Single(integrationEvent.Allocations);
+        Assert.Equal(Batch, slice.BatchId);
+        Assert.Equal(30m, slice.Quantity);
+        Assert.Equal(4m, slice.UnitCostBrl);
     }
 
     [Fact]
@@ -108,6 +126,7 @@ public sealed class StockEventTranslatorTests
             Company, Item,
             ConsumedQuantity: Quantity.Of(30m, Ml),
             ResultingQuantity: Quantity.Of(70m, Ml),
+            Allocations: OneAllocation(30m),
             OccurredOn: occurredOn,
             ExperimentId: experiment);
 
@@ -147,6 +166,7 @@ public sealed class StockEventTranslatorTests
             Company, Item,
             DisposedQuantity: Quantity.Of(15m, Ml),
             ResultingQuantity: Quantity.Of(5m, Ml),
+            Allocations: OneAllocation(15m, unitCost: 1.5m),
             OccurredOn: occurredOn);
 
         var integrationEvent = Assert.IsType<StockDisposedIntegrationEvent>(
@@ -158,6 +178,9 @@ public sealed class StockEventTranslatorTests
         Assert.Equal(5m, integrationEvent.ResultingQuantity);
         Assert.Equal("mL", integrationEvent.Unit);
         Assert.Equal(occurredOn, integrationEvent.OccurredOn);
+        StockBatchAllocationDto slice = Assert.Single(integrationEvent.Allocations);
+        Assert.Equal(15m, slice.Quantity);
+        Assert.Equal(1.5m, slice.UnitCostBrl);
     }
 
     [Fact]
@@ -225,9 +248,10 @@ public sealed class StockEventTranslatorTests
 
         var aggregate = new StubAggregate();
         aggregate.Raise(new StockReceivedEvent(
-            Company, Item, Quantity.Of(20m, Ml), Quantity.Of(120m, Ml), Lot: null, Expiry: null));
+            Company, Item, Batch, Quantity.Of(20m, Ml), Quantity.Of(120m, Ml),
+            Lot: null, Expiry: null, UnitCostBrl: null));
         aggregate.Raise(new StockConsumedEvent(
-            Company, Item, Quantity.Of(30m, Ml), Quantity.Of(90m, Ml)));
+            Company, Item, Quantity.Of(30m, Ml), Quantity.Of(90m, Ml), Allocations: OneAllocation(30m)));
 
         await dispatcher.DispatchToOutboxAsync(new IHasDomainEvents[] { aggregate });
 

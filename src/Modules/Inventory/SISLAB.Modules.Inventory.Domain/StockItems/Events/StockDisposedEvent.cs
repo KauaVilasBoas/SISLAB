@@ -12,13 +12,16 @@ namespace SISLAB.Modules.Inventory.Domain.StockItems.Events;
 /// <see cref="CompanyId"/> is carried for the Outbox translation (card [E3] #26). <see cref="OccurredOn"/>
 /// is origin/traceability metadata supplied by the operator: it travels on the event so the movements read
 /// model (card [E7] #47) records <c>when</c> the disposal happened, falling back to the emission instant
-/// when the operator does not inform it. Neither is a domain invariant.
+/// when the operator does not inform it. <see cref="Allocations"/> carries the per-batch slices the disposal
+/// was drawn from under FEFO (card #109/#111), so the ledger records which batch each slice came from and at
+/// what cost. Neither is a domain invariant.
 /// </remarks>
 public sealed record StockDisposedEvent(
     Guid CompanyId,
     Guid StockItemId,
     Quantity DisposedQuantity,
     Quantity ResultingQuantity,
+    IReadOnlyList<BatchAllocation> Allocations,
     DateOnly? OccurredOn = null) : IDomainEvent
 {
     public DateTime OccurredOnUtc { get; } = DateTime.UtcNow;

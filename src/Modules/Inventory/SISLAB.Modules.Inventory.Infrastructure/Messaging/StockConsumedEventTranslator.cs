@@ -20,6 +20,7 @@ internal sealed class StockConsumedEventTranslator
             consumedQuantity: domainEvent.ConsumedQuantity.Value,
             resultingQuantity: domainEvent.ResultingQuantity.Value,
             unit: domainEvent.ResultingQuantity.Unit.Symbol,
+            allocations: BatchAllocationMapper.ToDtos(domainEvent.Allocations),
             occurredOn: domainEvent.OccurredOn,
             experimentId: domainEvent.ExperimentId);
 }

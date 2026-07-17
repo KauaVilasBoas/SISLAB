@@ -17,11 +17,13 @@ internal sealed class StockMovementStore : IStockMovementStore
         INSERT INTO inventory.stock_movements (
             id, company_id, stock_item_id, movement_type,
             quantity_amount, quantity_unit, occurred_on,
-            experiment_id, partner_id, performed_by, created_at_utc)
+            experiment_id, partner_id, stock_batch_id, unit_cost_brl,
+            performed_by, created_at_utc)
         VALUES (
             @Id, @CompanyId, @StockItemId, @MovementType,
             @QuantityAmount, @QuantityUnit, @OccurredOn,
-            @ExperimentId, @PartnerId, @PerformedBy, @CreatedAtUtc)
+            @ExperimentId, @PartnerId, @StockBatchId, @UnitCostBrl,
+            @PerformedBy, @CreatedAtUtc)
         ON CONFLICT (id) DO NOTHING;
         """;
 
@@ -47,6 +49,8 @@ internal sealed class StockMovementStore : IStockMovementStore
                 row.OccurredOn,
                 row.ExperimentId,
                 row.PartnerId,
+                row.StockBatchId,
+                row.UnitCostBrl,
                 row.PerformedBy,
                 row.CreatedAtUtc
             },
