@@ -5,6 +5,11 @@ import { Button } from '@/shared/components/ui/button';
 import { formatDate } from '@/shared/lib/format';
 import type { ApiError } from '@/shared/types/api';
 import { useToast } from '@/shared/components/ui/toast';
+import {
+  RequireAnyPermission,
+  RequirePermission,
+} from '@/modules/auth/PermissionsProvider';
+import { Permissions } from '@/modules/auth/permissions';
 import { Field, Select } from '@/modules/inventory/components/form-controls';
 import {
   useChangeEquipmentStatus,
@@ -130,51 +135,67 @@ export function EquipmentDetailSheet({
             </p>
           ) : null}
 
-          <section className="space-y-3">
-            <h3 className="text-sm font-medium">Status operacional</h3>
-            <Field label="Alterar status" htmlFor="equipment-status">
-              <Select
-                id="equipment-status"
-                value={item.status}
-                disabled={changeStatus.isPending}
-                onChange={(e) => handleStatusChange(e.target.value as EquipmentStatus)}
-              >
-                {EQUIPMENT_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {equipmentStatusPresentation(status).label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          </section>
+          <RequirePermission code={Permissions.equipment.changeStatus}>
+            <section className="space-y-3">
+              <h3 className="text-sm font-medium">Status operacional</h3>
+              <Field label="Alterar status" htmlFor="equipment-status">
+                <Select
+                  id="equipment-status"
+                  value={item.status}
+                  disabled={changeStatus.isPending}
+                  onChange={(e) => handleStatusChange(e.target.value as EquipmentStatus)}
+                >
+                  {EQUIPMENT_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {equipmentStatusPresentation(status).label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </section>
+          </RequirePermission>
 
-          <section className="space-y-3">
-            <h3 className="text-sm font-medium">Ações</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" size="sm" onClick={() => onEdit(item.id)}>
-                <Pencil className="size-3.5" />
-                Editar
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!detail}
-                onClick={() => setCalibrating(true)}
-              >
-                <CalendarClock className="size-3.5" />
-                Calibração
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!detail}
-                onClick={() => setMaintaining(true)}
-              >
-                <Wrench className="size-3.5" />
-                Manutenção
-              </Button>
-            </div>
-          </section>
+          <RequireAnyPermission
+            codes={[
+              Permissions.equipment.update,
+              Permissions.equipment.defineCalibration,
+              Permissions.equipment.recordMaintenance,
+            ]}
+          >
+            <section className="space-y-3">
+              <h3 className="text-sm font-medium">Ações</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <RequirePermission code={Permissions.equipment.update}>
+                  <Button variant="outline" size="sm" onClick={() => onEdit(item.id)}>
+                    <Pencil className="size-3.5" />
+                    Editar
+                  </Button>
+                </RequirePermission>
+                <RequirePermission code={Permissions.equipment.defineCalibration}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!detail}
+                    onClick={() => setCalibrating(true)}
+                  >
+                    <CalendarClock className="size-3.5" />
+                    Calibração
+                  </Button>
+                </RequirePermission>
+                <RequirePermission code={Permissions.equipment.recordMaintenance}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!detail}
+                    onClick={() => setMaintaining(true)}
+                  >
+                    <Wrench className="size-3.5" />
+                    Manutenção
+                  </Button>
+                </RequirePermission>
+              </div>
+            </section>
+          </RequireAnyPermission>
         </div>
       </aside>
 

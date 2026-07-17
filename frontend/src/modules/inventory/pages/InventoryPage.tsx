@@ -2,6 +2,12 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Plus, Warehouse } from 'lucide-react';
 import { PageHeader } from '@/shared/components/PageHeader';
 import { Button } from '@/shared/components/ui/button';
+import {
+  RequireAnyPermission,
+  RequirePermission,
+  usePermissions,
+} from '@/modules/auth/PermissionsProvider';
+import { Permissions } from '@/modules/auth/permissions';
 import { cn } from '@/shared/lib/utils';
 import { useStockItems } from '@/modules/inventory/api/inventory.queries';
 import { StockItemsFilterBar } from '@/modules/inventory/components/StockItemsFilterBar';
@@ -32,6 +38,11 @@ export function InventoryPage() {
   const [editing, setEditing] = useState(false);
   const [managingLocations, setManagingLocations] = useState(false);
   const [selected, setSelected] = useState<StockItemListItem | null>(null);
+  const { hasPermission } = usePermissions();
+
+  // The ledger read endpoint is gated by Stock.ListStockMovements; without it the whole "Movimentações" tab
+  // is hidden (its query would 403). The user is kept on the Estoque tab in that case.
+  const canReadMovements = hasPermission(Permissions.stock.listMovements);
 
   const query = useStockItems(filters, page);
 
@@ -64,14 +75,24 @@ export function InventoryPage() {
         description="Itens de estoque do laboratório: saldo, validade, lote e movimentações."
         actions={
           <>
-            <Button variant="outline" onClick={() => setManagingLocations(true)}>
-              <Warehouse className="size-4" />
-              Gerenciar locais
-            </Button>
-            <Button onClick={() => setCreating(true)}>
-              <Plus className="size-4" />
-              Novo item
-            </Button>
+            <RequireAnyPermission
+              codes={[
+                Permissions.storageLocations.register,
+                Permissions.storageLocations.update,
+                Permissions.storageLocations.changeStatus,
+              ]}
+            >
+              <Button variant="outline" onClick={() => setManagingLocations(true)}>
+                <Warehouse className="size-4" />
+                Gerenciar locais
+              </Button>
+            </RequireAnyPermission>
+            <RequirePermission code={Permissions.stock.registerItem}>
+              <Button onClick={() => setCreating(true)}>
+                <Plus className="size-4" />
+                Novo item
+              </Button>
+            </RequirePermission>
           </>
         }
       />
@@ -80,12 +101,14 @@ export function InventoryPage() {
         <TabButton active={tab === 'stock'} onClick={() => setTab('stock')}>
           Estoque
         </TabButton>
-        <TabButton active={tab === 'movements'} onClick={() => setTab('movements')}>
-          Movimentações
-        </TabButton>
+        {canReadMovements ? (
+          <TabButton active={tab === 'movements'} onClick={() => setTab('movements')}>
+            Movimentações
+          </TabButton>
+        ) : null}
       </div>
 
-      {tab === 'stock' ? (
+      {tab === 'stock' || !canReadMovements ? (
         <div className="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
           <div className="space-y-6">
             <LocationsSidebar

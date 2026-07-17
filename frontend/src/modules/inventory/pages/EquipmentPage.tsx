@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { PageHeader } from '@/shared/components/PageHeader';
 import { Button } from '@/shared/components/ui/button';
+import { RequirePermission } from '@/modules/auth/PermissionsProvider';
+import { Permissions } from '@/modules/auth/permissions';
 import {
   useEquipmentDetail,
   useEquipmentList,
@@ -56,10 +58,12 @@ export function EquipmentPage() {
         title="Equipamentos"
         description="Cadastro de equipamentos, status operacional, calibração e manutenções."
         actions={
-          <Button onClick={() => setCreating(true)}>
-            <Plus className="size-4" />
-            Novo equipamento
-          </Button>
+          <RequirePermission code={Permissions.equipment.register}>
+            <Button onClick={() => setCreating(true)}>
+              <Plus className="size-4" />
+              Novo equipamento
+            </Button>
+          </RequirePermission>
         }
       />
 

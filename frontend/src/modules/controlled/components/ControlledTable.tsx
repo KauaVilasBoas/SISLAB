@@ -4,6 +4,8 @@ import { Card, CardContent } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import type { PagedResult } from '@/shared/types/api';
+import { RequirePermission } from '@/modules/auth/PermissionsProvider';
+import { Permissions } from '@/modules/auth/permissions';
 import {
   containerStateLabel,
   expiryStatusPresentation,
@@ -114,15 +116,17 @@ export function ControlledTable({ query, onConference, onAudit }: ControlledTabl
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onConference(item)}
-                        aria-label={`Registrar conferência de ${item.name}`}
-                      >
-                        <ClipboardCheck className="size-4" />
-                        Conferir
-                      </Button>
+                      <RequirePermission code={Permissions.stock.registerCount}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onConference(item)}
+                          aria-label={`Registrar conferência de ${item.name}`}
+                        >
+                          <ClipboardCheck className="size-4" />
+                          Conferir
+                        </Button>
+                      </RequirePermission>
                       <Button
                         variant="ghost"
                         size="sm"

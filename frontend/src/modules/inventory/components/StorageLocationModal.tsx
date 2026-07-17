@@ -7,6 +7,8 @@ import { Badge } from '@/shared/components/ui/badge';
 import { cn } from '@/shared/lib/utils';
 import type { ApiError } from '@/shared/types/api';
 import { useToast } from '@/shared/components/ui/toast';
+import { RequirePermission } from '@/modules/auth/PermissionsProvider';
+import { Permissions } from '@/modules/auth/permissions';
 import { Field, Select } from '@/modules/inventory/components/form-controls';
 import {
   storageLocationTypeLabel,
@@ -94,10 +96,12 @@ function LocationList({
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button size="sm" onClick={onCreate}>
-          <Plus className="size-4" />
-          Novo local
-        </Button>
+        <RequirePermission code={Permissions.storageLocations.register}>
+          <Button size="sm" onClick={onCreate}>
+            <Plus className="size-4" />
+            Novo local
+          </Button>
+        </RequirePermission>
       </div>
 
       {query.isLoading ? (
@@ -184,19 +188,23 @@ function LocationRow({
         </div>
       </div>
 
-      <Button variant="ghost" size="icon" onClick={onEdit} aria-label={`Editar ${location.name}`}>
-        <Pencil className="size-4" />
-      </Button>
-      <Button
-        variant={location.isActive ? 'outline' : 'secondary'}
-        size="sm"
-        onClick={handleToggle}
-        disabled={toggle.isPending}
-        className="shrink-0"
-      >
-        {toggle.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-        {location.isActive ? 'Desativar' : 'Reativar'}
-      </Button>
+      <RequirePermission code={Permissions.storageLocations.update}>
+        <Button variant="ghost" size="icon" onClick={onEdit} aria-label={`Editar ${location.name}`}>
+          <Pencil className="size-4" />
+        </Button>
+      </RequirePermission>
+      <RequirePermission code={Permissions.storageLocations.changeStatus}>
+        <Button
+          variant={location.isActive ? 'outline' : 'secondary'}
+          size="sm"
+          onClick={handleToggle}
+          disabled={toggle.isPending}
+          className="shrink-0"
+        >
+          {toggle.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+          {location.isActive ? 'Desativar' : 'Reativar'}
+        </Button>
+      </RequirePermission>
     </li>
   );
 }
