@@ -21,13 +21,20 @@ namespace SISLAB.Modules.Inventory.Application.StockMovements.Commands;
 /// on <c>StockConsumedEvent</c> and feed the movements read model (card [E4] #33) and the consumption
 /// report (card #31). The operator is the authenticated user (audit trail #57), never taken from the
 /// payload.
+/// <para>
+/// <paramref name="PreferredBatchId"/> is the lot the operator picked to draw from first (card #111); it is
+/// optional — when null the aggregate draws FEFO (first-expired-first-out) automatically. Even when supplied,
+/// FEFO covers any remainder if the preferred batch does not hold the whole amount. The batch(es) actually
+/// drawn and their cost are recorded on <c>StockConsumedEvent</c> for the cost report (card #109).
+/// </para>
 /// </remarks>
 public sealed record RegisterConsumptionCommand(
     Guid StockItemId,
     decimal Quantity,
     string Unit,
     Guid? ExperimentId,
-    DateOnly? OccurredOn) : ICommand;
+    DateOnly? OccurredOn,
+    Guid? PreferredBatchId = null) : ICommand;
 
 internal sealed class RegisterConsumptionCommandValidator : AbstractValidator<RegisterConsumptionCommand>
 {
@@ -66,7 +73,7 @@ internal sealed class RegisterConsumptionCommandHandler : ICommandHandler<Regist
 
         Quantity consumed = Quantity.Of(request.Quantity, UnitOfMeasure.FromSymbol(request.Unit));
 
-        item.RegisterConsumption(consumed, request.OccurredOn, request.ExperimentId);
+        item.RegisterConsumption(consumed, request.OccurredOn, request.ExperimentId, request.PreferredBatchId);
 
         await _stockItems.UpdateAsync(item, cancellationToken);
 

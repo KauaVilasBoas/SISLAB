@@ -20,5 +20,6 @@ internal sealed class StockDisposedEventTranslator
             disposedQuantity: domainEvent.DisposedQuantity.Value,
             resultingQuantity: domainEvent.ResultingQuantity.Value,
             unit: domainEvent.ResultingQuantity.Unit.Symbol,
+            allocations: BatchAllocationMapper.ToDtos(domainEvent.Allocations),
             occurredOn: domainEvent.OccurredOn);
 }

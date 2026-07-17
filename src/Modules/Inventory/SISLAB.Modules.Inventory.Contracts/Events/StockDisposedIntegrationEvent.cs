@@ -18,6 +18,7 @@ public sealed record StockDisposedIntegrationEvent : IIntegrationEvent
         decimal disposedQuantity,
         decimal resultingQuantity,
         string unit,
+        IReadOnlyList<StockBatchAllocationDto> allocations,
         DateOnly? occurredOn = null)
     {
         EventId = eventId;
@@ -27,6 +28,7 @@ public sealed record StockDisposedIntegrationEvent : IIntegrationEvent
         DisposedQuantity = disposedQuantity;
         ResultingQuantity = resultingQuantity;
         Unit = unit;
+        Allocations = allocations;
         OccurredOn = occurredOn;
     }
 
@@ -49,6 +51,12 @@ public sealed record StockDisposedIntegrationEvent : IIntegrationEvent
 
     /// <summary>Symbol of the item's unit of measure (e.g. "mL", "g").</summary>
     public string Unit { get; }
+
+    /// <summary>
+    /// The per-batch slices this disposal was drawn from under FEFO (card [E4] #109), each with the batch it
+    /// came from and its unit cost — so the read model projects one ledger row per slice.
+    /// </summary>
+    public IReadOnlyList<StockBatchAllocationDto> Allocations { get; }
 
     /// <summary>
     /// Business date the disposal occurred on (operator-supplied), or <see langword="null"/> when not

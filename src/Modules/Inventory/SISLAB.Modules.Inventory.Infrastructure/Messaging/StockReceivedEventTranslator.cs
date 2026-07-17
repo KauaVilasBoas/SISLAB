@@ -19,12 +19,14 @@ internal sealed class StockReceivedEventTranslator
             occurredOnUtc: domainEvent.OccurredOnUtc,
             companyId: domainEvent.CompanyId,
             stockItemId: domainEvent.StockItemId,
+            stockBatchId: domainEvent.BatchId,
             receivedQuantity: domainEvent.ReceivedQuantity.Value,
             resultingQuantity: domainEvent.ResultingQuantity.Value,
             unit: domainEvent.ResultingQuantity.Unit.Symbol,
             lotCode: domainEvent.Lot?.Code,
             expiryYear: domainEvent.Expiry?.Year,
             expiryMonth: domainEvent.Expiry?.Month,
+            unitCostBrl: domainEvent.UnitCostBrl,
             occurredOn: domainEvent.OccurredOn,
             supplierPartnerId: domainEvent.SupplierPartnerId);
 }

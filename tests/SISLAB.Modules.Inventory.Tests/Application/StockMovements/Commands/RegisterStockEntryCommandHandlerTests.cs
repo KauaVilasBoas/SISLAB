@@ -3,6 +3,7 @@ using SISLAB.Modules.Inventory.Domain.Partners;
 using SISLAB.Modules.Inventory.Domain.StockItems;
 using SISLAB.Modules.Inventory.Domain.ValueObjects;
 using SISLAB.Modules.Inventory.Tests.Application.Partners.Commands;
+using SISLAB.Modules.Inventory.Tests.Domain.ValueObjects;
 using SISLAB.SharedKernel.Exceptions;
 
 namespace SISLAB.Modules.Inventory.Tests.Application.StockMovements.Commands;
@@ -12,7 +13,7 @@ public sealed class RegisterStockEntryCommandHandlerTests
     private static RegisterStockEntryCommandHandler HandlerFor(
         FakeStockItemRepository items,
         FakePartnerRepository? partners = null)
-        => new(items, partners ?? new FakePartnerRepository());
+        => new(items, partners ?? new FakePartnerRepository(), FixedClock.On(2026, 7, 16));
 
     [Fact]
     public async Task Increases_the_balance_and_persists_the_item()

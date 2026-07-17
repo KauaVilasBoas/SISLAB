@@ -23,21 +23,29 @@ public sealed class StockMovementProjectionHandlerTests
     public StockMovementProjectionHandlerTests()
         => _handler = new StockMovementProjectionHandler(_store, new FixedClock(Now));
 
+    /// <summary>One FEFO allocation slice so consumption/disposal events have a batch+cost to project.</summary>
+    private static IReadOnlyList<StockBatchAllocationDto> OneAllocation(
+        Guid batchId, decimal quantity, decimal? unitCost = null) =>
+        new[] { new StockBatchAllocationDto(batchId, quantity, unitCost) };
+
     [Fact]
     public async Task Projects_a_received_event_into_a_single_entry_movement()
     {
         Guid supplier = Guid.NewGuid();
+        Guid batch = Guid.NewGuid();
         var received = new StockReceivedIntegrationEvent(
             eventId: Guid.NewGuid(),
             occurredOnUtc: Now,
             companyId: Company,
             stockItemId: Item,
+            stockBatchId: batch,
             receivedQuantity: 20m,
             resultingQuantity: 120m,
             unit: "mL",
             lotCode: "L-2026-01",
             expiryYear: 2027,
             expiryMonth: 6,
+            unitCostBrl: 8.25m,
             occurredOn: new DateOnly(2026, 7, 10),
             supplierPartnerId: supplier);
 
@@ -52,6 +60,8 @@ public sealed class StockMovementProjectionHandlerTests
         Assert.Equal("mL", row.QuantityUnit);
         Assert.Equal(new DateOnly(2026, 7, 10), row.OccurredOn);
         Assert.Equal(supplier, row.PartnerId);
+        Assert.Equal(batch, row.StockBatchId);
+        Assert.Equal(8.25m, row.UnitCostBrl);
         Assert.Null(row.ExperimentId);
         Assert.Null(row.PerformedBy);
         Assert.Equal(Now, row.CreatedAtUtc);
@@ -61,6 +71,7 @@ public sealed class StockMovementProjectionHandlerTests
     public async Task Projects_a_consumed_event_into_a_single_consumption_movement()
     {
         Guid experiment = Guid.NewGuid();
+        Guid batch = Guid.NewGuid();
         var consumed = new StockConsumedIntegrationEvent(
             eventId: Guid.NewGuid(),
             occurredOnUtc: Now,
@@ -69,6 +80,7 @@ public sealed class StockMovementProjectionHandlerTests
             consumedQuantity: 30m,
             resultingQuantity: 70m,
             unit: "mL",
+            allocations: OneAllocation(batch, 30m, unitCost: 4m),
             occurredOn: new DateOnly(2026, 7, 9),
             experimentId: experiment);
 
@@ -81,8 +93,36 @@ public sealed class StockMovementProjectionHandlerTests
         Assert.Equal(30m, row.QuantityAmount);
         Assert.Equal(new DateOnly(2026, 7, 9), row.OccurredOn);
         Assert.Equal(experiment, row.ExperimentId);
+        Assert.Equal(batch, row.StockBatchId);
+        Assert.Equal(4m, row.UnitCostBrl);
         Assert.Null(row.PartnerId);
         Assert.Null(row.PerformedBy);
+    }
+
+    [Fact]
+    public async Task Projects_one_costed_row_per_batch_allocation_of_a_consumption()
+    {
+        Guid batchA = Guid.NewGuid();
+        Guid batchB = Guid.NewGuid();
+        var consumed = new StockConsumedIntegrationEvent(
+            eventId: Guid.NewGuid(),
+            occurredOnUtc: Now,
+            companyId: Company,
+            stockItemId: Item,
+            consumedQuantity: 15m,
+            resultingQuantity: 5m,
+            unit: "mL",
+            allocations: new[]
+            {
+                new StockBatchAllocationDto(batchA, 10m, 2m),
+                new StockBatchAllocationDto(batchB, 5m, 3m),
+            });
+
+        await _handler.HandleAsync(consumed);
+
+        Assert.Equal(2, _store.Rows.Count);
+        Assert.Contains(_store.Rows, r => r.StockBatchId == batchA && r.QuantityAmount == 10m && r.UnitCostBrl == 2m);
+        Assert.Contains(_store.Rows, r => r.StockBatchId == batchB && r.QuantityAmount == 5m && r.UnitCostBrl == 3m);
     }
 
     [Fact]
@@ -125,6 +165,7 @@ public sealed class StockMovementProjectionHandlerTests
             disposedQuantity: 15m,
             resultingQuantity: 5m,
             unit: "mL",
+            allocations: OneAllocation(Guid.NewGuid(), 15m),
             occurredOn: new DateOnly(2026, 7, 7));
 
         await _handler.HandleAsync(disposed);
@@ -150,13 +191,17 @@ public sealed class StockMovementProjectionHandlerTests
             consumedQuantity: 5m,
             resultingQuantity: 15m,
             unit: "mL",
+            allocations: Array.Empty<StockBatchAllocationDto>(),
             occurredOn: null,
             experimentId: null);
 
         await _handler.HandleAsync(consumed);
 
+        // No allocation → a single uncosted fallback row, still carrying the whole movement.
         StockMovementRow row = Assert.Single(_store.Rows);
         Assert.Equal(DateOnly.FromDateTime(Now), row.OccurredOn);
+        Assert.Null(row.StockBatchId);
+        Assert.Null(row.UnitCostBrl);
     }
 
     [Fact]
@@ -167,6 +212,7 @@ public sealed class StockMovementProjectionHandlerTests
             occurredOnUtc: Now,
             companyId: Company,
             stockItemId: Item,
+            stockBatchId: Guid.NewGuid(),
             receivedQuantity: 20m,
             resultingQuantity: 120m,
             unit: "mL",
@@ -195,6 +241,7 @@ public sealed class StockMovementProjectionHandlerTests
             consumedQuantity: 30m,
             resultingQuantity: 70m,
             unit: "mL",
+            allocations: OneAllocation(Guid.NewGuid(), 30m, unitCost: 5m),
             occurredOn: null,
             experimentId: null);
 
@@ -208,9 +255,9 @@ public sealed class StockMovementProjectionHandlerTests
     public async Task Distinct_events_produce_distinct_movements()
     {
         var first = new StockConsumedIntegrationEvent(
-            Guid.NewGuid(), Now, Company, Item, 10m, 90m, "mL");
+            Guid.NewGuid(), Now, Company, Item, 10m, 90m, "mL", OneAllocation(Guid.NewGuid(), 10m));
         var second = new StockConsumedIntegrationEvent(
-            Guid.NewGuid(), Now, Company, Item, 5m, 85m, "mL");
+            Guid.NewGuid(), Now, Company, Item, 5m, 85m, "mL", OneAllocation(Guid.NewGuid(), 5m));
 
         await _handler.HandleAsync(first);
         await _handler.HandleAsync(second);

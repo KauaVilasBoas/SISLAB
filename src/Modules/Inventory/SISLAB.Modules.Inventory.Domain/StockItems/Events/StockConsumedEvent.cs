@@ -14,14 +14,17 @@ namespace SISLAB.Modules.Inventory.Domain.StockItems.Events;
 /// the operator. They travel on the event so the movements read model (card [E4] #33) and the consumption
 /// report (card #31) can record <c>when</c> the consumption happened and <c>which experiment</c> it fed.
 /// <see cref="ExperimentId"/> is a cross-module reference held <b>by value</b> (Guid), with no FK or
-/// navigation to the Experiment module. Neither field is a domain invariant; <see cref="OccurredOn"/>
-/// falls back to the emission instant when the operator does not inform it.
+/// navigation to the Experiment module. <see cref="Allocations"/> carries the per-batch slices the
+/// consumption was drawn from under FEFO (card #109/#111), so the cost report can value it at the real
+/// per-batch price. None of these is a domain invariant; <see cref="OccurredOn"/> falls back to the
+/// emission instant when the operator does not inform it.
 /// </remarks>
 public sealed record StockConsumedEvent(
     Guid CompanyId,
     Guid StockItemId,
     Quantity ConsumedQuantity,
     Quantity ResultingQuantity,
+    IReadOnlyList<BatchAllocation> Allocations,
     DateOnly? OccurredOn = null,
     Guid? ExperimentId = null) : IDomainEvent
 {

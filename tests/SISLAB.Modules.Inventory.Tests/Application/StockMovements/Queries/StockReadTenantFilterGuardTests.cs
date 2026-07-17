@@ -39,7 +39,10 @@ public sealed class StockReadTenantFilterGuardTests
         "GetBelowMinimumSummaryQueryHandler",// #32 below-minimum KPI
         "GetConsumptionReportQueryHandler",  // #31 consumption report
         "GetConsumptionSeriesQueryHandler",  // #31 consumption series
-        "GetStockItemDetailQueryHandler"     // #35 single-item detail (public IInventoryApi boundary)
+        "GetStockItemDetailQueryHandler",    // #35 single-item detail (public IInventoryApi boundary)
+        "GetStockBatchesForItemQueryHandler",// #111 available batches (FEFO lot picker)
+        "GetCostByMonthQueryHandler",        // #109 consumption cost by month
+        "GetCostByExperimentQueryHandler"    // #109 consumption cost by experiment
     };
 
     private static readonly Assembly ApplicationAssembly = typeof(InventoryModule).Assembly;

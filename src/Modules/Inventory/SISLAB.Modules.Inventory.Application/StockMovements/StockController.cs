@@ -280,6 +280,63 @@ public sealed class StockController : SislabControllerBase
     }
 
     /// <summary>
+    /// Lists the available batches (remaining balance &gt; 0) of a stock item of the active company, ordered
+    /// FEFO, for the consumption lot picker (card [E7] #111): each lot's code, validity, remaining balance and
+    /// unit cost. Only <c>[Authorize]</c> — batch balances are operational data the movement forms already
+    /// expose, not the gestão-only cost report — mirroring the other read-side item lookups.
+    /// </summary>
+    [HttpGet("stock-batches/{stockItemId:guid}")]
+    [ProducesResponseType(typeof(ApiResult<IReadOnlyList<StockBatchItem>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetStockBatches(Guid stockItemId, CancellationToken ct)
+    {
+        IReadOnlyList<StockBatchItem> batches = await _mediator.SendAsync(
+            new GetStockBatchesForItemQuery(stockItemId), ct);
+
+        return Ok(new ApiResult<IReadOnlyList<StockBatchItem>>(true, "Stock batches retrieved.", batches));
+    }
+
+    /// <summary>
+    /// Returns the active company's monthly consumption cost over the last <paramref name="months"/> months
+    /// (card [E4] #109): the summed BRL cost of priced consumptions per calendar month, newest first. Cost is
+    /// gestão-sensitive data, so this is gated by <c>Inventory.Cost.Read</c>.
+    /// </summary>
+    [HttpGet("reports/cost-by-month")]
+    [RequirePermission("Inventory.Cost.Read")]
+    [ProducesResponseType(typeof(ApiResult<IReadOnlyList<MonthlyCostItem>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetCostByMonth(
+        [FromQuery] int months = GetCostByMonthQuery.DefaultMonthCount,
+        CancellationToken ct = default)
+    {
+        IReadOnlyList<MonthlyCostItem> result = await _mediator.SendAsync(
+            new GetCostByMonthQuery { MonthCount = months }, ct);
+
+        return Ok(new ApiResult<IReadOnlyList<MonthlyCostItem>>(true, "Cost by month retrieved.", result));
+    }
+
+    /// <summary>
+    /// Returns the active company's consumption cost per experiment (card [E4] #109): the top
+    /// <paramref name="top"/> experiments by summed BRL cost of priced consumptions, consumptions with no
+    /// experiment folded into a single bucket. Gated by <c>Inventory.Cost.Read</c>.
+    /// </summary>
+    [HttpGet("reports/cost-by-experiment")]
+    [RequirePermission("Inventory.Cost.Read")]
+    [ProducesResponseType(typeof(ApiResult<IReadOnlyList<ExperimentCostItem>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetCostByExperiment(
+        [FromQuery] int top = GetCostByExperimentQuery.DefaultTop,
+        CancellationToken ct = default)
+    {
+        IReadOnlyList<ExperimentCostItem> result = await _mediator.SendAsync(
+            new GetCostByExperimentQuery { Top = top }, ct);
+
+        return Ok(new ApiResult<IReadOnlyList<ExperimentCostItem>>(true, "Cost by experiment retrieved.", result));
+    }
+
+    /// <summary>
     /// Returns the active company's consumption time series over <paramref name="from"/>..<paramref name="to"/>:
     /// total consumption bucketed by day or month (derived from the window when <paramref name="bucket"/> is
     /// omitted), optionally narrowed to one experiment, plus the per-unit period totals and the % delta versus
@@ -399,7 +456,8 @@ public sealed class StockController : SislabControllerBase
                 body.ExpiryYear,
                 body.ExpiryMonth,
                 body.SupplierPartnerId,
-                body.OccurredOn),
+                body.OccurredOn,
+                body.UnitCostBrl),
             ct);
 
         return Ok(new ApiResult<Guid>(true, "Stock entry registered.", id));
@@ -424,7 +482,8 @@ public sealed class StockController : SislabControllerBase
                 body.Quantity,
                 body.Unit,
                 body.ExperimentId,
-                body.OccurredOn),
+                body.OccurredOn,
+                body.PreferredBatchId),
             ct);
 
         return Ok(new ApiResult(true, "Consumption registered."));
@@ -538,7 +597,11 @@ public sealed record UpdateStockItemRequest(
     string? Brand,
     string? Application);
 
-/// <summary>Request body for a stock entry; the item id comes from the route, the operator from the session.</summary>
+/// <summary>
+/// Request body for a stock entry; the item id comes from the route, the operator from the session.
+/// <paramref name="UnitCostBrl"/> is the batch's optional unit price in BRL (card #109/#110) — null for
+/// donations / no-invoice items.
+/// </summary>
 public sealed record RegisterStockEntryRequest(
     decimal Quantity,
     string Unit,
@@ -546,14 +609,20 @@ public sealed record RegisterStockEntryRequest(
     int? ExpiryYear,
     int? ExpiryMonth,
     Guid? SupplierPartnerId,
-    DateOnly? OccurredOn);
+    DateOnly? OccurredOn,
+    decimal? UnitCostBrl);
 
-/// <summary>Request body for a consumption; <paramref name="ExperimentId"/> is an optional by-value reference.</summary>
+/// <summary>
+/// Request body for a consumption; <paramref name="ExperimentId"/> is an optional by-value reference and
+/// <paramref name="PreferredBatchId"/> is the optional lot the operator chose to draw from first (card #111);
+/// when null the balance is drawn FEFO automatically.
+/// </summary>
 public sealed record RegisterConsumptionRequest(
     decimal Quantity,
     string Unit,
     Guid? ExperimentId,
-    DateOnly? OccurredOn);
+    DateOnly? OccurredOn,
+    Guid? PreferredBatchId);
 
 /// <summary>Request body for a transfer between storage locations.</summary>
 public sealed record TransferStockRequest(

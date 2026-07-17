@@ -30,7 +30,8 @@ public sealed record RegisterStockEntryCommand(
     int? ExpiryYear,
     int? ExpiryMonth,
     Guid? SupplierPartnerId,
-    DateOnly? OccurredOn) : ICommand<Guid>;
+    DateOnly? OccurredOn,
+    decimal? UnitCostBrl = null) : ICommand<Guid>;
 
 internal sealed class RegisterStockEntryCommandValidator : AbstractValidator<RegisterStockEntryCommand>
 {
@@ -39,6 +40,12 @@ internal sealed class RegisterStockEntryCommandValidator : AbstractValidator<Reg
         RuleFor(command => command.StockItemId).NotEmpty();
         RuleFor(command => command.Quantity).GreaterThan(0m);
         RuleFor(command => command.Unit).NotEmpty();
+
+        // Cost is optional (donations / no-invoice items have none); when informed it must be non-negative.
+        RuleFor(command => command.UnitCostBrl!.Value)
+            .GreaterThanOrEqualTo(0m)
+            .When(command => command.UnitCostBrl.HasValue)
+            .WithMessage("Unit cost cannot be negative.");
 
         When(command => command.ExpiryYear.HasValue || command.ExpiryMonth.HasValue, () =>
         {
@@ -57,13 +64,16 @@ internal sealed class RegisterStockEntryCommandHandler : ICommandHandler<Registe
 {
     private readonly IStockItemRepository _stockItems;
     private readonly IPartnerRepository _partners;
+    private readonly IClock _clock;
 
     public RegisterStockEntryCommandHandler(
         IStockItemRepository stockItems,
-        IPartnerRepository partners)
+        IPartnerRepository partners,
+        IClock clock)
     {
         _stockItems = stockItems;
         _partners = partners;
+        _clock = clock;
     }
 
     public async Task<Guid> HandleAsync(
@@ -81,7 +91,8 @@ internal sealed class RegisterStockEntryCommandHandler : ICommandHandler<Registe
             ? ExpiryDate.FromYearMonth(request.ExpiryYear.Value, request.ExpiryMonth.Value)
             : null;
 
-        item.RegisterEntry(received, lot, expiry, request.OccurredOn, request.SupplierPartnerId);
+        item.RegisterEntry(
+            received, lot, expiry, request.OccurredOn, request.SupplierPartnerId, request.UnitCostBrl, _clock);
 
         await _stockItems.UpdateAsync(item, cancellationToken);
 
