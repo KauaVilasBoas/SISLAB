@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ApiError } from '@/shared/types/api';
 import { AuthProvider } from '@/modules/auth/AuthProvider';
+import { PermissionsProvider } from '@/modules/auth/PermissionsProvider';
 import { ThemeProvider } from '@/app/theme/ThemeProvider';
 import { ToastProvider } from '@/shared/components/ui/toast';
 
@@ -12,6 +13,10 @@ import { ToastProvider } from '@/shared/components/ui/toast';
  * AuthProvider sits INSIDE QueryClientProvider (it uses useQueryClient to reset the
  * session cache on login/logout/company-switch) and OUTSIDE the router, so the whole
  * route tree — public /login included — can read the auth context.
+ *
+ * PermissionsProvider sits just below AuthProvider (it reads the auth status + active company
+ * to fetch the effective permissions) and above the router, so any screen can gate UI on a
+ * permission via usePermissions()/<RequirePermission>.
  */
 export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -36,7 +41,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <PermissionsProvider>{children}</PermissionsProvider>
+          </AuthProvider>
         </ToastProvider>
       </QueryClientProvider>
     </ThemeProvider>

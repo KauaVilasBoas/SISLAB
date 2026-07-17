@@ -16,6 +16,8 @@ export const Endpoints = {
       logout: '/api/auth/logout',
       refresh: '/api/auth/refresh',
       me: '/api/me',
+      /** Effective permission codes of the signed-in user in the active company (front permission gate). */
+      myPermissions: '/api/me/permissions',
       /** Arms the readable XSRF-TOKEN cookie for the double-submit CSRF defense. */
       csrf: '/api/auth/csrf',
     },
