@@ -11,6 +11,7 @@ dist
 dist-ssr
 *.local
 *.tsbuildinfo
+.vite
 
 # Env: keep .env.example tracked, ignore real env files
 .env
