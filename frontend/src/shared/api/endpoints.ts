@@ -59,6 +59,8 @@ export const Endpoints = {
     stockItems: {
       list: '/api/inventory/stock-items',
       create: '/api/inventory/stock-items',
+      /** Single item card (name, lot, balance, storage location) — feeds the mobile QR flow (#63). */
+      byId: (stockItemId: string) => `/api/inventory/stock-items/${stockItemId}`,
       expiring: '/api/inventory/stock-items/expiring',
       expirySummary: '/api/inventory/stock-items/expiry-summary',
       belowMinimum: '/api/inventory/stock-items/below-minimum',
@@ -72,9 +74,20 @@ export const Endpoints = {
       disposals: (stockItemId: string) =>
         `/api/inventory/stock-items/${stockItemId}/disposals`,
       counts: (stockItemId: string) => `/api/inventory/stock-items/${stockItemId}/counts`,
+      movements: (stockItemId: string) =>
+        `/api/inventory/stock-items/${stockItemId}/movements`,
+    },
+    stockMovements: {
+      /** Cross-item recent-activity feed (latest N movements of the active company) — card [E7] #47. */
+      recent: '/api/inventory/stock-movements/recent',
     },
     storageLocations: {
+      /** Item-browser sidebar summary (item/expired counts, critical flag) — card [E7] #46. */
       summary: '/api/inventory/storage-locations/summary',
+      /** Flat management listing + create (card [E7] #112). */
+      root: '/api/inventory/storage-locations',
+      byId: (id: string) => `/api/inventory/storage-locations/${id}`,
+      status: (id: string) => `/api/inventory/storage-locations/${id}/status`,
     },
     reports: {
       consumption: '/api/inventory/consumption-report',
@@ -115,5 +128,6 @@ export const Endpoints = {
     list: '/api/notifications',
     unreadCount: '/api/notifications/unread-count',
     markRead: (notificationId: string) => `/api/notifications/${notificationId}/read`,
+    readAll: '/api/notifications/read-all',
   },
 } as const;

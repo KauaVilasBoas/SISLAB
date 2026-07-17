@@ -22,6 +22,9 @@ public sealed record ListAuditEntriesQuery : PagedQuery<PagedResult<AuditEntryLi
     /// <summary>Optional filter: only entries affecting this entity type (e.g. <c>StockItem</c>, <c>Equipment</c>).</summary>
     public string? EntityType { get; init; }
 
+    /// <summary>Optional filter: only entries affecting this specific entity id (e.g. one controlled item — the "log" per-item view, card [E7] #62).</summary>
+    public Guid? EntityId { get; init; }
+
     /// <summary>Optional filter: only entries of this business action (e.g. <c>consumption</c>, <c>maintenance</c>).</summary>
     public string? Action { get; init; }
 
@@ -53,7 +56,7 @@ internal sealed class ListAuditEntriesQueryHandler
         WITH records AS (
             SELECT
                 a.id,
-                a.user_id,
+                COALESCE(u."Email", u."Username", a.user_id) AS responsible,
                 a.action,
                 a.entity_type,
                 a.entity_id,
@@ -62,15 +65,17 @@ internal sealed class ListAuditEntriesQueryHandler
                 ROW_NUMBER() OVER (ORDER BY a.occurred_at_utc DESC, a.id DESC) AS row_number,
                 (COUNT(*)    OVER ())::int                                     AS total_rows
             FROM audit.audit_entries AS a
+            LEFT JOIN identity."Users" AS u ON u."Id"::text = a.user_id
             WHERE a.company_id = @CompanyId
-              AND (@EntityType IS NULL OR a.entity_type = @EntityType)
-              AND (@Action     IS NULL OR a.action = @Action)
-              AND (@From       IS NULL OR a.occurred_at_utc >= @From)
-              AND (@To         IS NULL OR a.occurred_at_utc < @ToExclusive)
+              AND (@EntityType::text        IS NULL OR a.entity_type = @EntityType)
+              AND (@EntityId::uuid          IS NULL OR a.entity_id = @EntityId)
+              AND (@Action::text            IS NULL OR a.action = @Action)
+              AND (@From::timestamp         IS NULL OR a.occurred_at_utc >= @From)
+              AND (@ToExclusive::timestamp  IS NULL OR a.occurred_at_utc < @ToExclusive)
         )
         SELECT
             id,
-            user_id         AS userid,
+            responsible     AS userid,
             action,
             entity_type     AS entitytype,
             entity_id       AS entityid,

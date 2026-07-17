@@ -15,6 +15,7 @@ namespace SISLAB.Modules.Audit.Application.AuditRead;
 internal sealed record AuditEntriesQueryParameters(
     Guid CompanyId,
     string? EntityType,
+    Guid? EntityId,
     string? Action,
     DateTime? From,
     DateTime? ToExclusive,
@@ -25,6 +26,7 @@ internal sealed record AuditEntriesQueryParameters(
     public static AuditEntriesQueryParameters ForPage(Guid companyId, ListAuditEntriesQuery request) => new(
         CompanyId: companyId,
         EntityType: Normalize(request.EntityType),
+        EntityId: request.EntityId,
         Action: Normalize(request.Action),
         From: ToStartOfDay(request.From),
         ToExclusive: ToExclusiveUpperBound(request.To),
@@ -35,6 +37,7 @@ internal sealed record AuditEntriesQueryParameters(
     public static AuditEntriesQueryParameters ForExport(Guid companyId, ExportAuditEntriesQuery request) => new(
         CompanyId: companyId,
         EntityType: Normalize(request.EntityType),
+        EntityId: request.EntityId,
         Action: Normalize(request.Action),
         From: ToStartOfDay(request.From),
         ToExclusive: ToExclusiveUpperBound(request.To),

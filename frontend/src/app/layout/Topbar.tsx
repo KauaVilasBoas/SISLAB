@@ -1,9 +1,9 @@
 import { useLocation } from 'react-router-dom';
-import { Bell, Search } from 'lucide-react';
-import { Button } from '@/shared/components/ui/button';
+import { Search } from 'lucide-react';
 import { CompanySwitcher } from '@/modules/auth/components/CompanySwitcher';
 import { ThemeToggle } from '@/app/theme/ThemeToggle';
 import { navItems } from '@/app/navigation';
+import { NotificationsBell } from '@/modules/notifications/components/NotificationsBell';
 
 /** Resolves the current screen's title/subtitle from the nav config (longest matching path). */
 function useScreenHeading(): { title: string; subtitle: string } {
@@ -23,8 +23,8 @@ function useScreenHeading(): { title: string; subtitle: string } {
 
 /**
  * Top bar for the authenticated shell (card [E7] #43). Left: the current screen title + subtitle.
- * Center: a global search placeholder (⌘K). Right: the active-company switcher, notifications bell,
- * and the light/dark theme toggle. The signed-in user lives in the sidebar footer.
+ * Center: a global search placeholder (⌘K). Right: the active-company switcher, the notification center
+ * (bell + dropdown, card #65), and the light/dark theme toggle. The signed-in user lives in the sidebar footer.
  */
 export function Topbar() {
   const { title, subtitle } = useScreenHeading();
@@ -51,14 +51,7 @@ export function Topbar() {
 
       <div className="flex items-center gap-1 lg:ml-0 ml-auto">
         <CompanySwitcher />
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Notificações"
-          title="Notificações"
-        >
-          <Bell className="size-5" />
-        </Button>
+        <NotificationsBell />
         <ThemeToggle />
       </div>
     </header>

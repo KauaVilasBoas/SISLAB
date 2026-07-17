@@ -72,6 +72,80 @@ public sealed class StockItemTests
     }
 
     [Fact]
+    public void Rename_and_Describe_and_Recategorize_update_the_metadata_without_a_movement()
+    {
+        StockItem item = NewItem();
+        Guid newCategory = Guid.NewGuid();
+
+        item.Rename("DMSO anidro");
+        item.Recategorize(newCategory);
+        item.Describe(brand: "Sigma", application: "Uso em bancada");
+
+        Assert.Equal("DMSO anidro", item.Name);
+        Assert.Equal(newCategory, item.CategoryId);
+        Assert.Equal("Sigma", item.Brand);
+        Assert.Equal("Uso em bancada", item.Application);
+        Assert.Empty(item.DomainEvents);
+    }
+
+    [Fact]
+    public void Describe_clears_the_metadata_when_passed_blank_values()
+    {
+        StockItem item = StockItem.Register(
+            name: "DMSO",
+            categoryId: Category,
+            storageLocationId: Location,
+            initialQuantity: Quantity.Of(100m, Ml),
+            minimumQuantity: Quantity.Of(10m, Ml),
+            brand: "Sigma",
+            application: "Uso em bancada");
+
+        item.Describe(brand: "   ", application: null);
+
+        Assert.Null(item.Brand);
+        Assert.Null(item.Application);
+    }
+
+    [Fact]
+    public void AdjustMinimumQuantity_updates_the_threshold_and_emits_no_low_stock_event()
+    {
+        StockItem item = NewItem(initial: 100m, minimum: 10m);
+
+        item.AdjustMinimumQuantity(Quantity.Of(40m, Ml));
+
+        Assert.Equal(Quantity.Of(40m, Ml), item.MinimumQuantity);
+        Assert.Empty(item.DomainEvents);
+    }
+
+    [Fact]
+    public void AdjustMinimumQuantity_rejects_a_threshold_in_a_different_unit()
+    {
+        StockItem item = NewItem();
+
+        Assert.Throws<DomainException>(() => item.AdjustMinimumQuantity(Quantity.Of(1m, UnitOfMeasure.Gram)));
+    }
+
+    [Fact]
+    public void Relocate_moves_the_item_without_emitting_a_transfer_movement()
+    {
+        StockItem item = NewItem();
+        Guid destination = Guid.NewGuid();
+
+        item.Relocate(destination);
+
+        Assert.Equal(destination, item.StorageLocationId);
+        Assert.Empty(item.DomainEvents);
+    }
+
+    [Fact]
+    public void Rename_rejects_a_blank_name()
+    {
+        StockItem item = NewItem();
+
+        Assert.Throws<DomainException>(() => item.Rename("   "));
+    }
+
+    [Fact]
     public void RegisterEntry_increases_the_balance_and_updates_lot_and_expiry()
     {
         StockItem item = NewItem(initial: 100m);

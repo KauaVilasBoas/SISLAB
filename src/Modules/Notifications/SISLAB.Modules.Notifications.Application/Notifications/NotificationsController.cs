@@ -75,4 +75,21 @@ public sealed class NotificationsController : SislabControllerBase
 
         return Ok(new ApiResult(true, "Notification marked as read."));
     }
+
+    /// <summary>
+    /// Marks <b>all</b> of the active company's unread notifications as read, clearing the bell badge in one
+    /// call. Idempotent: with nothing unread it changes nothing and still returns 200. The payload is how many
+    /// were acknowledged. Permission-gated symmetrically to the single-item read (<c>Notifications.ReadAll</c>).
+    /// </summary>
+    [HttpPost("read-all")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult<int>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ReadAll(CancellationToken ct)
+    {
+        int marked = await _mediator.SendAsync(new MarkAllNotificationsAsReadCommand(), ct);
+
+        return Ok(new ApiResult<int>(true, "All notifications marked as read.", marked));
+    }
 }

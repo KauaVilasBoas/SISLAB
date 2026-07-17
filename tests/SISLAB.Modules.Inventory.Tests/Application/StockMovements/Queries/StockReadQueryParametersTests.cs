@@ -55,6 +55,9 @@ public sealed class StockReadQueryParametersTests
     private readonly GetConsumptionSeriesQueryHandler _consumptionSeriesHandler =
         new(connectionFactory: null!, new StubTenantContext(ActiveCompany));
 
+    private readonly ListRecentMovementsQueryHandler _recentMovementsHandler =
+        new(connectionFactory: null!, new StubTenantContext(ActiveCompany));
+
     private static readonly DateOnly WindowFrom = new(2026, 6, 1);
     private static readonly DateOnly WindowTo = new(2026, 6, 30);
 
@@ -131,6 +134,24 @@ public sealed class StockReadQueryParametersTests
             _itemsHandler.BuildParameters(new ListStockItemsQuery { StorageLocationId = location }, ExpectedWarningWindowDays);
 
         Assert.Equal(location, parameters.StorageLocationId);
+    }
+
+    [Fact]
+    public void List_query_defaults_the_controlled_filter_to_null()
+    {
+        StockItemsQueryParameters parameters =
+            _itemsHandler.BuildParameters(new ListStockItemsQuery(), ExpectedWarningWindowDays);
+
+        Assert.Null(parameters.IsControlled);
+    }
+
+    [Fact]
+    public void List_query_passes_the_controlled_filter_through()
+    {
+        StockItemsQueryParameters parameters =
+            _itemsHandler.BuildParameters(new ListStockItemsQuery { IsControlled = true }, ExpectedWarningWindowDays);
+
+        Assert.True(parameters.IsControlled);
     }
 
     [Fact]
@@ -455,6 +476,47 @@ public sealed class StockReadQueryParametersTests
         Assert.Throws<BusinessException>(() =>
             _consumptionSeriesHandler.BuildParameters(
                 new GetConsumptionSeriesQuery { From = WindowTo, To = WindowFrom }));
+    }
+
+    // --- Recent movements, cross-item (card [E7] #47) --------------------------------------------------
+
+    [Fact]
+    public void Recent_movements_query_takes_the_company_from_the_tenant_context()
+    {
+        RecentMovementsQueryParameters parameters =
+            _recentMovementsHandler.BuildParameters(new ListRecentMovementsQuery());
+
+        Assert.Equal(ActiveCompany, parameters.CompanyId);
+    }
+
+    [Fact]
+    public void Recent_movements_query_defaults_the_top_to_the_shared_default()
+    {
+        RecentMovementsQueryParameters parameters =
+            _recentMovementsHandler.BuildParameters(new ListRecentMovementsQuery());
+
+        Assert.Equal(ListRecentMovementsQuery.DefaultTop, parameters.Top);
+    }
+
+    [Fact]
+    public void Recent_movements_query_passes_a_valid_top_through()
+    {
+        RecentMovementsQueryParameters parameters =
+            _recentMovementsHandler.BuildParameters(new ListRecentMovementsQuery { Top = 5 });
+
+        Assert.Equal(5, parameters.Top);
+    }
+
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(-5, 1)]
+    [InlineData(1000, ListRecentMovementsQuery.MaxTop)]
+    public void Recent_movements_query_clamps_the_top_to_a_sane_range(int requested, int expected)
+    {
+        RecentMovementsQueryParameters parameters =
+            _recentMovementsHandler.BuildParameters(new ListRecentMovementsQuery { Top = requested });
+
+        Assert.Equal(expected, parameters.Top);
     }
 
     private static GetConsumptionReportQuery ValidReport() =>

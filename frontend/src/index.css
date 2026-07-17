@@ -140,3 +140,36 @@
     }
   }
 }
+
+/*
+ * Print isolation for the QR label sheet (card [E7] #92).
+ *
+ * The labels screen calls window.print(); without isolation the browser would print the whole app
+ * chrome (sidebar, topbar, controls). We hide everything and reveal only the element flagged with
+ * `data-print-sheet`, pinning it to the page origin so it fills the sheet. `print-color-adjust: exact`
+ * keeps the QR modules solid black on printers that would otherwise lighten them, and each label opts
+ * out of being split across a page break.
+ */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  [data-print-sheet],
+  [data-print-sheet] * {
+    visibility: visible;
+  }
+
+  [data-print-sheet] {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  [data-print-label] {
+    break-inside: avoid;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

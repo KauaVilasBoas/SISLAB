@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import ReactEChartsCore from 'echarts-for-react/lib/core';
 import { echarts, type EChartsCoreOption } from '@/shared/lib/echarts';
 import {
@@ -21,6 +22,10 @@ interface ChartCardProps {
   isEmpty?: boolean;
   emptyLabel?: string;
   className?: string;
+  /** Optional controls rendered on the right of the header (e.g. period tabs, a "Ver estoque" link). */
+  actions?: ReactNode;
+  /** Optional content rendered below the chart canvas (e.g. a legend with counts). */
+  footer?: ReactNode;
 }
 
 /**
@@ -36,12 +41,17 @@ export function ChartCard({
   isEmpty = false,
   emptyLabel = 'Sem dados para exibir.',
   className,
+  actions,
+  footer,
 }: ChartCardProps) {
   return (
     <Card className={cn('overflow-hidden', className)}>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        {description ? <CardDescription>{description}</CardDescription> : null}
+      <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+        <div className="space-y-1.5">
+          <CardTitle>{title}</CardTitle>
+          {description ? <CardDescription>{description}</CardDescription> : null}
+        </div>
+        {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
       </CardHeader>
       <CardContent>
         {isEmpty ? (
@@ -61,6 +71,7 @@ export function ChartCard({
             style={{ height }}
           />
         )}
+        {footer ? <div className="mt-4">{footer}</div> : null}
       </CardContent>
     </Card>
   );

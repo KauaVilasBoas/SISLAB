@@ -144,6 +144,9 @@ export const api = {
   async put<T>(url: string, body?: unknown): Promise<T> {
     return unwrap<T>(await httpClient.put(url, body));
   },
+  async patch<T>(url: string, body?: unknown): Promise<T> {
+    return unwrap<T>(await httpClient.patch(url, body));
+  },
   async del<T>(url: string, params?: Record<string, unknown>): Promise<T> {
     return unwrap<T>(await httpClient.delete(url, { params }));
   },
