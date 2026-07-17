@@ -3,6 +3,8 @@ import { Modal } from '@/shared/components/ui/modal';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
 import type { ApiError } from '@/shared/types/api';
+import { RequirePermission } from '@/modules/auth/PermissionsProvider';
+import { Permissions } from '@/modules/auth/permissions';
 import type { EnrichedMemberDto, ProfileDto } from '@/modules/identity/types';
 import {
   useAssignProfile,
@@ -84,15 +86,17 @@ export function ManageMemberProfilesModal({
                 <li key={profile.profileId}>
                   <Badge variant="secondary" className="pr-1">
                     {profile.profileName}
-                    <button
-                      type="button"
-                      aria-label={`Remover ${profile.profileName}`}
-                      disabled={pending}
-                      onClick={() => handleRemove(profile.profileId)}
-                      className="ml-1 rounded-full p-0.5 hover:bg-background/60 disabled:opacity-50"
-                    >
-                      <X className="size-3" />
-                    </button>
+                    <RequirePermission code={Permissions.profiles.removeProfile}>
+                      <button
+                        type="button"
+                        aria-label={`Remover ${profile.profileName}`}
+                        disabled={pending}
+                        onClick={() => handleRemove(profile.profileId)}
+                        className="ml-1 rounded-full p-0.5 hover:bg-background/60 disabled:opacity-50"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </RequirePermission>
                   </Badge>
                 </li>
               ))}
@@ -100,41 +104,43 @@ export function ManageMemberProfilesModal({
           )}
         </section>
 
-        <section className="space-y-2">
-          <h3 className="text-sm font-medium">Adicionar perfil</h3>
-          {assignable.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Todos os perfis já foram atribuídos.
-            </p>
-          ) : (
-            <ul className="flex flex-col divide-y rounded-lg border">
-              {assignable.map((profile) => (
-                <li
-                  key={profile.id}
-                  className="flex items-center justify-between gap-3 px-3 py-2"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{profile.name}</p>
-                    {profile.description ? (
-                      <p className="truncate text-xs text-muted-foreground">
-                        {profile.description}
-                      </p>
-                    ) : null}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={pending}
-                    onClick={() => handleAssign(profile.id)}
+        <RequirePermission code={Permissions.profiles.assignProfile}>
+          <section className="space-y-2">
+            <h3 className="text-sm font-medium">Adicionar perfil</h3>
+            {assignable.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Todos os perfis já foram atribuídos.
+              </p>
+            ) : (
+              <ul className="flex flex-col divide-y rounded-lg border">
+                {assignable.map((profile) => (
+                  <li
+                    key={profile.id}
+                    className="flex items-center justify-between gap-3 px-3 py-2"
                   >
-                    <Plus className="size-3.5" />
-                    Adicionar
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{profile.name}</p>
+                      {profile.description ? (
+                        <p className="truncate text-xs text-muted-foreground">
+                          {profile.description}
+                        </p>
+                      ) : null}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={pending}
+                      onClick={() => handleAssign(profile.id)}
+                    >
+                      <Plus className="size-3.5" />
+                      Adicionar
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </RequirePermission>
 
         {pending && (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">

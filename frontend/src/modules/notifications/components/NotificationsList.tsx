@@ -3,6 +3,8 @@ import { BellOff, Check, ChevronRight, Loader2 } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
+import { RequirePermission } from '@/modules/auth/PermissionsProvider';
+import { Permissions } from '@/modules/auth/permissions';
 import { cn } from '@/shared/lib/utils';
 import { formatRelativeTime } from '@/shared/lib/format';
 import type { NotificationListItem } from '@/modules/notifications/types';
@@ -158,23 +160,25 @@ function NotificationRow({ item, onMarkAsRead, marking }: NotificationRowProps) 
 
           <div className="flex shrink-0 items-center gap-1">
             {!item.isRead ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                title="Marcar como lida"
-                disabled={marking}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMarkAsRead(item.id);
-                }}
-              >
-                {marking ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Check className="size-4" />
-                )}
-                <span className="hidden sm:inline">Marcar como lida</span>
-              </Button>
+              <RequirePermission code={Permissions.notifications.markAsRead}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  title="Marcar como lida"
+                  disabled={marking}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMarkAsRead(item.id);
+                  }}
+                >
+                  {marking ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Check className="size-4" />
+                  )}
+                  <span className="hidden sm:inline">Marcar como lida</span>
+                </Button>
+              </RequirePermission>
             ) : null}
             {deepLink ? (
               <ChevronRight className="size-4 shrink-0 text-muted-foreground" />

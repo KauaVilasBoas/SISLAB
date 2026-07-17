@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { CheckCheck } from 'lucide-react';
 import { PageHeader } from '@/shared/components/PageHeader';
 import { Button } from '@/shared/components/ui/button';
+import { RequirePermission } from '@/modules/auth/PermissionsProvider';
+import { Permissions } from '@/modules/auth/permissions';
 import { useToast } from '@/shared/components/ui/toast';
 import type { ApiError } from '@/shared/types/api';
 import {
@@ -77,15 +79,17 @@ export function NotificationsPage() {
             : 'Nenhuma não lida'}
         </p>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleMarkAllAsRead}
-            disabled={unreadCount === 0 || markAllAsRead.isPending}
-          >
-            <CheckCheck className="size-4" />
-            Marcar todas como lidas
-          </Button>
+          <RequirePermission code={Permissions.notifications.readAll}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMarkAllAsRead}
+              disabled={unreadCount === 0 || markAllAsRead.isPending}
+            >
+              <CheckCheck className="size-4" />
+              Marcar todas como lidas
+            </Button>
+          </RequirePermission>
           <div className="inline-flex rounded-md border p-0.5">
             <FilterTab active={!unreadOnly} onClick={() => switchFilter(false)}>
               Todas

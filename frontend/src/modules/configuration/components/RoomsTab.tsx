@@ -8,6 +8,8 @@ import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { useToast } from '@/shared/components/ui/toast';
 import type { ApiError } from '@/shared/types/api';
+import { RequirePermission } from '@/modules/auth/PermissionsProvider';
+import { Permissions } from '@/modules/auth/permissions';
 import { useCreateRoom, useRooms } from '@/modules/configuration/api/configuration.queries';
 import {
   CatalogueEmpty,
@@ -23,10 +25,12 @@ export function RoomsTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-end">
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="size-4" />
-          Nova sala
-        </Button>
+        <RequirePermission code={Permissions.configuration.createRoom}>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" />
+            Nova sala
+          </Button>
+        </RequirePermission>
       </div>
 
       {rooms.isLoading ? (

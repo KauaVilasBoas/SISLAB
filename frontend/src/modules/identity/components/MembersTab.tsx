@@ -3,6 +3,11 @@ import { Loader2, Settings2, UserPlus, Users } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
+import {
+  RequireAnyPermission,
+  RequirePermission,
+} from '@/modules/auth/PermissionsProvider';
+import { Permissions } from '@/modules/auth/permissions';
 import type { EnrichedMemberDto, ProfileDto } from '@/modules/identity/types';
 import { useMembers } from '@/modules/identity/api/identity.queries';
 import { InviteMemberModal } from '@/modules/identity/components/InviteMemberModal';
@@ -21,10 +26,12 @@ export function MembersTab({ profiles }: MembersTabProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-end">
-        <Button onClick={() => setInviting(true)}>
-          <UserPlus className="size-4" />
-          Convidar membro
-        </Button>
+        <RequirePermission code={Permissions.members.invite}>
+          <Button onClick={() => setInviting(true)}>
+            <UserPlus className="size-4" />
+            Convidar membro
+          </Button>
+        </RequirePermission>
       </div>
 
       {members.isLoading ? (
@@ -72,14 +79,22 @@ export function MembersTab({ profiles }: MembersTabProps) {
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setManaging(member)}
+                      <RequireAnyPermission
+                        codes={[
+                          Permissions.profiles.assignProfile,
+                          Permissions.profiles.removeProfile,
+                        ]}
+                        fallback={<span className="text-xs text-muted-foreground">—</span>}
                       >
-                        <Settings2 className="size-3.5" />
-                        Gerenciar perfis
-                      </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setManaging(member)}
+                        >
+                          <Settings2 className="size-3.5" />
+                          Gerenciar perfis
+                        </Button>
+                      </RequireAnyPermission>
                     </td>
                   </tr>
                 ))}

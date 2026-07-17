@@ -8,6 +8,8 @@ import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { useToast } from '@/shared/components/ui/toast';
 import type { ApiError } from '@/shared/types/api';
+import { RequirePermission } from '@/modules/auth/PermissionsProvider';
+import { Permissions } from '@/modules/auth/permissions';
 import {
   useCreateItemCategory,
   useItemCategories,
@@ -26,10 +28,12 @@ export function ItemCategoriesTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-end">
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="size-4" />
-          Nova categoria
-        </Button>
+        <RequirePermission code={Permissions.configuration.createItemCategory}>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" />
+            Nova categoria
+          </Button>
+        </RequirePermission>
       </div>
 
       {categories.isLoading ? (

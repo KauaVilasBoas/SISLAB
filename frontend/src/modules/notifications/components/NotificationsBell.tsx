@@ -2,6 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { Bell, BellOff, Check, CheckCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Popover } from '@/shared/components/ui/popover';
+import { RequirePermission } from '@/modules/auth/PermissionsProvider';
+import { Permissions } from '@/modules/auth/permissions';
 import { cn } from '@/shared/lib/utils';
 import { formatRelativeTime } from '@/shared/lib/format';
 import type { ApiError } from '@/shared/types/api';
@@ -116,17 +118,19 @@ function NotificationsPanel({ unreadCount, onClose }: NotificationsPanelProps) {
             </span>
           ) : null}
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 px-2 text-xs"
-          onClick={handleMarkAllAsRead}
-          disabled={unreadCount === 0 || markAllAsRead.isPending}
-          title="Marcar todas como lidas"
-        >
-          <CheckCheck className="size-4" />
-          <span className="hidden sm:inline">Marcar todas</span>
-        </Button>
+        <RequirePermission code={Permissions.notifications.readAll}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={handleMarkAllAsRead}
+            disabled={unreadCount === 0 || markAllAsRead.isPending}
+            title="Marcar todas como lidas"
+          >
+            <CheckCheck className="size-4" />
+            <span className="hidden sm:inline">Marcar todas</span>
+          </Button>
+        </RequirePermission>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -271,23 +275,25 @@ function NotificationDropdownRow({
       </div>
 
       {!item.isRead ? (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7 shrink-0"
-          title="Marcar como lida"
-          disabled={marking}
-          onClick={(e) => {
-            e.stopPropagation();
-            onMarkAsRead(item.id);
-          }}
-        >
-          {marking ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Check className="size-4" />
-          )}
-        </Button>
+        <RequirePermission code={Permissions.notifications.markAsRead}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 shrink-0"
+            title="Marcar como lida"
+            disabled={marking}
+            onClick={(e) => {
+              e.stopPropagation();
+              onMarkAsRead(item.id);
+            }}
+          >
+            {marking ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Check className="size-4" />
+            )}
+          </Button>
+        </RequirePermission>
       ) : null}
     </li>
   );
