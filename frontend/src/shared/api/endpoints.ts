@@ -98,6 +98,10 @@ export const Endpoints = {
     reports: {
       consumption: '/api/inventory/consumption-report',
       consumptionSeries: '/api/inventory/consumption-series',
+      /** Monthly consumption cost of the active company (Inventory.Cost.Read) — card [E4] #109. */
+      costByMonth: '/api/inventory/reports/cost-by-month',
+      /** Consumption cost per experiment, top-N (Inventory.Cost.Read) — card [E4] #109. */
+      costByExperiment: '/api/inventory/reports/cost-by-experiment',
     },
     partners: {
       root: '/api/inventory/partners',
