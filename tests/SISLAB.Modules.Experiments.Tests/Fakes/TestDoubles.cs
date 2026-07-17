@@ -1,6 +1,7 @@
 using SISLAB.Modules.Audit.Contracts;
 using SISLAB.Modules.Experiments.Application.Protocols;
 using SISLAB.Modules.Experiments.Domain.Experiments;
+using SISLAB.SharedKernel.Multitenancy;
 using SISLAB.SharedKernel.Time;
 
 namespace SISLAB.Modules.Experiments.Tests.Fakes;
@@ -13,6 +14,14 @@ internal sealed class FakeActorAccessor : IAuditActorAccessor
     public FakeActorAccessor(string actor = "tester@lab") => _actor = actor;
 
     public string GetCurrentActor() => _actor;
+}
+
+/// <summary>An <see cref="ITenantContext"/> pinned to a fixed company, matching how the read side resolves it.</summary>
+internal sealed class StubTenantContext : ITenantContext
+{
+    public StubTenantContext(Guid companyId) => CompanyId = companyId;
+
+    public Guid CompanyId { get; }
 }
 
 /// <summary>Fixed clock for deterministic timestamps in tests.</summary>
