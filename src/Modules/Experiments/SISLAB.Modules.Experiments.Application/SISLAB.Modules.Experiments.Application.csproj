@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Application: orquestra casos de uso. Depende de Domain + Infrastructure (para IModule) + Contracts.
+    Referencia a própria Infrastructure do módulo para delegar o wiring de DI (AddExperimentsModule),
+    simétrico ao Inventory/Configuration. Os testes de arquitetura validam que o Host não referencia
+    Domain diretamente; Application referenciar a Infrastructure do MESMO módulo é permitido.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\SISLAB.Modules.Experiments.Domain\SISLAB.Modules.Experiments.Domain.csproj" />
+    <ProjectReference Include="..\SISLAB.Modules.Experiments.Infrastructure\SISLAB.Modules.Experiments.Infrastructure.csproj" />
+    <ProjectReference Include="..\SISLAB.Modules.Experiments.Contracts\SISLAB.Modules.Experiments.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
+    <!--
+      Audit.Contracts: the public IAuditActorAccessor port. The Experiments write-side resolves the "who"
+      (CreatedBy / PerformedBy) through it — the actor's identity claim — without depending on ASP.NET or
+      the Identity internals. Only the Contracts assembly is referenced (module isolation, section 2).
+    -->
+    <ProjectReference Include="..\..\Audit\SISLAB.Modules.Audit.Contracts\SISLAB.Modules.Audit.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Exposes internal CQRS command/query handlers to the module's unit tests. -->
+    <InternalsVisibleTo Include="SISLAB.Modules.Experiments.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      FluentValidation (command validators) and Dapper (read-side query handlers) flow in transitively
+      through SISLAB.Infrastructure — same as the Inventory/Configuration Application projects, so they
+      are not re-declared here to keep a single pinned version.
+
+      Lumen's [RequirePermission] on the module's write endpoints (documented relaxation of section 8,
+      symmetric to Inventory): the attribute must decorate the controller action so Lumen's discovery
+      scanner sees it. Pinned to the same 3.0.1 the other business modules use.
+    -->
+    <PackageReference Include="Lumen.Authorization.AspNetCore" Version="3.0.1" />
+  </ItemGroup>
+
+</Project>

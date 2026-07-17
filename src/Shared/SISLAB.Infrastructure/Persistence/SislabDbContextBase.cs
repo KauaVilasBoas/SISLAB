@@ -77,6 +77,11 @@ public abstract class SislabDbContextBase : DbContext
             if (!typeof(ITenantEntity).IsAssignableFrom(entityType.ClrType))
                 continue;
 
+            // Skip derived types in TPH hierarchies — EF Core only allows HasQueryFilter on the
+            // root entity type. The filter applied to the root automatically covers all subtypes.
+            if (entityType.BaseType is not null)
+                continue;
+
             LambdaExpression filter = BuildTenantFilter(entityType.ClrType);
             modelBuilder.Entity(entityType.ClrType).HasQueryFilter(filter);
         }

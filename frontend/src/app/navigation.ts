@@ -91,11 +91,12 @@ export const navGroups: NavGroup[] = [
     title: 'Experimentos',
     items: [
       {
-        path: '/experiments/in-vitro',
+        // In vitro cell-viability slice (card [E11] #68). Visible to every member for now — the list/detail
+        // read endpoints are only [Authorize]-gated, so no permissionAny here.
+        path: '/experiments',
         label: 'In vitro',
-        description: 'Em breve',
+        description: 'Viabilidade celular',
         icon: FlaskRound,
-        disabled: true,
       },
       {
         path: '/experiments/in-vivo',
