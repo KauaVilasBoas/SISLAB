@@ -145,6 +145,63 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
             expiry);
     }
 
+    /// <summary>Renames the item.</summary>
+    public void Rename(string name)
+    {
+        Guard.AgainstNullOrWhiteSpace(name, nameof(name));
+        string trimmed = name.Trim();
+        Guard.AgainstMaxLength(trimmed, MaxNameLength, nameof(name));
+
+        Name = trimmed;
+    }
+
+    /// <summary>
+    /// Recategorises the item. The category is referenced by value (card [E12] #76); that the id is a real
+    /// category of the tenant is validated in the write-side handler, not here — exactly as on creation.
+    /// </summary>
+    public void Recategorize(Guid categoryId)
+    {
+        Guard.AgainstEmptyGuid(categoryId, nameof(categoryId));
+        CategoryId = categoryId;
+    }
+
+    /// <summary>
+    /// Updates the descriptive metadata (brand and application); passing null or blank clears the
+    /// corresponding field. This is pure identification data and does not touch the balance or traceability.
+    /// </summary>
+    public void Describe(string? brand, string? application)
+    {
+        Brand = NormalizeOptionalText(brand, MaxBrandLength, nameof(brand));
+        Application = NormalizeOptionalText(application, MaxApplicationLength, nameof(application));
+    }
+
+    /// <summary>
+    /// Adjusts the reorder threshold. The new minimum must share the item's unit of measure — the unit is
+    /// fixed at creation and never changes here (a unit change would require converting the balance and would
+    /// break the movement history). Unlike <see cref="RegisterConsumption"/>, correcting the threshold does
+    /// not emit a low-stock event: this is a configuration correction, not a stock movement.
+    /// </summary>
+    public void AdjustMinimumQuantity(Quantity minimumQuantity)
+    {
+        Guard.AgainstNull(minimumQuantity, nameof(minimumQuantity));
+        EnsureSameUnit(_quantity, minimumQuantity);
+
+        MinimumQuantity = minimumQuantity;
+    }
+
+    /// <summary>
+    /// Relocates the item to another storage location as a metadata correction — <b>not</b> a stock
+    /// transfer. Unlike <see cref="TransferTo"/>, this does not emit a <see cref="StockTransferredEvent"/>
+    /// and therefore leaves no movement in the ledger: it is meant for fixing the recorded location of an
+    /// item that never physically moved (card [E7] #46). The controlled/location-type invariant is enforced
+    /// upstream (card #23).
+    /// </summary>
+    public void Relocate(Guid storageLocationId)
+    {
+        Guard.AgainstEmptyGuid(storageLocationId, nameof(storageLocationId));
+        StorageLocationId = storageLocationId;
+    }
+
     /// <summary>
     /// Registers an incoming stock entry, increasing the balance and updating the traceability data
     /// (lot and expiry) of the newly received batch. The optional <paramref name="occurredOn"/> and
@@ -200,7 +257,7 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
     /// Moves the whole item to another storage location. The balance is unchanged; only the location
     /// reference is updated. The controlled/location-type invariant is enforced upstream (card #23).
     /// </summary>
-    public void TransferTo(Guid destinationStorageLocationId)
+    public void TransferTo(Guid destinationStorageLocationId, DateOnly? occurredOn = null)
     {
         Guard.AgainstEmptyGuid(destinationStorageLocationId, nameof(destinationStorageLocationId));
 
@@ -210,21 +267,22 @@ public sealed class StockItem : AggregateRoot<Guid>, ITenantEntity
         Guid origin = StorageLocationId;
         StorageLocationId = destinationStorageLocationId;
 
-        RaiseDomainEvent(new StockTransferredEvent(Id, origin, destinationStorageLocationId));
+        RaiseDomainEvent(new StockTransferredEvent(
+            CompanyId, Id, origin, destinationStorageLocationId, _quantity, occurredOn));
     }
 
     /// <summary>
     /// Discards a quantity of stock (for example an expired or unusable batch), decreasing the balance.
     /// Fails if the amount exceeds the balance; disposing expired stock is always allowed.
     /// </summary>
-    public void Dispose(Quantity quantity)
+    public void Dispose(Quantity quantity, DateOnly? occurredOn = null)
     {
         Quantity disposed = EnsurePositiveOperationQuantity(quantity, "dispose");
         EnsureBalanceCovers(disposed, "dispose");
 
         _quantity = _quantity.Subtract(disposed);
 
-        RaiseDomainEvent(new StockDisposedEvent(Id, disposed, _quantity));
+        RaiseDomainEvent(new StockDisposedEvent(CompanyId, Id, disposed, _quantity, occurredOn));
     }
 
     /// <summary>

@@ -40,6 +40,13 @@ public sealed record ListStockItemsQuery : PagedQuery<PagedResult<StockItemListI
 
     /// <summary>Optional free-text search matched (ILIKE) against name, lot code and brand.</summary>
     public string? Search { get; init; }
+
+    /// <summary>
+    /// Optional controlled-only filter. When <see langword="true"/> the listing is narrowed to controlled
+    /// substances (<c>is_controlled = true</c>) — the source of the Controlados compliance screen (card
+    /// [E7] #62); <see langword="null"/> lists items regardless of the controlled flag.
+    /// </summary>
+    public bool? IsControlled { get; init; }
 }
 
 /// <summary>Derived expiry classification of a stock item, as exposed to the read side.</summary>
@@ -129,6 +136,7 @@ internal sealed class ListStockItemsQueryHandler
             WHERE v.company_id = @CompanyId
               AND (@StorageLocationId IS NULL OR v.storage_location_id = @StorageLocationId)
               AND (@Category IS NULL OR v.category = @Category)
+              AND (@IsControlled IS NULL OR v.is_controlled = @IsControlled)
               AND (
                     @Search IS NULL
                     OR v.name ILIKE '%' || @Search || '%'
@@ -215,6 +223,7 @@ internal sealed class ListStockItemsQueryHandler
         StorageLocationId: request.StorageLocationId,
         Category: NormalizeFilter(request.Category),
         Search: NormalizeFilter(request.Search),
+        IsControlled: request.IsControlled,
         Today: DateOnly.FromDateTime(_clock.UtcNow),
         WarningWindowDays: warningWindowDays,
         NotApplicable: (int)ExpiryStatusView.NotApplicable,
@@ -287,6 +296,7 @@ internal sealed record StockItemsQueryParameters(
     Guid? StorageLocationId,
     string? Category,
     string? Search,
+    bool? IsControlled,
     DateOnly Today,
     int WarningWindowDays,
     int NotApplicable,

@@ -34,6 +34,7 @@ public sealed class AuditController : SislabControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> List(
         [FromQuery] string? entityType,
+        [FromQuery] Guid? entityId,
         [FromQuery] string? action,
         [FromQuery] DateOnly? from,
         [FromQuery] DateOnly? to,
@@ -45,6 +46,7 @@ public sealed class AuditController : SislabControllerBase
             new ListAuditEntriesQuery
             {
                 EntityType = entityType,
+                EntityId = entityId,
                 Action = action,
                 From = from,
                 To = to,
@@ -62,6 +64,7 @@ public sealed class AuditController : SislabControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Export(
         [FromQuery] string? entityType,
+        [FromQuery] Guid? entityId,
         [FromQuery] string? action,
         [FromQuery] DateOnly? from,
         [FromQuery] DateOnly? to,
@@ -71,6 +74,7 @@ public sealed class AuditController : SislabControllerBase
             new ExportAuditEntriesQuery
             {
                 EntityType = entityType,
+                EntityId = entityId,
                 Action = action,
                 From = from,
                 To = to

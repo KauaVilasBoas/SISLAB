@@ -38,7 +38,9 @@ namespace SISLAB.Modules.Inventory.Infrastructure.ReadModels;
 /// </remarks>
 internal sealed class StockMovementProjectionHandler :
     IIntegrationEventHandler<StockReceivedIntegrationEvent>,
-    IIntegrationEventHandler<StockConsumedIntegrationEvent>
+    IIntegrationEventHandler<StockConsumedIntegrationEvent>,
+    IIntegrationEventHandler<StockTransferredIntegrationEvent>,
+    IIntegrationEventHandler<StockDisposedIntegrationEvent>
 {
     private readonly IStockMovementStore _store;
     private readonly IClock _clock;
@@ -79,6 +81,40 @@ internal sealed class StockMovementProjectionHandler :
                 QuantityUnit: integrationEvent.Unit,
                 OccurredOn: ResolveOccurredOn(integrationEvent.OccurredOn, integrationEvent.OccurredOnUtc),
                 ExperimentId: integrationEvent.ExperimentId,
+                PartnerId: null,
+                CreatedAtUtc: _clock.UtcNow),
+            cancellationToken);
+
+    public Task HandleAsync(
+        StockTransferredIntegrationEvent integrationEvent,
+        CancellationToken cancellationToken = default)
+        => _store.AppendAsync(
+            new StockMovementRow(
+                Id: integrationEvent.EventId,
+                CompanyId: integrationEvent.CompanyId,
+                StockItemId: integrationEvent.StockItemId,
+                MovementType: nameof(StockMovementType.Transferred),
+                QuantityAmount: integrationEvent.MovedQuantity,
+                QuantityUnit: integrationEvent.Unit,
+                OccurredOn: ResolveOccurredOn(integrationEvent.OccurredOn, integrationEvent.OccurredOnUtc),
+                ExperimentId: null,
+                PartnerId: null,
+                CreatedAtUtc: _clock.UtcNow),
+            cancellationToken);
+
+    public Task HandleAsync(
+        StockDisposedIntegrationEvent integrationEvent,
+        CancellationToken cancellationToken = default)
+        => _store.AppendAsync(
+            new StockMovementRow(
+                Id: integrationEvent.EventId,
+                CompanyId: integrationEvent.CompanyId,
+                StockItemId: integrationEvent.StockItemId,
+                MovementType: nameof(StockMovementType.Disposed),
+                QuantityAmount: integrationEvent.DisposedQuantity,
+                QuantityUnit: integrationEvent.Unit,
+                OccurredOn: ResolveOccurredOn(integrationEvent.OccurredOn, integrationEvent.OccurredOnUtc),
+                ExperimentId: null,
                 PartnerId: null,
                 CreatedAtUtc: _clock.UtcNow),
             cancellationToken);

@@ -32,15 +32,14 @@ export function Sidebar() {
 
       {/* Quick action */}
       <div className="px-3 pt-3">
-        <button
-          type="button"
-          disabled
-          title="Registro rápido (em breve — #63)"
-          className="flex w-full items-center justify-center gap-2 rounded-md bg-status-info/15 px-3 py-2 text-sm font-medium text-sidebar-foreground ring-1 ring-inset ring-status-info/30 transition-colors hover:bg-status-info/25 disabled:cursor-not-allowed disabled:opacity-70"
+        <NavLink
+          to="/quick-consumption"
+          title="Registro rápido de consumo por QR (#63)"
+          className="flex w-full items-center justify-center gap-2 rounded-md bg-status-info/15 px-3 py-2 text-sm font-medium text-sidebar-foreground ring-1 ring-inset ring-status-info/30 transition-colors hover:bg-status-info/25 aria-[current=page]:bg-status-info/25"
         >
           <QrCode className="size-4" />
           Registro rápido
-        </button>
+        </NavLink>
       </div>
 
       {/* Grouped navigation */}

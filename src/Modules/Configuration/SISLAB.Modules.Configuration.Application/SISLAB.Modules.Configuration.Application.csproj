@@ -25,7 +25,7 @@
       authorization attribute must decorate the controller hosting the action, so the module references
       Lumen.Authorization.AspNetCore directly, pinned to the same 3.0.0 the Identity module uses.
     -->
-    <PackageReference Include="Lumen.Authorization.AspNetCore" Version="3.0.0" />
+    <PackageReference Include="Lumen.Authorization.AspNetCore" Version="3.0.1" />
   </ItemGroup>
 
 </Project>

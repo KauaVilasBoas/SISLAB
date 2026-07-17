@@ -33,6 +33,17 @@ internal sealed class NotificationStore : BaseDataAccess, INotificationStore
         RETURNING id;
         """;
 
+    // Bulk acknowledge: flip every unread row of the active company to read in one statement. The
+    // is_read = false predicate makes it idempotent (a second run touches nothing) and keeps read_at_utc
+    // stamped once — an already-read row is never revisited. company_id keeps the mandatory tenant scoping.
+    private const string MarkAllReadSql =
+        """
+        UPDATE notifications.notifications
+        SET is_read = true, read_at_utc = @ReadAtUtc
+        WHERE company_id = @CompanyId
+          AND is_read = false;
+        """;
+
     public NotificationStore(DbConnectionFactory connectionFactory)
         : base(connectionFactory)
     {
@@ -63,5 +74,19 @@ internal sealed class NotificationStore : BaseDataAccess, INotificationStore
 
         // A row id comes back only when a row was actually inserted; a skipped conflict returns nothing.
         return insertedId.HasValue;
+    }
+
+    public async Task<int> MarkAllReadAsync(
+        Guid companyId,
+        DateTime readAtUtc,
+        CancellationToken cancellationToken = default)
+    {
+        using IDbConnection connection = await OpenConnectionAsync();
+
+        // ExecuteAsync returns the affected-row count — 0 when the company had no unread notifications.
+        return await connection.ExecuteAsync(new CommandDefinition(
+            MarkAllReadSql,
+            new { CompanyId = companyId, ReadAtUtc = readAtUtc },
+            cancellationToken: cancellationToken));
     }
 }
