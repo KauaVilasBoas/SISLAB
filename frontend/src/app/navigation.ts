@@ -15,6 +15,7 @@ import {
   QrCode,
   type LucideIcon,
 } from 'lucide-react';
+import { Permissions } from '@/modules/auth/permissions';
 
 export interface NavItem {
   /** Route path (also the React Router path). */
@@ -25,6 +26,13 @@ export interface NavItem {
   icon: LucideIcon;
   /** Future module without a card yet — rendered but non-navigable (card [E7] #43 scope note). */
   disabled?: boolean;
+  /**
+   * Read permission codes that gate this entry (card [E7] #110). When present the item only renders if the
+   * user holds AT LEAST ONE of them in the active company — used for admin screens whose backend read
+   * endpoints are [RequirePermission]-gated. Absent ⇒ visible to any authenticated user (the item's read
+   * endpoints are only [Authorize], so inventing a gate here would hide a screen the server would serve).
+   */
+  permissionAny?: readonly string[];
 }
 
 export interface NavGroup {
@@ -140,6 +148,9 @@ export const navGroups: NavGroup[] = [
         label: 'Membros & Perfis',
         description: 'Acesso e permissões',
         icon: Users,
+        // Two tabs (Members / Profiles); the screen is reachable if the user can list either. Both backend
+        // read endpoints are [RequirePermission]-gated, so the whole entry is hidden without either code.
+        permissionAny: [Permissions.members.listEnriched, Permissions.profiles.listProfiles],
       },
       {
         path: '/configuration',
