@@ -18,6 +18,7 @@ import {
   fetchActiveCompany,
   fetchCurrentUser,
   fetchMyCompanies,
+  fetchMyPermissions,
   login as loginRequest,
   logout as logoutRequest,
 } from '@/modules/auth/api/auth.queries';
@@ -86,16 +87,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUnauthorizedHandler(() => resetRef.current());
   }, []);
 
+  // Primes the permission-gate cache for the given company BEFORE the UI renders, so the AppShell's gated
+  // controls resolve on their first paint (no flash-then-hide). Keyed identically to PermissionsProvider's
+  // query, so that provider reuses this cached set instead of firing a second visible round-trip. A failure
+  // here must never block bootstrap/login — the PermissionsProvider query will simply fetch on mount.
+  const primePermissions = useCallback(
+    async (companyId: string) => {
+      try {
+        await queryClient.prefetchQuery({
+          queryKey: authKeys.permissions(companyId),
+          queryFn: fetchMyPermissions,
+          staleTime: 5 * 60_000,
+        });
+      } catch {
+        // Non-fatal: gated UI defaults to hidden until the provider query resolves it.
+      }
+    },
+    [queryClient],
+  );
+
   const resolveActiveCompany = useCallback(async () => {
     try {
       const active = await fetchActiveCompany();
+      // Prime the permission set for this company before flipping to 'authenticated', so gated UI never flashes.
+      await primePermissions(active.companyId);
       setActiveCompanyId(active.companyId);
     } catch (error) {
       // 404 = no active company selected yet; leave null so the picker/guard can handle it.
       if (!isApiError(error) || error.status !== 404) throw error;
       setActiveCompanyId(null);
     }
-  }, []);
+  }, [primePermissions]);
 
   // Bootstrap on mount.
   useEffect(() => {
@@ -146,23 +168,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (companies.length === 1) {
         await activateCompanyRequest(companies[0].id);
+        // Prime the gate before the AppShell mounts so no gated control flashes on the first authenticated paint.
+        await primePermissions(companies[0].id);
         setActiveCompanyId(companies[0].id);
         return { kind: 'active' };
       }
 
       return { kind: 'select', companies };
     },
-    [],
+    [primePermissions],
   );
 
   const selectCompany = useCallback(
     async (companyId: string) => {
       await activateCompanyRequest(companyId);
-      setActiveCompanyId(companyId);
       // The active tenant changed — drop tenant-scoped caches so screens refetch under the new company.
       queryClient.clear();
+      // Re-prime the gate for the newly active company so the shell renders with its permissions resolved.
+      await primePermissions(companyId);
+      setActiveCompanyId(companyId);
     },
-    [queryClient],
+    [queryClient, primePermissions],
   );
 
   const logout = useCallback(async () => {
