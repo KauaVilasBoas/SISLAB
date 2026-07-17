@@ -3,6 +3,7 @@ using SISLAB.Infrastructure.Multitenancy;
 using SISLAB.Infrastructure.Outbox;
 using SISLAB.Infrastructure.Persistence;
 using SISLAB.Modules.Experiments.Domain.Experiments;
+using SISLAB.Modules.Experiments.Domain.Projects;
 using SISLAB.Modules.Experiments.Infrastructure.Persistence.Configurations;
 using SISLAB.SharedKernel.Multitenancy;
 
@@ -37,6 +38,9 @@ public sealed class ExperimentsDbContext : SislabDbContextBase, IOutboxDbContext
 
     public DbSet<Experiment> Experiments => Set<Experiment>();
 
+    /// <summary>In vivo experimental designs (decision card [E11] #73): Project → Batch → Group → Animal.</summary>
+    public DbSet<Project> Projects => Set<Project>();
+
     /// <inheritdoc />
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
@@ -47,6 +51,7 @@ public sealed class ExperimentsDbContext : SislabDbContextBase, IOutboxDbContext
 
         modelBuilder.ApplyConfiguration(new ExperimentConfiguration());
         modelBuilder.ApplyConfiguration(new PlateExperimentConfiguration());
+        modelBuilder.ApplyConfiguration(new ProjectConfiguration());
 
         // Outbox table lives in the module schema so the aggregate write and the outbox write share one
         // transaction/one connection (local transactional consistency).
