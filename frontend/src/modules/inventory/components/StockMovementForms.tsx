@@ -1,5 +1,5 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { AlertTriangle, Info, Loader2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import type { ApiError } from '@/shared/types/api';
@@ -12,6 +12,7 @@ import {
   useStorageLocations,
   useTransferStock,
 } from '@/modules/inventory/api/inventory.queries';
+import { usePartnerList } from '@/modules/inventory/api/partner.queries';
 import type { StockItemListItem } from '@/modules/inventory/types';
 
 type MovementKind = 'entry' | 'consumption' | 'transfer' | 'disposal';
@@ -75,19 +76,44 @@ function MovementShell({
 function EntryForm({ item, onDone }: { item: StockItemListItem; onDone: () => void }) {
   const toast = useToast();
   const entry = useRegisterEntry(item.id);
+  // Only active suppliers can be the origin of a receipt (a Client-only partner never supplies).
+  const partners = usePartnerList({}, 1);
   const [quantity, setQuantity] = useState('');
   const [lotCode, setLotCode] = useState('');
+  const [expiryMonth, setExpiryMonth] = useState('');
+  const [expiryYear, setExpiryYear] = useState('');
+  const [supplierPartnerId, setSupplierPartnerId] = useState('');
+
+  const suppliers = useMemo(
+    () =>
+      (partners.data?.items ?? []).filter(
+        (p) => p.isActive && (p.type === 'Supplier' || p.type === 'Both'),
+      ),
+    [partners.data],
+  );
+
+  // Month and expiry year are month-granularity validity; the backend requires them together (or neither).
+  const expiryError = useMemo(() => {
+    const hasMonth = expiryMonth !== '';
+    const hasYear = expiryYear !== '';
+    if (hasMonth !== hasYear) return 'Informe mês e ano de validade juntos.';
+    return null;
+  }, [expiryMonth, expiryYear]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (expiryError) {
+      toast('error', expiryError);
+      return;
+    }
     try {
       await entry.mutateAsync({
         quantity: Number(quantity),
         unit: item.unit,
         lotCode: lotCode.trim() || null,
-        expiryYear: null,
-        expiryMonth: null,
-        supplierPartnerId: null,
+        expiryYear: expiryYear === '' ? null : Number(expiryYear),
+        expiryMonth: expiryMonth === '' ? null : Number(expiryMonth),
+        supplierPartnerId: supplierPartnerId || null,
         occurredOn: null,
       });
       toast('success', 'Entrada registrada.');
@@ -120,12 +146,58 @@ function EntryForm({ item, onDone }: { item: StockItemListItem; onDone: () => vo
           autoFocus
         />
       </Field>
+
       <Field label="Lote (opcional)" htmlFor="entry-lot">
         <Input
           id="entry-lot"
           value={lotCode}
           onChange={(e) => setLotCode(e.target.value)}
         />
+      </Field>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Mês de validade" htmlFor="entry-expiry-month">
+          <Input
+            id="entry-expiry-month"
+            type="number"
+            min="1"
+            max="12"
+            inputMode="numeric"
+            placeholder="MM"
+            value={expiryMonth}
+            onChange={(e) => setExpiryMonth(e.target.value)}
+          />
+        </Field>
+        <Field label="Ano de validade" htmlFor="entry-expiry-year">
+          <Input
+            id="entry-expiry-year"
+            type="number"
+            min="2000"
+            max="2100"
+            inputMode="numeric"
+            placeholder="AAAA"
+            value={expiryYear}
+            onChange={(e) => setExpiryYear(e.target.value)}
+          />
+        </Field>
+      </div>
+      {expiryError ? <p className="text-xs text-destructive">{expiryError}</p> : null}
+
+      <Field label="Fornecedor (opcional)" htmlFor="entry-supplier">
+        <Select
+          id="entry-supplier"
+          value={supplierPartnerId}
+          onChange={(e) => setSupplierPartnerId(e.target.value)}
+        >
+          <option value="">
+            {partners.isLoading ? 'Carregando…' : 'Sem fornecedor'}
+          </option>
+          {suppliers.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </Select>
       </Field>
     </MovementShell>
   );
@@ -141,6 +213,7 @@ function ConsumptionForm({
   const toast = useToast();
   const consume = useRegisterConsumption(item.id);
   const [quantity, setQuantity] = useState('');
+  const [experimentId, setExperimentId] = useState('');
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -148,7 +221,8 @@ function ConsumptionForm({
       await consume.mutateAsync({
         quantity: Number(quantity),
         unit: item.unit,
-        experimentId: null,
+        // Sent only when the operator typed an id — the field is optional (no picker until E11).
+        experimentId: experimentId.trim() || null,
         occurredOn: null,
       });
       toast('success', 'Consumo registrado.');
@@ -181,6 +255,26 @@ function ConsumptionForm({
           autoFocus
         />
       </Field>
+
+      <Field label="Experimento (opcional)" htmlFor="consume-experiment">
+        <Input
+          id="consume-experiment"
+          value={experimentId}
+          onChange={(e) => setExperimentId(e.target.value)}
+          placeholder="ID do experimento"
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
+        />
+      </Field>
+
+      <p className="flex items-start gap-2 rounded-md border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-xs text-blue-700 dark:text-blue-300">
+        <Info className="mt-0.5 size-3.5 shrink-0" />
+        <span>
+          Vincule o consumo a um experimento para rastrear o custo por ensaio. A seleção
+          de experimentos chega com o módulo Experimentos.
+        </span>
+      </p>
     </MovementShell>
   );
 }
@@ -241,9 +335,16 @@ function DisposalForm({ item, onDone }: { item: StockItemListItem; onDone: () =>
   const dispose = useDisposeStock(item.id);
   const [quantity, setQuantity] = useState('');
   const [reason, setReason] = useState('');
+  const [confirmed, setConfirmed] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Explicit acknowledgement guard: a disposal is irreversible and audited, so the operator must
+    // tick the confirmation before the command is sent.
+    if (!confirmed) {
+      toast('error', 'Confirme o descarte antes de registrar.');
+      return;
+    }
     try {
       await dispose.mutateAsync({
         quantity: Number(quantity),
@@ -265,9 +366,17 @@ function DisposalForm({ item, onDone }: { item: StockItemListItem; onDone: () =>
     <MovementShell
       title="Registrar descarte"
       onSubmit={handleSubmit}
-      pending={dispose.isPending}
+      pending={dispose.isPending || !confirmed}
       submitLabel="Registrar descarte"
     >
+      <p className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+        <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+        <span>
+          O descarte baixa o saldo de forma definitiva e fica registrado na auditoria com
+          responsável, data e justificativa. Esta ação não pode ser desfeita.
+        </span>
+      </p>
+
       <Field label={`Quantidade (${item.unit})`} htmlFor="dispose-qty">
         <Input
           id="dispose-qty"
@@ -290,6 +399,16 @@ function DisposalForm({ item, onDone }: { item: StockItemListItem; onDone: () =>
           required
         />
       </Field>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={confirmed}
+          onChange={(e) => setConfirmed(e.target.checked)}
+          className="size-4 rounded border-input"
+        />
+        <span>Confirmo o descarte deste item.</span>
+      </label>
     </MovementShell>
   );
 }

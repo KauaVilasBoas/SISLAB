@@ -123,6 +123,27 @@ public sealed class StockController : SislabControllerBase
     }
 
     /// <summary>
+    /// Lists the active company's most recent stock movements across every item — the "recent activity" panel
+    /// on the inventory page. Unlike the per-item ledger above, this is a cross-item feed capped to the latest
+    /// <paramref name="top"/> movements (default <see cref="ListRecentMovementsQuery.DefaultTop"/>, clamped by
+    /// the handler). Only <c>[Authorize]</c>, matching the other page-level read-side listings (items, expiring,
+    /// below-minimum) — not permission-gated.
+    /// </summary>
+    [HttpGet("stock-movements/recent")]
+    [ProducesResponseType(typeof(ApiResult<IReadOnlyList<RecentMovementItem>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ListRecentMovements(
+        [FromQuery] int top = ListRecentMovementsQuery.DefaultTop,
+        CancellationToken ct = default)
+    {
+        IReadOnlyList<RecentMovementItem> result = await _mediator.SendAsync(
+            new ListRecentMovementsQuery { Top = top },
+            ct);
+
+        return Ok(new ApiResult<IReadOnlyList<RecentMovementItem>>(true, "Recent movements retrieved.", result));
+    }
+
+    /// <summary>
     /// Returns the per-location summary (item count, expired count, critical flag) for the master-detail
     /// left column, including empty locations.
     /// </summary>
@@ -325,6 +346,37 @@ public sealed class StockController : SislabControllerBase
         return Ok(new ApiResult<Guid>(true, "Stock item registered.", id));
     }
 
+    /// <summary>
+    /// Corrects the metadata of an existing stock item (card [E7] #46): name, category, storage location,
+    /// minimum-stock threshold and the optional brand/application. It never touches the balance, lot, expiry
+    /// or unit, and emits no movement. An unknown item, category or storage location is a 404.
+    /// </summary>
+    [HttpPut("stock-items/{stockItemId:guid}")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> UpdateStockItem(
+        Guid stockItemId,
+        [FromBody] UpdateStockItemRequest body,
+        CancellationToken ct)
+    {
+        await _mediator.SendAsync(
+            new UpdateStockItemCommand(
+                stockItemId,
+                body.Name,
+                body.CategoryId,
+                body.StorageLocationId,
+                body.MinimumQuantity,
+                body.Brand,
+                body.Application),
+            ct);
+
+        return Ok(new ApiResult(true, "Stock item updated."));
+    }
+
     /// <summary>Registers an incoming stock entry (receipt) on an existing item.</summary>
     [HttpPost("stock-items/{stockItemId:guid}/entries")]
     [RequirePermission]
@@ -472,6 +524,19 @@ public sealed record RegisterStockItemRequest(
     string? LotCode,
     int? ExpiryYear,
     int? ExpiryMonth);
+
+/// <summary>
+/// Request body to correct a stock item's metadata (card [E7] #46). Only the conservative, non-balance fields
+/// are editable; the unit, lot, expiry and on-hand quantity are intentionally absent. A null/blank brand or
+/// application clears it. The minimum reuses the item's current unit.
+/// </summary>
+public sealed record UpdateStockItemRequest(
+    string Name,
+    Guid CategoryId,
+    Guid StorageLocationId,
+    decimal MinimumQuantity,
+    string? Brand,
+    string? Application);
 
 /// <summary>Request body for a stock entry; the item id comes from the route, the operator from the session.</summary>
 public sealed record RegisterStockEntryRequest(

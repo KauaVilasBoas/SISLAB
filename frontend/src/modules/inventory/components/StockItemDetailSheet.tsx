@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import {
   ArrowRightLeft,
   PackagePlus,
+  Pencil,
   ShieldCheck,
   Trash2,
   TrendingDown,
@@ -21,6 +22,7 @@ import { StockMovementForms } from '@/modules/inventory/components/StockMovement
 
 interface StockItemDetailSheetProps {
   item: StockItemListItem;
+  onEdit: () => void;
   onClose: () => void;
 }
 
@@ -34,12 +36,13 @@ const MOVEMENTS: { kind: MovementKind; label: string; icon: typeof PackagePlus }
 ];
 
 /**
- * Right-side detail sheet for a single stock item (card [E7] #46). Shows the read-only attributes
- * and hosts the movement actions — the only way the Inventory backend mutates an existing item
- * (there is no update endpoint). Each action expands an inline form; a successful movement
- * invalidates the item list so the sheet's caller re-renders with the new balance.
+ * Right-side detail sheet for a single stock item (card [E7] #46). Shows the read-only attributes and
+ * hosts the two ways to change the item: "Editar" opens the metadata form (name, category, location,
+ * minimum, brand, application), and the movement actions (entry, consumption, transfer, disposal) change
+ * the balance. Each movement action expands an inline form; a successful movement invalidates the item
+ * list so the sheet's caller re-renders with the new balance.
  */
-export function StockItemDetailSheet({ item, onClose }: StockItemDetailSheetProps) {
+export function StockItemDetailSheet({ item, onEdit, onClose }: StockItemDetailSheetProps) {
   const [movement, setMovement] = useState<MovementKind | null>(null);
   const expiry = expiryStatusPresentation(item.expiryStatus);
 
@@ -68,14 +71,20 @@ export function StockItemDetailSheet({ item, onClose }: StockItemDetailSheetProp
             <h2 className="truncate text-lg font-semibold tracking-tight">{item.name}</h2>
             <p className="text-sm text-muted-foreground">{item.category}</p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fechar"
-            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-          >
-            <X className="size-4" />
-          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            <Button variant="outline" size="sm" onClick={onEdit}>
+              <Pencil className="size-3.5" />
+              Editar
+            </Button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Fechar"
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 space-y-6 overflow-y-auto p-5 scrollbar-thin">

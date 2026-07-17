@@ -45,6 +45,60 @@ export interface LocationSummaryItem {
   isCritical: boolean;
 }
 
+/**
+ * Kind of storage location, mirroring the backend StorageLocationType enum. Drives the type dropdown on the
+ * management modal (fixed at creation) and its label rendering. `Refrigerated` is the only type that may
+ * carry a target temperature range; `Controlled` is the only one allowed to hold controlled items.
+ */
+export type StorageLocationType =
+  | 'GeneralStorage'
+  | 'ReagentCabinet'
+  | 'Refrigerated'
+  | 'Controlled'
+  | 'Partner';
+
+/**
+ * A storage location row for the management screen (GET /api/inventory/storage-locations). Flat by design:
+ * it exposes the write-side editable fields the gestão form binds to — plus the current `isActive` flag and
+ * the derived `itemCount` so the UI can warn before deactivating a location that still holds stock. Distinct
+ * from {@link LocationSummaryItem} (the item-browser sidebar, which also derives the expired count and a
+ * "critical" flag).
+ */
+export interface StorageLocationListItem {
+  id: string;
+  name: string;
+  type: StorageLocationType;
+  description: string | null;
+  isActive: boolean;
+  temperatureMinCelsius: number | null;
+  temperatureMaxCelsius: number | null;
+  itemCount: number;
+}
+
+/**
+ * Request body to register a storage location (POST /api/inventory/storage-locations). The temperature bounds
+ * are accepted only for a refrigerated location and must travel together (both set or both null).
+ */
+export interface RegisterStorageLocationRequest {
+  name: string;
+  type: StorageLocationType;
+  description: string | null;
+  temperatureMinCelsius: number | null;
+  temperatureMaxCelsius: number | null;
+}
+
+/**
+ * Request body to correct a storage location's metadata (PUT /api/inventory/storage-locations/{id}). The type
+ * is intentionally absent — it is fixed at creation. A null/blank description clears it; null temperature
+ * bounds clear the range.
+ */
+export interface UpdateStorageLocationRequest {
+  name: string;
+  description: string | null;
+  temperatureMinCelsius: number | null;
+  temperatureMaxCelsius: number | null;
+}
+
 /** A per-tenant item category for the create form dropdown (GET /configuration/item-categories). */
 export interface ItemCategoryOption {
   id: string;
@@ -81,6 +135,22 @@ export interface RegisterStockItemRequest {
   lotCode: string | null;
   expiryYear: number | null;
   expiryMonth: number | null;
+}
+
+/**
+ * Request body to correct a stock item's metadata (PUT /api/inventory/stock-items/{id}).
+ *
+ * Conservative by design (card [E7] #46): only the non-balance fields are editable. The unit, lot, expiry
+ * and on-hand quantity are intentionally absent — those change only through stock movements. The minimum
+ * reuses the item's current unit. A null/blank brand or application clears it.
+ */
+export interface UpdateStockItemRequest {
+  name: string;
+  categoryId: string;
+  storageLocationId: string;
+  minimumQuantity: number;
+  brand: string | null;
+  application: string | null;
 }
 
 /** Request body for an incoming stock entry (POST /stock-items/{id}/entries). */
@@ -142,4 +212,22 @@ export interface StockMovementsFilter {
   type?: StockMovementType;
   from?: string;
   to?: string;
+}
+
+/**
+ * A cross-item recent-movement row (GET /api/inventory/stock-movements/recent). Unlike
+ * {@link StockMovementListItem} (a single item's ledger), this carries the item's name so the
+ * "recent activity" panel can list movements across every item without a second lookup.
+ */
+export interface RecentMovementItem {
+  id: string;
+  stockItemId: string;
+  stockItemName: string;
+  type: StockMovementType;
+  quantity: number;
+  unit: string;
+  /** Business date the movement occurred on, ISO "YYYY-MM-DD"; null when the ledger has none. */
+  occurredOn: string | null;
+  /** Free-text note; null while the read model has no notes column. */
+  notes: string | null;
 }

@@ -1,13 +1,16 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Warehouse } from 'lucide-react';
 import { PageHeader } from '@/shared/components/PageHeader';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
 import { useStockItems } from '@/modules/inventory/api/inventory.queries';
 import { StockItemsFilterBar } from '@/modules/inventory/components/StockItemsFilterBar';
 import { StockItemsTable } from '@/modules/inventory/components/StockItemsTable';
+import { LocationsSidebar } from '@/modules/inventory/components/LocationsSidebar';
+import { RecentMovementsPanel } from '@/modules/inventory/components/RecentMovementsPanel';
 import { StockItemDetailSheet } from '@/modules/inventory/components/StockItemDetailSheet';
 import { StockItemFormModal } from '@/modules/inventory/components/StockItemFormModal';
+import { StorageLocationModal } from '@/modules/inventory/components/StorageLocationModal';
 import { StockMovementsTab } from '@/modules/inventory/components/StockMovementsTab';
 import type { StockItemFilters, StockItemListItem } from '@/modules/inventory/types';
 
@@ -26,6 +29,8 @@ export function InventoryPage() {
   const [filters, setFilters] = useState<StockItemFilters>({});
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [managingLocations, setManagingLocations] = useState(false);
   const [selected, setSelected] = useState<StockItemListItem | null>(null);
 
   const query = useStockItems(filters, page);
@@ -45,16 +50,29 @@ export function InventoryPage() {
     return query.data?.items.find((i) => i.id === selected.id) ?? selected;
   }, [selected, query.data]);
 
+  // Opens the detail sheet for an item picked from the recent-activity panel — only when the item is on
+  // the current page (the sheet needs its full row). A movement on another page is a no-op for now.
+  function selectItemById(stockItemId: string) {
+    const item = query.data?.items.find((i) => i.id === stockItemId);
+    if (item) setSelected(item);
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Estoque"
         description="Itens de estoque do laboratório: saldo, validade, lote e movimentações."
         actions={
-          <Button onClick={() => setCreating(true)}>
-            <Plus className="size-4" />
-            Novo item
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => setManagingLocations(true)}>
+              <Warehouse className="size-4" />
+              Gerenciar locais
+            </Button>
+            <Button onClick={() => setCreating(true)}>
+              <Plus className="size-4" />
+              Novo item
+            </Button>
+          </>
         }
       />
 
@@ -68,46 +86,69 @@ export function InventoryPage() {
       </div>
 
       {tab === 'stock' ? (
-        <>
-          <StockItemsFilterBar filters={filters} onChange={patchFilters} />
+        <div className="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
+          <div className="space-y-6">
+            <LocationsSidebar
+              selectedLocationId={filters.storageLocationId}
+              onSelect={(storageLocationId) => patchFilters({ storageLocationId })}
+            />
 
-          <StockItemsTable query={query} onSelect={setSelected} />
+            <RecentMovementsPanel onSelectItem={(item) => selectItemById(item.id)} />
+          </div>
 
-          {totalPages > 1 ? (
-            <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
-              <span>
-                {totalCount} {totalCount === 1 ? 'item' : 'itens'} · página {page} de{' '}
-                {totalPages}
-              </span>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page <= 1 || query.isFetching}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  Anterior
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages || query.isFetching}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  Próxima
-                </Button>
+          <div className="min-w-0 space-y-6">
+            <StockItemsFilterBar filters={filters} onChange={patchFilters} />
+
+            <StockItemsTable query={query} onSelect={setSelected} />
+
+            {totalPages > 1 ? (
+              <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
+                <span>
+                  {totalCount} {totalCount === 1 ? 'item' : 'itens'} · página {page} de{' '}
+                  {totalPages}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1 || query.isFetching}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  >
+                    Anterior
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= totalPages || query.isFetching}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  >
+                    Próxima
+                  </Button>
+                </div>
               </div>
-            </div>
-          ) : null}
-        </>
+            ) : null}
+          </div>
+        </div>
       ) : (
         <StockMovementsTab item={liveSelected} />
       )}
 
       {creating ? <StockItemFormModal onClose={() => setCreating(false)} /> : null}
 
+      {managingLocations ? (
+        <StorageLocationModal onClose={() => setManagingLocations(false)} />
+      ) : null}
+
+      {editing && liveSelected ? (
+        <StockItemFormModal item={liveSelected} onClose={() => setEditing(false)} />
+      ) : null}
+
       {tab === 'stock' && liveSelected ? (
-        <StockItemDetailSheet item={liveSelected} onClose={() => setSelected(null)} />
+        <StockItemDetailSheet
+          item={liveSelected}
+          onEdit={() => setEditing(true)}
+          onClose={() => setSelected(null)}
+        />
       ) : null}
     </div>
   );

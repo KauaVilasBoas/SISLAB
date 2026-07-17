@@ -20,8 +20,17 @@ internal sealed class HttpContextAuditActorAccessor : IAuditActorAccessor
     public string GetCurrentActor()
     {
         ClaimsPrincipal? user = _httpContextAccessor.HttpContext?.User;
+        if (user is null) return IAuditActorAccessor.SystemActor;
 
-        string? actor = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        // Prefer a human-readable identifier so audit records show a name the lab team recognises,
+        // not an opaque UUID. Email is the most reliable cross-system identifier; name/username is
+        // the fallback; sub (UUID) is the last resort for tokens that carry only the identity claim.
+        string? actor =
+            user.FindFirst(ClaimTypes.Email)?.Value
+            ?? user.FindFirst("email")?.Value
+            ?? user.FindFirst(ClaimTypes.Name)?.Value
+            ?? user.FindFirst("preferred_username")?.Value
+            ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         return string.IsNullOrWhiteSpace(actor) ? IAuditActorAccessor.SystemActor : actor;
     }

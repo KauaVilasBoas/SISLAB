@@ -77,8 +77,17 @@ export const Endpoints = {
       movements: (stockItemId: string) =>
         `/api/inventory/stock-items/${stockItemId}/movements`,
     },
+    stockMovements: {
+      /** Cross-item recent-activity feed (latest N movements of the active company) — card [E7] #47. */
+      recent: '/api/inventory/stock-movements/recent',
+    },
     storageLocations: {
+      /** Item-browser sidebar summary (item/expired counts, critical flag) — card [E7] #46. */
       summary: '/api/inventory/storage-locations/summary',
+      /** Flat management listing + create (card [E7] #112). */
+      root: '/api/inventory/storage-locations',
+      byId: (id: string) => `/api/inventory/storage-locations/${id}`,
+      status: (id: string) => `/api/inventory/storage-locations/${id}/status`,
     },
     reports: {
       consumption: '/api/inventory/consumption-report',

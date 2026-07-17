@@ -6,6 +6,7 @@ import type { PagedResult } from '@/shared/types/api';
 import type { StockItemListItem } from '@/modules/inventory/types';
 import {
   containerStateLabel,
+  expiryDotPresentation,
   expiryStatusPresentation,
   formatExpiry,
   formatQuantity,
@@ -83,6 +84,7 @@ export function StockItemsTable({ query, onSelect }: StockItemsTableProps) {
           <tbody>
             {items.map((item) => {
               const expiry = expiryStatusPresentation(item.expiryStatus);
+              const dot = expiryDotPresentation(item.expiryStatus);
               return (
                 <tr
                   key={item.id}
@@ -116,6 +118,11 @@ export function StockItemsTable({ query, onSelect }: StockItemsTableProps) {
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
+                      <span
+                        className={`inline-block size-2 shrink-0 rounded-full ${dot.className}`}
+                        title={dot.title}
+                        aria-label={dot.title}
+                      />
                       <span>{formatExpiry(item.expiryYear, item.expiryMonth)}</span>
                       <Badge variant={expiry.variant}>{expiry.label}</Badge>
                     </div>
