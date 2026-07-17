@@ -162,6 +162,12 @@ export interface RegisterStockEntryRequest {
   expiryMonth: number | null;
   supplierPartnerId: string | null;
   occurredOn: string | null;
+  /**
+   * The batch's unit price in BRL (cards #109/#110); null for donations / no-invoice items. Sent only by
+   * users holding Inventory.Cost.Read — the cost field is gated, so operators without the permission never
+   * see it and this stays null.
+   */
+  unitCostBrl: number | null;
 }
 
 /** Request body for a consumption (POST /stock-items/{id}/consumptions). */
@@ -254,4 +260,10 @@ export interface RecentMovementItem {
   occurredOn: string | null;
   /** Free-text note; null while the read model has no notes column. */
   notes: string | null;
+  /**
+   * Valued cost of the movement in BRL (quantity × the batch's unit cost), or null when it has no cost
+   * (entries/transfers without a price, or unpriced draws). Cost is gestão-sensitive (card #110): the UI
+   * only shows it to users holding Inventory.Cost.Read.
+   */
+  estimatedCostBrl: number | null;
 }

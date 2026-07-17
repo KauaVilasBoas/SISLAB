@@ -11,6 +11,11 @@ const dateFormatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' });
 
 const numberFormatter = new Intl.NumberFormat('pt-BR');
 
+const currencyFormatter = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+});
+
 const relativeTimeFormatter = new Intl.RelativeTimeFormat('pt-BR', {
   numeric: 'auto',
   style: 'long',
@@ -42,6 +47,12 @@ export function formatDate(value: string | Date | null | undefined): string {
 export function formatNumber(value: number | null | undefined): string {
   if (value === null || value === undefined) return '—';
   return numberFormatter.format(value);
+}
+
+/** pt-BR currency ("R$ 1.234,56"), or a dash when the value is absent (e.g. an uncosted movement). */
+export function formatCurrencyBrl(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '—';
+  return currencyFormatter.format(value);
 }
 
 /**
