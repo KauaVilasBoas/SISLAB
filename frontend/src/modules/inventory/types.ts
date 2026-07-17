@@ -267,3 +267,25 @@ export interface RecentMovementItem {
    */
   estimatedCostBrl: number | null;
 }
+
+/**
+ * One month of consumption cost (GET /api/inventory/reports/cost-by-month) — card [E4] #109. Mirrors the
+ * backend MonthlyCostItem: {@link month} is the first day of the month ("YYYY-MM-DD"); {@link totalCost}
+ * is the summed BRL cost of the priced consumptions in it. Cost is gestão-sensitive (Inventory.Cost.Read).
+ */
+export interface MonthlyCostItem {
+  /** First day of the month, ISO "YYYY-MM-DD". */
+  month: string;
+  totalCost: number;
+}
+
+/**
+ * One experiment's consumption cost (GET /api/inventory/reports/cost-by-experiment) — card [E4] #109.
+ * Mirrors the backend ExperimentCostItem: {@link experimentId} is null for the aggregated "no experiment"
+ * bucket; {@link totalCost} is the summed BRL cost of its priced consumptions.
+ */
+export interface ExperimentCostItem {
+  /** Cross-module experiment reference (by value); null folds the "no experiment" consumptions. */
+  experimentId: string | null;
+  totalCost: number;
+}

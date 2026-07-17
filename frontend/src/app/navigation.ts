@@ -13,6 +13,7 @@ import {
   FlaskConical,
   FlaskRound,
   QrCode,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react';
 import { Permissions } from '@/modules/auth/permissions';
@@ -137,6 +138,15 @@ export const navGroups: NavGroup[] = [
         label: 'Parceiros',
         description: 'Instituições e amostras',
         icon: Handshake,
+      },
+      {
+        path: '/inventory/cost-report',
+        label: 'Relatório de custos',
+        description: 'Gasto por mês e experimento',
+        icon: Wallet,
+        // Cost is gestão-sensitive: both report endpoints are Inventory.Cost.Read-gated, so hide the entry
+        // for users without the capability (the page itself renders "acesso restrito" as a fallback).
+        permissionAny: [Permissions.inventory.costRead],
       },
     ],
   },

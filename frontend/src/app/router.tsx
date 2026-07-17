@@ -4,6 +4,7 @@ import { DashboardPage } from '@/modules/dashboard/pages/DashboardPage';
 import { InventoryPage } from '@/modules/inventory/pages/InventoryPage';
 import { EquipmentPage } from '@/modules/inventory/pages/EquipmentPage';
 import { PartnersPage } from '@/modules/inventory/pages/PartnersPage';
+import { CostReportPage } from '@/modules/inventory/pages/CostReportPage';
 import { ControlledPage } from '@/modules/controlled/pages/ControlledPage';
 import { LabelsPage } from '@/modules/labels/pages/LabelsPage';
 import { QuickConsumptionPage } from '@/modules/quick-consumption/pages/QuickConsumptionPage';
@@ -47,6 +48,14 @@ export const router = createBrowserRouter([
       { path: 'controlled', element: <ControlledPage /> },
       { path: 'equipment', element: <EquipmentPage /> },
       { path: 'partners', element: <PartnersPage /> },
+      {
+        path: 'inventory/cost-report',
+        element: (
+          <RequirePermissionRoute codes={[Permissions.inventory.costRead]}>
+            <CostReportPage />
+          </RequirePermissionRoute>
+        ),
+      },
       {
         path: 'members',
         element: (

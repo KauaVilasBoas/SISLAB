@@ -4,8 +4,10 @@ import { Endpoints } from '@/shared/api/endpoints';
 import type { PagedResult } from '@/shared/types/api';
 import type {
   DisposeStockRequest,
+  ExperimentCostItem,
   ItemCategoryOption,
   LocationSummaryItem,
+  MonthlyCostItem,
   RecentMovementItem,
   RegisterConsumptionRequest,
   RegisterStockEntryRequest,
@@ -50,6 +52,10 @@ export const inventoryKeys = {
   managedLocations: () => [...inventoryKeys.all, 'managed-locations'] as const,
   categories: () => [...inventoryKeys.all, 'categories'] as const,
   units: () => [...inventoryKeys.all, 'units'] as const,
+  // Cost reports (gestão-sensitive, Inventory.Cost.Read) — card [E4] #109.
+  costByMonth: (months: number) => [...inventoryKeys.all, 'cost-by-month', months] as const,
+  costByExperiment: (top: number) =>
+    [...inventoryKeys.all, 'cost-by-experiment', top] as const,
 };
 
 const PAGE_SIZE = 20;
@@ -129,6 +135,37 @@ export function useStockBatches(stockItemId: string | undefined, enabled = true)
       api.get<StockBatchItem[]>(Endpoints.inventory.stockBatches.byItem(stockItemId as string)),
     enabled: Boolean(stockItemId) && enabled,
     staleTime: 30_000,
+  });
+}
+
+/**
+ * Monthly consumption cost of the active company over the last `months` months (card [E4] #109), newest
+ * first — feeds the "Custo por mês" bar chart. Cost is gestão-sensitive: the backend endpoint is gated by
+ * Inventory.Cost.Read, so the caller passes `enabled` (false ⇒ the user lacks the permission) to avoid a
+ * guaranteed 403.
+ */
+export function useCostByMonth(months = 12, enabled = true) {
+  return useQuery({
+    queryKey: inventoryKeys.costByMonth(months),
+    queryFn: () =>
+      api.get<MonthlyCostItem[]>(Endpoints.inventory.reports.costByMonth, { months }),
+    enabled,
+    staleTime: 5 * 60_000,
+  });
+}
+
+/**
+ * Consumption cost per experiment of the active company, top `top` by spend (card [E4] #109) — feeds the
+ * "Custo por experimento" horizontal bar chart. Gated by Inventory.Cost.Read on the backend, so the caller
+ * passes `enabled` to skip the fetch when the user lacks the permission.
+ */
+export function useCostByExperiment(top = 10, enabled = true) {
+  return useQuery({
+    queryKey: inventoryKeys.costByExperiment(top),
+    queryFn: () =>
+      api.get<ExperimentCostItem[]>(Endpoints.inventory.reports.costByExperiment, { top }),
+    enabled,
+    staleTime: 5 * 60_000,
   });
 }
 
