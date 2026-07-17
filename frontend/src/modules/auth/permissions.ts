@@ -79,9 +79,6 @@ export const Permissions = {
     checkRemovalEligibility: 'CompanyMembers.CheckRemovalEligibility',
     invite: 'CompanyMembers.InviteMember',
   },
-  /** Auditoria — trail read/export. */
-  audit: {
-    list: 'Audit.List',
-    export: 'Audit.Export',
-  },
+  // Auditoria — a trilha (AuditController.List/Export) é apenas [Authorize], sem [RequirePermission];
+  // qualquer membro autenticado da empresa lê, então não há código a gatear aqui (guardado pelo drift test).
 } as const;
