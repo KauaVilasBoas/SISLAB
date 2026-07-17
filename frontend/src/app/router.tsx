@@ -42,7 +42,14 @@ export const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <DashboardPage /> },
-      { path: 'quick-consumption', element: <QuickConsumptionPage /> },
+      {
+        path: 'quick-consumption',
+        element: (
+          <RequirePermissionRoute codes={[Permissions.stock.registerConsumption]}>
+            <QuickConsumptionPage />
+          </RequirePermissionRoute>
+        ),
+      },
       { path: 'inventory', element: <InventoryPage /> },
       { path: 'labels', element: <LabelsPage /> },
       { path: 'controlled', element: <ControlledPage /> },
