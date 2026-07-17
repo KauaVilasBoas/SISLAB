@@ -61,6 +61,14 @@ public sealed record ListRecentMovementsQuery : IQuery<IReadOnlyList<RecentMovem
 /// is the movement discriminator as a string (<c>Received</c>, <c>Consumed</c>, <c>Transferred</c>,
 /// <c>Disposed</c>); <see cref="Notes"/> is null while the read model has no notes column.
 /// </summary>
+/// <remarks>
+/// <b>EstimatedCostBrl (card #110).</b> The valued cost of the movement in BRL — <c>quantity × unit_cost_brl</c>
+/// of the batch it was charged against — or <c>null</c> when the movement carries no cost (entries/transfers
+/// without a price, or draws from an unpriced batch). Since the projection appends one row per batch allocation,
+/// this is the cost of that single allocation, matching the row the panel renders. It is gestão-sensitive data:
+/// the API exposes it unconditionally on this <c>[Authorize]</c> read (batch balances/costs already surface on
+/// the movement forms), and the SPA gates its DISPLAY behind <c>Inventory.Cost.Read</c>.
+/// </remarks>
 public sealed record RecentMovementItem(
     Guid Id,
     Guid StockItemId,
@@ -69,7 +77,8 @@ public sealed record RecentMovementItem(
     decimal Quantity,
     string Unit,
     DateOnly? OccurredOn,
-    string? Notes);
+    string? Notes,
+    decimal? EstimatedCostBrl);
 
 internal sealed class ListRecentMovementsQueryHandler
     : BaseDataAccess, IQueryHandler<ListRecentMovementsQuery, IReadOnlyList<RecentMovementItem>>
@@ -89,7 +98,8 @@ internal sealed class ListRecentMovementsQueryHandler
             m.quantity_amount AS quantity,
             m.quantity_unit  AS unit,
             m.occurred_on    AS occurredon,
-            NULL             AS notes
+            NULL             AS notes,
+            (m.quantity_amount * m.unit_cost_brl) AS estimatedcostbrl
         FROM inventory.stock_movements AS m
         JOIN inventory.stock_items AS si
             ON si.id = m.stock_item_id

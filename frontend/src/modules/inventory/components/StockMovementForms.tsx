@@ -15,7 +15,11 @@ import {
 } from '@/modules/inventory/api/inventory.queries';
 import { usePartnerList } from '@/modules/inventory/api/partner.queries';
 import { BatchSelect } from '@/modules/inventory/components/BatchSelect';
+import { usePermissions } from '@/modules/auth/PermissionsProvider';
 import type { StockItemListItem } from '@/modules/inventory/types';
+
+/** Lumen permission code gating the cost fields/columns (card #110). Cost is gestão-sensitive data. */
+const COST_READ_PERMISSION = 'Inventory.Cost.Read';
 
 type MovementKind = 'entry' | 'consumption' | 'transfer' | 'disposal';
 
@@ -80,11 +84,15 @@ function EntryForm({ item, onDone }: { item: StockItemListItem; onDone: () => vo
   const entry = useRegisterEntry(item.id);
   // Only active suppliers can be the origin of a receipt (a Client-only partner never supplies).
   const partners = usePartnerList({}, 1);
+  // Cost is gestão-sensitive: only users holding Inventory.Cost.Read may record a unit price (card #110).
+  const { hasPermission } = usePermissions();
+  const canRecordCost = hasPermission(COST_READ_PERMISSION);
   const [quantity, setQuantity] = useState('');
   const [lotCode, setLotCode] = useState('');
   const [expiryMonth, setExpiryMonth] = useState('');
   const [expiryYear, setExpiryYear] = useState('');
   const [supplierPartnerId, setSupplierPartnerId] = useState('');
+  const [unitCost, setUnitCost] = useState('');
 
   const suppliers = useMemo(
     () =>
@@ -102,10 +110,22 @@ function EntryForm({ item, onDone }: { item: StockItemListItem; onDone: () => vo
     return null;
   }, [expiryMonth, expiryYear]);
 
+  // Unit cost is optional; when informed it must be a non-negative number (mirrors the backend's decimal? >= 0).
+  const costError = useMemo(() => {
+    if (unitCost === '') return null;
+    const parsed = Number(unitCost);
+    if (Number.isNaN(parsed) || parsed < 0) return 'Informe um custo válido (maior ou igual a zero).';
+    return null;
+  }, [unitCost]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (expiryError) {
       toast('error', expiryError);
+      return;
+    }
+    if (costError) {
+      toast('error', costError);
       return;
     }
     try {
@@ -117,6 +137,8 @@ function EntryForm({ item, onDone }: { item: StockItemListItem; onDone: () => vo
         expiryMonth: expiryMonth === '' ? null : Number(expiryMonth),
         supplierPartnerId: supplierPartnerId || null,
         occurredOn: null,
+        // Only sent when the user may record cost and typed one; otherwise null (donation / no invoice).
+        unitCostBrl: canRecordCost && unitCost !== '' ? Number(unitCost) : null,
       });
       toast('success', 'Entrada registrada.');
       onDone();
@@ -201,6 +223,23 @@ function EntryForm({ item, onDone }: { item: StockItemListItem; onDone: () => vo
           ))}
         </Select>
       </Field>
+
+      {/* Cost is gestão-only (card #110): the field renders solely for users holding Inventory.Cost.Read. */}
+      {canRecordCost ? (
+        <Field label="Custo unitário (R$) (opcional)" htmlFor="entry-unit-cost">
+          <Input
+            id="entry-unit-cost"
+            type="number"
+            min="0"
+            step="0.01"
+            inputMode="decimal"
+            placeholder="0,00"
+            value={unitCost}
+            onChange={(e) => setUnitCost(e.target.value)}
+          />
+          {costError ? <p className="text-xs text-destructive">{costError}</p> : null}
+        </Field>
+      ) : null}
     </MovementShell>
   );
 }
