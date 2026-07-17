@@ -15,10 +15,12 @@ namespace SISLAB.Modules.Inventory.Application.StockMovements.Queries;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Source.</b> Unlike the item listing (which reads <c>inventory.stock_view</c>), this aggregation
-/// starts from <c>inventory.storage_locations</c> and LEFT JOINs <c>stock_items</c>, so an empty
-/// location (count 0) still appears — an empty controlled box is still shown and still flagged critical.
-/// The view only carries locations that hold items, hence it is not the right base here.
+/// <b>Source.</b> Starts from <c>inventory.storage_locations</c> and LEFT JOINs <c>inventory.stock_view</c>
+/// (one row per item, keyed by <c>storage_location_id</c>), so an empty location (count 0) still appears —
+/// an empty controlled box is still shown and still flagged critical. The view is the right join here
+/// because validity now lives on the batches (card #111): <c>stock_view</c> derives each item's effective
+/// (FEFO) <c>expiry_year</c>/<c>expiry_month</c>, which <c>stock_items</c> no longer carries — this also
+/// keeps the expired badge identical to the item listing, which reads the same view.
 /// </para>
 /// <para>
 /// <b>Derived counts.</b> Item and expired counts are read-side derivations, never persisted (decision
@@ -56,9 +58,10 @@ internal sealed class GetLocationsSummaryQueryHandler
     /// <summary>The only location type allowed to hold controlled substances — the "critical" storage.</summary>
     private const string ControlledType = "Controlled";
 
-    // Item and expired-item counts are derived per location. COUNT(si.id) counts only matched items
+    // Item and expired-item counts are derived per location. COUNT(sv.id) counts only matched items
     // (0 for an empty location, since the LEFT JOIN yields a NULL id). The expired count sums the same
-    // last-valid-day rule used by the item listing, evaluated against the handler-supplied @Today.
+    // last-valid-day rule used by the item listing (both read stock_view, whose expiry is the item's FEFO
+    // batch validity), evaluated against the handler-supplied @Today.
     private const string Sql =
         """
         SELECT
@@ -66,18 +69,18 @@ internal sealed class GetLocationsSummaryQueryHandler
             sl.name                                      AS name,
             sl.type                                      AS type,
             sl.is_active                                 AS isactive,
-            COUNT(si.id)::int                            AS itemcount,
-            COUNT(si.id) FILTER (
-                WHERE si.expiry_year IS NOT NULL
-                  AND si.expiry_month IS NOT NULL
-                  AND @Today > (make_date(si.expiry_year, si.expiry_month, 1)
+            COUNT(sv.id)::int                            AS itemcount,
+            COUNT(sv.id) FILTER (
+                WHERE sv.expiry_year IS NOT NULL
+                  AND sv.expiry_month IS NOT NULL
+                  AND @Today > (make_date(sv.expiry_year, sv.expiry_month, 1)
                                 + INTERVAL '1 month' - INTERVAL '1 day')::date
             )::int                                       AS expireditemcount,
             (sl.type = @ControlledType)                  AS iscritical
         FROM inventory.storage_locations AS sl
-        LEFT JOIN inventory.stock_items AS si
-            ON si.storage_location_id = sl.id
-           AND si.company_id = sl.company_id
+        LEFT JOIN inventory.stock_view AS sv
+            ON sv.storage_location_id = sl.id
+           AND sv.company_id = sl.company_id
         WHERE sl.company_id = @CompanyId
         GROUP BY sl.id, sl.name, sl.type, sl.is_active
         ORDER BY sl.name ASC;
