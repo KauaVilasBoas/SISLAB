@@ -46,3 +46,13 @@ export interface CompanyMembership {
 export interface ActiveCompany {
   companyId: string;
 }
+
+/**
+ * GET /api/me/permissions (CurrentUserPermissionsResult) — the signed-in user's EFFECTIVE permission codes
+ * in the ACTIVE company (e.g. "Inventory.Cost.Read"). Resolved server-side through the same authorization
+ * infra [RequirePermission] enforces with; the front uses it only to decide which permission-gated UI to
+ * render (the server stays the authority). Empty until a company is active.
+ */
+export interface CurrentUserPermissions {
+  permissions: string[];
+}

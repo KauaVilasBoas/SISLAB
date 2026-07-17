@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Lumen.Authorization.Contracts;
 using Lumen.Identity.Application.Auth.ChangePassword;
 using Lumen.Identity.Application.Auth.ConfirmEmail;
 using Lumen.Identity.Application.Auth.ForgotPassword;
@@ -142,6 +143,35 @@ public static class SislabAuthEndpoints
         .Produces(StatusCodes.Status204NoContent)
         .ProducesProblem(StatusCodes.Status400BadRequest);
 
+        // GET /api/me/permissions → the caller's EFFECTIVE permission codes in the ACTIVE company (card #110).
+        //
+        // The SPA has no way to know which permission-gated features to show without asking the server, and
+        // Lumen's GetCurrentUserResult only carries profiles, not effective permissions. Rather than fork the
+        // published Lumen package (it is consumed as a NuGet dependency, §8), SISLAB owns this endpoint and
+        // resolves the codes through the very same authorization infra [RequirePermission] uses at enforcement
+        // time: IUserPermissionService.GetPermissionsAsync(userId, scopeId), the userId from IUserIdAccessor
+        // (the JWT-cookie principal) and the scopeId from SISLAB's ITenantScopeAccessor (the active company).
+        // No new permission gates this — any authenticated user may read their OWN permissions — so no new
+        // permission code is introduced (nothing for the anti-drift ArchTest to catch). Returns [] when no
+        // company is active yet (global scope), matching how enforcement behaves before company selection.
+        me.MapGet("/permissions", async (
+            HttpContext ctx,
+            IUserPermissionService permissionService,
+            IUserIdAccessor userIdAccessor,
+            ITenantScopeAccessor scopeAccessor,
+            CancellationToken ct) =>
+        {
+            if (!userIdAccessor.TryGetUserId(ctx.User, out Guid userId) || userId == Guid.Empty)
+                return Results.Unauthorized();
+
+            Guid? scopeId = scopeAccessor.GetCurrentScopeId();
+            HashSet<string> codes = await permissionService.GetPermissionsAsync(userId, scopeId, ct);
+
+            return Results.Ok(new CurrentUserPermissionsResult(codes.OrderBy(c => c).ToArray()));
+        })
+        .Produces<CurrentUserPermissionsResult>()
+        .ProducesProblem(StatusCodes.Status401Unauthorized);
+
         return endpoints;
     }
 
@@ -226,4 +256,12 @@ public static class SislabAuthEndpoints
     private sealed record EmailRequest(string Email);
     private sealed record ResetPasswordRequest(string Token, string NewPassword);
     private sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+
+    /// <summary>
+    /// Response of <c>GET /api/me/permissions</c>: the caller's effective permission codes in the active
+    /// company (e.g. <c>"Inventory.Cost.Read"</c>), sorted for a stable payload. Empty when no company is
+    /// active yet. The SPA turns this into its client-side permission gate — the server remains the
+    /// authority; this only decides which permission-gated UI to render.
+    /// </summary>
+    public sealed record CurrentUserPermissionsResult(IReadOnlyList<string> Permissions);
 }

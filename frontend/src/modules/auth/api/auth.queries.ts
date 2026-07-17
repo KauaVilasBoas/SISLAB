@@ -5,6 +5,7 @@ import type {
   ActiveCompany,
   CompanyMembership,
   CurrentUser,
+  CurrentUserPermissions,
   LoginRequest,
   LoginResult,
 } from '@/modules/auth/types';
@@ -18,6 +19,10 @@ export const authKeys = {
   me: () => [...authKeys.all, 'me'] as const,
   companies: () => [...authKeys.all, 'companies'] as const,
   activeCompany: () => [...authKeys.all, 'active-company'] as const,
+  // Keyed by the active company: the effective permissions change with the active tenant, so switching
+  // company (which also clears the cache) refetches under the new scope rather than reusing a stale set.
+  permissions: (companyId: string | null) =>
+    [...authKeys.all, 'permissions', companyId] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -43,6 +48,11 @@ export function fetchMyCompanies(): Promise<CompanyMembership[]> {
 /** Resolves the active company from the httpOnly cookie; rejects with 404 when none is set. */
 export function fetchActiveCompany(): Promise<ActiveCompany> {
   return api.get<ActiveCompany>(Endpoints.identity.activeCompany.active);
+}
+
+/** Fetches the signed-in user's effective permission codes in the active company (front permission gate). */
+export function fetchMyPermissions(): Promise<CurrentUserPermissions> {
+  return api.get<CurrentUserPermissions>(Endpoints.identity.auth.myPermissions);
 }
 
 /** Selects/switches the active company (writes the httpOnly active-company cookie). */
