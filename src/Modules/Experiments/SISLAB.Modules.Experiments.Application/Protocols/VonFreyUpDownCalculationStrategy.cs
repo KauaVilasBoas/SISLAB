@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using SISLAB.Modules.Experiments.Domain.Experiments;
 using SISLAB.SharedKernel.Exceptions;
+using SISLAB.SharedKernel.Time;
 
 namespace SISLAB.Modules.Experiments.Application.Protocols;
 
@@ -43,6 +44,10 @@ internal sealed class VonFreyUpDownCalculationStrategy : IExperimentProtocol
 
     private static readonly JsonSerializerOptions ResultSerializerOptions = new(JsonSerializerDefaults.Web);
 
+    private readonly IClock _clock;
+
+    public VonFreyUpDownCalculationStrategy(IClock clock) => _clock = clock;
+
     /// <summary>
     /// Chaplan k-table: the tabular coefficient for the pattern of the four responses after the first up-down
     /// crossing, keyed by the pattern string of O (negative) / X (positive). Values from Chaplan et al. (1994).
@@ -81,7 +86,7 @@ internal sealed class VonFreyUpDownCalculationStrategy : IExperimentProtocol
         var payload = new VonFreyResultPayload(FormulaCode, thresholds);
         string resultJson = JsonSerializer.Serialize(payload, ResultSerializerOptions);
 
-        return FormulaSnapshot.Create(FormulaCode, FormulaExpression, DateTime.UtcNow, resultJson);
+        return FormulaSnapshot.Create(FormulaCode, FormulaExpression, _clock.UtcNow, resultJson);
     }
 
     /// <summary>
