@@ -225,6 +225,27 @@ public sealed class ExperimentsController : SislabControllerBase
             export.ContentType,
             export.FileName);
     }
+
+    /// <summary>
+    /// Exports a calculated in vivo behavioural experiment as a Prism-compatible CSV laid out group × timepoint
+    /// (card [E11] #31). Like the in vitro export, it is a read of the frozen snapshot, so it is page-level
+    /// <c>[Authorize]</c>, not permission-gated.
+    /// </summary>
+    [HttpGet("{experimentId:guid}/export-behavioral")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ExportBehavioral(Guid experimentId, CancellationToken ct)
+    {
+        ExperimentExportDto export =
+            await _mediator.SendAsync(new ExportBehavioralExperimentQuery(experimentId), ct);
+
+        return File(
+            System.Text.Encoding.UTF8.GetBytes(export.CsvContent),
+            export.ContentType,
+            export.FileName);
+    }
 }
 
 /// <summary>Request body to create a plate experiment; the company comes from the session, never the payload.</summary>
