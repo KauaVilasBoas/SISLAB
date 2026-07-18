@@ -57,18 +57,21 @@ public sealed class PresentationReminderJob : CompanyScanAlertJob
             {
                 int daysUntil = presentation.ScheduledDate.DayNumber - scanDay.DayNumber;
 
+                // Mark the reminder as sent BEFORE publishing the notification. If the publish
+                // then faults, the presentation is not re-picked on the next tick (a missed
+                // reminder is preferable to the duplicate the day-bucketed dedupe key would let
+                // through if the order were reversed and the mark failed after a successful send).
+                await mediator.SendAsync(new MarkPresentationReminderSentCommand(presentation.Id), cancellationToken);
+
                 await publisher.RaiseAsync(new RaiseNotificationRequest(
                     Type: NotificationTypeCode.PresentationReminder,
                     Severity: NotificationSeverityLevel.Info,
                     Title: $"Apresentação em {daysUntil} dia(s): {presentation.Title}",
-                    Description: $"{presentation.PresenterName} deve enviar o material até {presentation.ScheduledDate.AddDays(-15):dd/MM}.",
+                    Description: $"{presentation.PresenterName} deve enviar o material até {presentation.ScheduledDate.AddDays(-_options.WindowDays):dd/MM}.",
                     TargetType: "presentation",
                     TargetId: presentation.Id,
                     DedupeKey: $"presentation-reminder:{presentation.Id}:{scanDay:yyyy-MM-dd}"),
                     cancellationToken);
-
-                // Mark reminder sent so it never fires again for this presentation.
-                await mediator.SendAsync(new MarkPresentationReminderSentCommand(presentation.Id), cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
