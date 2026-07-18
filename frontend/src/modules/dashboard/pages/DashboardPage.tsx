@@ -4,6 +4,8 @@ import { KpiCards } from '@/modules/dashboard/components/KpiCards';
 import { ExpiryDonutChart } from '@/modules/dashboard/components/ExpiryDonutChart';
 import { ConsumptionActivityChart } from '@/modules/dashboard/components/ConsumptionActivityChart';
 import { ActiveAlerts } from '@/modules/dashboard/components/ActiveAlerts';
+import { ExperimentPendenciesWidget } from '@/modules/dashboard/components/ExperimentPendenciesWidget';
+import { ControlledComplianceWidget } from '@/modules/dashboard/components/ControlledComplianceWidget';
 import { isoDaysAgo } from '@/modules/dashboard/components/dashboard-presentation';
 import {
   useBelowMinimumItems,
@@ -59,16 +61,22 @@ export function DashboardPage() {
         <ExpiryDonutChart summary={expiry.data} loading={expiry.isLoading} />
       </div>
 
-      <ActiveAlerts
-        expiring={expiringItems.data?.items}
-        belowMinimum={belowMinimumItems.data?.items}
-        overdueCalibration={overdueCalibration.data?.items}
-        loading={
-          expiringItems.isLoading ||
-          belowMinimumItems.isLoading ||
-          overdueCalibration.isLoading
-        }
-      />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ActiveAlerts
+          expiring={expiringItems.data?.items}
+          belowMinimum={belowMinimumItems.data?.items}
+          overdueCalibration={overdueCalibration.data?.items}
+          loading={
+            expiringItems.isLoading ||
+            belowMinimumItems.isLoading ||
+            overdueCalibration.isLoading
+          }
+        />
+        <ExperimentPendenciesWidget />
+      </div>
+
+      {/* ControlledCompliance widget self-hides when there are no compliance notifications (card [E7] #108). */}
+      <ControlledComplianceWidget />
     </div>
   );
 }
