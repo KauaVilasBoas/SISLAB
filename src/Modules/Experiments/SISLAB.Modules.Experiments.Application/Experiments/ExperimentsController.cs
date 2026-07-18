@@ -87,6 +87,72 @@ public sealed class ExperimentsController : SislabControllerBase
         return Ok(new ApiResult<Guid>(true, "Experiment created.", id));
     }
 
+    /// <summary>
+    /// Creates a new in vivo behavioural experiment (von Frey / tail-flick / rota-rod / hemogram — card [E11] #88)
+    /// bound to a project and batch, seeding its timepoint flow. Returns the new id.
+    /// </summary>
+    [HttpPost("behavioral")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult<Guid>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> CreateBehavioral(
+        [FromBody] CreateBehavioralExperimentRequest body,
+        CancellationToken ct)
+    {
+        Guid id = await _mediator.SendAsync(
+            new CreateBehavioralExperimentCommand(
+                body.Type, body.Title, body.Description, body.ProjectId, body.BatchId, body.TimepointLabels),
+            ct);
+
+        return Ok(new ApiResult<Guid>(true, "Behavioural experiment created.", id));
+    }
+
+    /// <summary>
+    /// Records the readings of a single timepoint on a behavioural experiment (one reading per animal — card
+    /// [E11] #88) and advances the experiment to <c>AwaitingCalculation</c>.
+    /// </summary>
+    [HttpPost("{experimentId:guid}/timepoints")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> RecordTimepoint(
+        Guid experimentId,
+        [FromBody] RecordTimepointRequest body,
+        CancellationToken ct)
+    {
+        IReadOnlyList<TimepointReading> readings = body.Readings
+            .Select(reading => new TimepointReading(reading.AnimalId, reading.RawValue))
+            .ToList();
+
+        await _mediator.SendAsync(new RecordTimepointCommand(experimentId, body.TimepointLabel, readings), ct);
+
+        return Ok(new ApiResult(true, "Timepoint recorded."));
+    }
+
+    /// <summary>
+    /// Runs the versioned calculation over a behavioural experiment's recorded timepoints (card [E11] #88) and
+    /// freezes the result snapshot, advancing the experiment to <c>AwaitingAnalysis</c>.
+    /// </summary>
+    [HttpPost("{experimentId:guid}/calculate-behavioral")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> CalculateBehavioral(Guid experimentId, CancellationToken ct)
+    {
+        await _mediator.SendAsync(new CalculateBehavioralExperimentCommand(experimentId), ct);
+        return Ok(new ApiResult(true, "Behavioural calculation applied."));
+    }
+
     /// <summary>Lays out the experiment's 8×12 plate (replaces the whole design). Moves a draft into progress.</summary>
     [HttpPost("{experimentId:guid}/design-plate")]
     [RequirePermission]
@@ -181,3 +247,22 @@ public sealed record DesignPlateWellRequest(
 
 /// <summary>Request body to import a plate reading — the canonical <c>well,absorbance</c> CSV as text.</summary>
 public sealed record ImportReadingRequest(string CsvContent);
+
+/// <summary>
+/// Request body to create an in vivo behavioural experiment; the company comes from the session, never the payload.
+/// </summary>
+public sealed record CreateBehavioralExperimentRequest(
+    SISLAB.Modules.Experiments.Domain.Experiments.ExperimentType Type,
+    string Title,
+    string? Description,
+    Guid ProjectId,
+    Guid BatchId,
+    IReadOnlyList<string> TimepointLabels);
+
+/// <summary>Request body to record one behavioural timepoint: its label and one reading per animal.</summary>
+public sealed record RecordTimepointRequest(
+    string TimepointLabel,
+    IReadOnlyList<TimepointReadingRequest> Readings);
+
+/// <summary>One animal's raw reading at the timepoint (the animal id by value + the raw value string).</summary>
+public sealed record TimepointReadingRequest(Guid AnimalId, string RawValue);
