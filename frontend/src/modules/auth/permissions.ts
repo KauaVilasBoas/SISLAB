@@ -99,6 +99,18 @@ export const Permissions = {
     analyse: 'Samples.Analyse',
     recordResult: 'Samples.RecordResult',
   },
+  /** Agenda — salas e reservas (#69), biotério (#70), apresentações (#71). */
+  agenda: {
+    register: 'Rooms.Register',
+    createBooking: 'Rooms.CreateBooking',
+    cancelBooking: 'Rooms.CancelBooking',
+    generateWeek: 'Bioterium.Generate',
+    swap: 'Bioterium.Swap',
+    markDone: 'Bioterium.MarkDone',
+    schedule: 'Presentations.Schedule',
+    reschedule: 'Presentations.Reschedule',
+    cancelPresentation: 'Presentations.Cancel',
+  },
   // Auditoria — a trilha (AuditController.List/Export) é apenas [Authorize], sem [RequirePermission];
   // qualquer membro autenticado da empresa lê, então não há código a gatear aqui (guardado pelo drift test).
 } as const;

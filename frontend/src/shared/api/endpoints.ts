@@ -189,6 +189,21 @@ export const Endpoints = {
       `/api/samples/${id}/analyses/${analysisId}/result`,
   },
 
+  /** Agenda module — rooms, bookings, biotério, presentations (cards [E10] #69/#70/#71). */
+  agenda: {
+    rooms: '/api/rooms',
+    calendar: '/api/rooms/calendar',
+    bookings: '/api/rooms/bookings',
+    cancelBooking: (id: string) => `/api/rooms/bookings/${id}`,
+    bioterium: '/api/bioterium',
+    generateWeek: '/api/bioterium/generate',
+    swapAssignment: (id: string) => `/api/bioterium/${id}/swap`,
+    markDone: (id: string) => `/api/bioterium/${id}/done`,
+    presentations: '/api/presentations',
+    reschedulePresentation: (id: string) => `/api/presentations/${id}/reschedule`,
+    cancelPresentation: (id: string) => `/api/presentations/${id}`,
+  },
+
   audit: {
     entries: '/api/audit/entries',
     entriesExport: '/api/audit/entries/export',
