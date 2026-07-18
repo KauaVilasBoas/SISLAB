@@ -8,9 +8,11 @@ namespace SISLAB.Modules.Experiments.Tests.Domain;
 public sealed class SampleTests
 {
     private static readonly DateTime When = new(2026, 7, 18, 12, 0, 0, DateTimeKind.Utc);
+    private static readonly Guid Company = Guid.NewGuid();
 
     private static Sample NewSample(decimal collected = 2.0m, string unit = "mL")
         => Sample.Collect(
+            companyId: Company,
             code: "S-001",
             type: SampleType.Plasma,
             projectId: Guid.NewGuid(),
@@ -30,14 +32,18 @@ public sealed class SampleTests
         Assert.Equal(0m, sample.ConsumedQuantity.Value);
         Assert.False(sample.IsDepleted);
         Assert.Empty(sample.Analyses);
-        Assert.Contains(sample.DomainEvents, e => e is SampleCollectedEvent);
+
+        SampleCollectedEvent collected =
+            Assert.IsType<SampleCollectedEvent>(Assert.Single(sample.DomainEvents));
+        Assert.Equal(Company, collected.CompanyId);
+        Assert.Equal(sample.CompanyId, collected.CompanyId);
     }
 
     [Fact]
     public void Collect_rejects_a_zero_quantity()
     {
         Assert.Throws<DomainException>(() => Sample.Collect(
-            "S-002", SampleType.Blood, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            Company, "S-002", SampleType.Blood, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
             SampleAmount.Of(0m, "mL"), "tech@lab", When));
     }
 

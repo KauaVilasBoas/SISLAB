@@ -45,6 +45,7 @@ public sealed class Sample : AggregateRoot<Guid>, ITenantEntity
 
     private Sample(
         Guid id,
+        Guid companyId,
         string code,
         SampleType type,
         Guid projectId,
@@ -59,6 +60,7 @@ public sealed class Sample : AggregateRoot<Guid>, ITenantEntity
         DateTime collectedAtUtc)
         : base(id)
     {
+        CompanyId = companyId;
         Code = code;
         Type = type;
         ProjectId = projectId;
@@ -134,6 +136,7 @@ public sealed class Sample : AggregateRoot<Guid>, ITenantEntity
     /// (an empty collection is not a sample); a supplied consuming amount later must share this unit.
     /// </summary>
     public static Sample Collect(
+        Guid companyId,
         string code,
         SampleType type,
         Guid projectId,
@@ -147,6 +150,8 @@ public sealed class Sample : AggregateRoot<Guid>, ITenantEntity
         string? storageLabel = null,
         string? notes = null)
     {
+        Guard.AgainstEmptyGuid(companyId, nameof(companyId));
+
         Guard.AgainstNullOrWhiteSpace(code, nameof(code));
         string trimmedCode = code.Trim();
         Guard.AgainstMaxLength(trimmedCode, MaxCodeLength, nameof(code));
@@ -169,6 +174,7 @@ public sealed class Sample : AggregateRoot<Guid>, ITenantEntity
 
         var sample = new Sample(
             Guid.NewGuid(),
+            companyId,
             trimmedCode,
             type,
             projectId,
