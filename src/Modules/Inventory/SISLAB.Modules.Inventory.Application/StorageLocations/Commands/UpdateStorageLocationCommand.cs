@@ -1,6 +1,6 @@
 using FluentValidation;
 using SISLAB.Modules.Inventory.Domain.StorageLocations;
-using SISLAB.Modules.Inventory.Domain.ValueObjects;
+using SISLAB.SharedKernel.Domain;
 using SISLAB.SharedKernel.Exceptions;
 using SISLAB.SharedKernel.Messaging;
 
