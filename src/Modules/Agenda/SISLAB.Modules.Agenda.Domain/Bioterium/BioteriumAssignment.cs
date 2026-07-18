@@ -1,4 +1,5 @@
 using SISLAB.SharedKernel.Domain;
+using SISLAB.SharedKernel.Exceptions;
 using SISLAB.SharedKernel.Multitenancy;
 
 namespace SISLAB.Modules.Agenda.Domain.Bioterium;
@@ -44,6 +45,11 @@ public sealed class BioteriumAssignment : AggregateRoot<Guid>, ITenantEntity
     public void Swap(string newResponsibleName, string? reason)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(newResponsibleName);
+
+        // A completed cleaning cannot be reassigned — swapping it would corrupt the done history.
+        if (Status == AssignmentStatus.Done)
+            throw new BusinessException("Não é possível permutar um serviço já realizado.");
+
         SwappedFromName = ResponsibleName;
         ResponsibleName = newResponsibleName.Trim();
         SwapReason = reason?.Trim();

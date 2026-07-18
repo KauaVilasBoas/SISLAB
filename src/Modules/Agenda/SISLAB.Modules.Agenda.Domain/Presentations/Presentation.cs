@@ -55,6 +55,10 @@ public sealed class Presentation : AggregateRoot<Guid>, ITenantEntity
     {
         ScheduledDate = newDate;
         if (notes is not null) Notes = notes.Trim();
+
+        // Clear the reminder flag so the (recomputed) advance reminder fires again for the new
+        // date — the reminder query filters on ReminderSentAt IS NULL.
+        ReminderSentAt = null;
     }
 
     public void Cancel() => Status = PresentationStatus.Cancelled;
