@@ -60,13 +60,15 @@ public sealed class ControlledComplianceAlertJob : CompanyScanAlertJob
         IMediator mediator = companyScope.ServiceProvider.GetRequiredService<IMediator>();
         INotificationPublisher publisher = companyScope.ServiceProvider.GetRequiredService<INotificationPublisher>();
 
-        // Drain all at-risk items (using the widest window so we catch approaching-expiry controlled items too).
+        // Drain the at-risk CONTROLLED items only (the filter is pushed into SQL, not applied in memory),
+        // using the configured window so we catch approaching-expiry controlled items too.
         IReadOnlyList<ExpiringItem> atRiskItems = await PagedQueryDrainer.DrainAsync(
             mediator,
             queryForPage: page => new ListExpiringItemsQuery
             {
                 WarningWindowDays = _options.WindowDays,
                 IncludeExpired = true,
+                ControlledOnly = true,
                 Page = page,
                 PageSize = ScanPageSize
             },
@@ -75,9 +77,6 @@ public sealed class ControlledComplianceAlertJob : CompanyScanAlertJob
         foreach (ExpiringItem item in atRiskItems)
         {
             cancellationToken.ThrowIfCancellationRequested();
-
-            if (!item.IsControlled)
-                continue;
 
             try
             {
