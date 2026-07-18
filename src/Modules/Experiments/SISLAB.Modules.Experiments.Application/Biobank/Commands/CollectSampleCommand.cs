@@ -5,6 +5,7 @@ using SISLAB.Modules.Experiments.Domain.Experiments;
 using SISLAB.SharedKernel.Domain;
 using SISLAB.SharedKernel.Exceptions;
 using SISLAB.SharedKernel.Messaging;
+using SISLAB.SharedKernel.Multitenancy;
 using SISLAB.SharedKernel.Time;
 
 namespace SISLAB.Modules.Experiments.Application.Biobank.Commands;
@@ -63,17 +64,20 @@ internal sealed class CollectSampleCommandHandler : ICommandHandler<CollectSampl
     private readonly ISampleRepository _samples;
     private readonly IExperimentRepository _experiments;
     private readonly IAuditActorAccessor _actorAccessor;
+    private readonly ITenantContext _tenantContext;
     private readonly IClock _clock;
 
     public CollectSampleCommandHandler(
         ISampleRepository samples,
         IExperimentRepository experiments,
         IAuditActorAccessor actorAccessor,
+        ITenantContext tenantContext,
         IClock clock)
     {
         _samples = samples;
         _experiments = experiments;
         _actorAccessor = actorAccessor;
+        _tenantContext = tenantContext;
         _clock = clock;
     }
 
@@ -101,6 +105,7 @@ internal sealed class CollectSampleCommandHandler : ICommandHandler<CollectSampl
                 : null;
 
         Sample sample = Sample.Collect(
+            _tenantContext.CompanyId,
             request.Code,
             request.Type,
             experiment.ProjectId,

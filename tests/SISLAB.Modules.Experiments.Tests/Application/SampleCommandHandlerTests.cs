@@ -9,6 +9,7 @@ namespace SISLAB.Modules.Experiments.Tests.Application;
 public sealed class SampleCommandHandlerTests
 {
     private static readonly DateTime When = new(2026, 7, 18, 12, 0, 0, DateTimeKind.Utc);
+    private static readonly Guid Company = Guid.NewGuid();
 
     private static VonFreiExperiment NewExperiment()
         => VonFreiExperiment.Create(
@@ -21,7 +22,8 @@ public sealed class SampleCommandHandlerTests
         var experiments = new FakeExperimentRepository().Seed(experiment);
         var samples = new FakeSampleRepository();
         var handler = new CollectSampleCommandHandler(
-            samples, experiments, new FakeActorAccessor("tech@lab"), new FixedClock(When));
+            samples, experiments, new FakeActorAccessor("tech@lab"),
+            new StubTenantContext(Company), new FixedClock(When));
 
         Guid id = await handler.HandleAsync(new CollectSampleCommand(
             experiment.Id, Guid.NewGuid(), "S-001", SampleType.Plasma, 2.0m, "mL",
@@ -30,6 +32,8 @@ public sealed class SampleCommandHandlerTests
 
         Sample created = Assert.IsType<Sample>(samples.LastAdded);
         Assert.Equal(id, created.Id);
+        // The company is stamped from the tenant context, not left empty (regression: E11 sample event).
+        Assert.Equal(Company, created.CompanyId);
         // Origin ids come from the experiment, not the payload.
         Assert.Equal(experiment.ProjectId, created.ProjectId);
         Assert.Equal(experiment.BatchId, created.BatchId);
@@ -49,11 +53,12 @@ public sealed class SampleCommandHandlerTests
         VonFreiExperiment experiment = NewExperiment();
         var experiments = new FakeExperimentRepository().Seed(experiment);
         Sample existing = Sample.Collect(
-            "S-001", SampleType.Blood, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            Company, "S-001", SampleType.Blood, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
             SampleAmount.Of(1m, "mL"), "tech@lab", When);
         var samples = new FakeSampleRepository().Seed(existing);
         var handler = new CollectSampleCommandHandler(
-            samples, experiments, new FakeActorAccessor(), new FixedClock(When));
+            samples, experiments, new FakeActorAccessor(),
+            new StubTenantContext(Company), new FixedClock(When));
 
         await Assert.ThrowsAsync<ConflictException>(() => handler.HandleAsync(new CollectSampleCommand(
             experiment.Id, Guid.NewGuid(), "S-001", SampleType.Plasma, 2.0m, "mL",
@@ -65,7 +70,7 @@ public sealed class SampleCommandHandlerTests
     {
         var handler = new CollectSampleCommandHandler(
             new FakeSampleRepository(), new FakeExperimentRepository(),
-            new FakeActorAccessor(), new FixedClock(When));
+            new FakeActorAccessor(), new StubTenantContext(Company), new FixedClock(When));
 
         await Assert.ThrowsAsync<NotFoundException>(() => handler.HandleAsync(new CollectSampleCommand(
             Guid.NewGuid(), Guid.NewGuid(), "S-001", SampleType.Plasma, 2.0m, "mL",
@@ -76,7 +81,7 @@ public sealed class SampleCommandHandlerTests
     public async Task Analyse_consumes_the_balance_and_persists()
     {
         Sample sample = Sample.Collect(
-            "S-001", SampleType.Plasma, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            Company, "S-001", SampleType.Plasma, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
             SampleAmount.Of(2m, "mL"), "tech@lab", When);
         var samples = new FakeSampleRepository().Seed(sample);
         var handler = new AnalyseSampleCommandHandler(samples, new FakeActorAccessor(), new FixedClock(When));
@@ -92,7 +97,7 @@ public sealed class SampleCommandHandlerTests
     public async Task RecordResult_completes_the_analysis()
     {
         Sample sample = Sample.Collect(
-            "S-001", SampleType.Plasma, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            Company, "S-001", SampleType.Plasma, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
             SampleAmount.Of(2m, "mL"), "tech@lab", When);
         Analysis analysis = sample.Analyse("ELISA", SampleAmount.Of(0.5m, "mL"), "tech@lab", When);
         var samples = new FakeSampleRepository().Seed(sample);
