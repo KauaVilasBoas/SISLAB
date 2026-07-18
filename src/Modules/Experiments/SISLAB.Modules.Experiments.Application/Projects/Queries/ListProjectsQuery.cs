@@ -48,12 +48,12 @@ internal sealed class ListProjectsQueryHandler
                 p.species,
                 p.status,
                 p.current_design_version,
-                (SELECT COUNT(*) FROM experiments.project_batches b WHERE b.project_id = p.id) AS batch_count,
+                (SELECT COUNT(*) FROM experiments.project_batches b WHERE b.project_id = p.id)::int AS batch_count,
                 (SELECT COUNT(*)
                  FROM experiments.project_animals a
                  JOIN experiments.project_groups g ON g.id = a.group_id
                  JOIN experiments.project_batches b ON b.id = g.batch_id
-                 WHERE b.project_id = p.id) AS animal_count,
+                 WHERE b.project_id = p.id)::int AS animal_count,
                 ROW_NUMBER() OVER (ORDER BY p.id DESC) AS row_number,
                 (COUNT(*) OVER ())::int AS total_rows
             FROM experiments.projects AS p

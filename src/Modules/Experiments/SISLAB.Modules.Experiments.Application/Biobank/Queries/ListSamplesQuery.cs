@@ -64,7 +64,7 @@ internal sealed class ListSamplesQueryHandler
                 COALESCE(c.consumed_value, 0)                        AS consumed_value,
                 s.collected_value - COALESCE(c.consumed_value, 0)    AS remaining_value,
                 s.collected_unit,
-                (SELECT COUNT(*) FROM experiments.sample_analyses a WHERE a.sample_id = s.id) AS analysis_count,
+                (SELECT COUNT(*) FROM experiments.sample_analyses a WHERE a.sample_id = s.id)::int AS analysis_count,
                 s.collected_at_utc,
                 ROW_NUMBER() OVER (ORDER BY s.collected_at_utc DESC, s.id DESC) AS row_number,
                 (COUNT(*) OVER ())::int AS total_rows
