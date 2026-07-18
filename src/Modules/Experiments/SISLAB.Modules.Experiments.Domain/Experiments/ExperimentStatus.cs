@@ -23,4 +23,11 @@ public enum ExperimentStatus
 
     /// <summary>Retired from the active list, kept for the record.</summary>
     Archived = 4,
+
+    /// <summary>
+    /// In vivo hand-off: the raw per-timepoint data has been launched by one operator and the experiment is
+    /// waiting for the versioned calculation (e.g. von Frey up-down 50% threshold) to be run by another — the
+    /// "one person generates, another calculates" flow reused from in vitro.
+    /// </summary>
+    AwaitingCalculation = 5,
 }

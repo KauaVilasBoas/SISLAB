@@ -47,6 +47,7 @@ public sealed class ExperimentsModule : IModule
         // assay type is a new registration here, never an edit to a switch or a handler.
         services.AddScoped<IExperimentProtocol, ViabilityCalculationStrategy>();
         services.AddScoped<IExperimentProtocol, NitricOxideCalculationStrategy>();
+        services.AddScoped<IExperimentProtocol, VonFreyUpDownCalculationStrategy>();
         services.AddScoped<IExperimentProtocolResolver, ExperimentProtocolResolver>();
 
         // Prism CSV export formatters (card #79 — one per assay, resolved by formula code from a registry, the

@@ -26,6 +26,9 @@ internal sealed class FakeExperimentRepository : IExperimentRepository
     public Task<PlateExperiment?> FindPlateExperimentWithPlateAsync(Guid id, CancellationToken ct = default)
         => Task.FromResult(_store.GetValueOrDefault(id) as PlateExperiment);
 
+    public Task<BehavioralExperiment?> FindBehavioralExperimentAsync(Guid id, CancellationToken ct = default)
+        => Task.FromResult(_store.GetValueOrDefault(id) as BehavioralExperiment);
+
     public Task AddAsync(Experiment experiment, CancellationToken ct = default)
     {
         _store[experiment.Id] = experiment;
