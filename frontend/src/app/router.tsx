@@ -18,6 +18,9 @@ import { ProjectDetailPage } from '@/modules/in-vivo/pages/ProjectDetailPage';
 import { BiobankPage } from '@/modules/in-vivo/pages/BiobankPage';
 import { SampleDetailPage } from '@/modules/in-vivo/pages/SampleDetailPage';
 import { PendenciesPage } from '@/modules/in-vivo/pages/PendenciesPage';
+import { RoomBookingPage } from '@/modules/agenda/pages/RoomBookingPage';
+import { BioteriumPage } from '@/modules/agenda/pages/BioteriumPage';
+import { PresentationsPage } from '@/modules/agenda/pages/PresentationsPage';
 import { AuditPage } from '@/modules/audit/pages/AuditPage';
 import { NotificationsPage } from '@/modules/notifications/pages/NotificationsPage';
 import { LoginPage } from '@/modules/auth/pages/LoginPage';
@@ -100,6 +103,10 @@ export const router = createBrowserRouter([
       { path: 'experiments/in-vivo/biobank', element: <BiobankPage /> },
       { path: 'experiments/in-vivo/biobank/:sampleId', element: <SampleDetailPage /> },
       { path: 'experiments/in-vivo/pendencies', element: <PendenciesPage /> },
+      // Agenda (cards [E10] #69/#70/#71) — room bookings, biotério and presentations.
+      { path: 'agenda/rooms', element: <RoomBookingPage /> },
+      { path: 'agenda/bioterium', element: <BioteriumPage /> },
+      { path: 'agenda/presentations', element: <PresentationsPage /> },
       { path: 'audit', element: <AuditPage /> },
       { path: 'notifications', element: <NotificationsPage /> },
       { path: '*', element: <Navigate to="/" replace /> },

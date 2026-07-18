@@ -26,7 +26,8 @@ internal static class ControllerActionCatalog
         typeof(SISLAB.Modules.Notifications.Application.NotificationsModule),
         typeof(SISLAB.Modules.Configuration.Application.ConfigurationModule),
         typeof(SISLAB.Modules.Audit.Application.AuditModule),
-        typeof(SISLAB.Modules.Experiments.Application.ExperimentsModule)
+        typeof(SISLAB.Modules.Experiments.Application.ExperimentsModule),
+        typeof(SISLAB.Modules.Agenda.Application.AgendaModule),
     ];
 
     public static IReadOnlyList<ControllerAction> All { get; } = Discover();
