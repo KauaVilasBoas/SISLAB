@@ -1,8 +1,13 @@
-using SISLAB.Modules.Inventory.Domain.ValueObjects;
+using SISLAB.SharedKernel.Domain;
 using SISLAB.SharedKernel.Exceptions;
 
-namespace SISLAB.Modules.Inventory.Tests.Domain.ValueObjects;
+namespace SISLAB.SharedKernel.Tests.Domain;
 
+/// <summary>
+/// Structural-equality and invariant tests for the shared <see cref="TemperatureRange"/> value object
+/// (promoted to the SharedKernel on card [E11] #89 so both the Inventory cold storage and the Experiments
+/// biobank conserve at a controlled temperature through one type).
+/// </summary>
 public sealed class TemperatureRangeTests
 {
     [Fact]
