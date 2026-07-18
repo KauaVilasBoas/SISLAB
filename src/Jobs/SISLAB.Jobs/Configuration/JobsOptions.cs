@@ -27,6 +27,9 @@ public sealed class JobsOptions
 
     /// <summary>Settings for the overdue-calibration alert job (#66).</summary>
     public CalibrationAlertOptions CalibrationAlert { get; init; } = new();
+
+    /// <summary>Settings for the controlled-compliance alert job (#108).</summary>
+    public ControlledComplianceAlertOptions ControlledComplianceAlert { get; init; } = new();
 }
 
 /// <summary>
@@ -66,6 +69,22 @@ public sealed class CalibrationAlertOptions
 {
     /// <summary>How often the calibration scan runs. Default: once a day.</summary>
     public TimeSpan Interval { get; init; } = TimeSpan.FromDays(1);
+}
+
+/// <summary>
+/// Settings for the controlled-compliance alert job (#108): how often it runs and the warning window (in days).
+/// Defaulting to daily with a 30-day window so near-expiry controlled substances are caught early.
+/// </summary>
+public sealed class ControlledComplianceAlertOptions
+{
+    /// <summary>How often the compliance scan runs. Default: once a day.</summary>
+    public TimeSpan Interval { get; init; } = TimeSpan.FromDays(1);
+
+    /// <summary>
+    /// Warning window in days: controlled items expiring within this window are raised as Warning;
+    /// already-expired items are always raised as Critical. Default: 30 days.
+    /// </summary>
+    public int WindowDays { get; init; } = 30;
 }
 
 /// <summary>
