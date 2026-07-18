@@ -53,6 +53,13 @@ public sealed record ListExpiringItemsQuery : PagedQuery<PagedResult<ExpiringIte
 
     /// <summary>Optional storage-location filter; null lists at-risk items of every location.</summary>
     public Guid? StorageLocationId { get; init; }
+
+    /// <summary>
+    /// Optional controlled-substance filter. <see langword="null"/> (default) lists every at-risk item;
+    /// <see langword="true"/> restricts to controlled items (the compliance job); <see langword="false"/>
+    /// restricts to non-controlled items. Pushed into SQL so the read side never over-fetches.
+    /// </summary>
+    public bool? ControlledOnly { get; init; }
 }
 
 /// <summary>
@@ -108,6 +115,7 @@ internal sealed class ListExpiringItemsQueryHandler
               AND v.expiry_year IS NOT NULL
               AND v.expiry_month IS NOT NULL
               AND (@StorageLocationId IS NULL OR v.storage_location_id = @StorageLocationId)
+              AND (@ControlledOnly IS NULL OR v.is_controlled = @ControlledOnly)
         ),
         scored AS (
             SELECT
@@ -206,6 +214,7 @@ internal sealed class ListExpiringItemsQueryHandler
     internal ExpiringItemsQueryParameters BuildParameters(ListExpiringItemsQuery request) => new(
         CompanyId: _tenantContext.CompanyId,
         StorageLocationId: request.StorageLocationId,
+        ControlledOnly: request.ControlledOnly,
         Today: DateOnly.FromDateTime(_clock.UtcNow),
         WarningWindowDays: NormalizeWindow(request.WarningWindowDays),
         IncludeExpired: request.IncludeExpired,
@@ -266,6 +275,7 @@ internal sealed class ListExpiringItemsQueryHandler
 internal sealed record ExpiringItemsQueryParameters(
     Guid CompanyId,
     Guid? StorageLocationId,
+    bool? ControlledOnly,
     DateOnly Today,
     int WarningWindowDays,
     bool IncludeExpired,

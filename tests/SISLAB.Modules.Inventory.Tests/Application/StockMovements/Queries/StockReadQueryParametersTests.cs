@@ -242,6 +242,23 @@ public sealed class StockReadQueryParametersTests
     }
 
     [Fact]
+    public void Expiring_query_defaults_to_listing_every_item_regardless_of_controlled_flag()
+    {
+        ExpiringItemsQueryParameters parameters = _expiringHandler.BuildParameters(new ListExpiringItemsQuery());
+
+        Assert.Null(parameters.ControlledOnly);
+    }
+
+    [Fact]
+    public void Expiring_query_pushes_the_controlled_only_filter_into_sql()
+    {
+        ExpiringItemsQueryParameters parameters =
+            _expiringHandler.BuildParameters(new ListExpiringItemsQuery { ControlledOnly = true });
+
+        Assert.True(parameters.ControlledOnly);
+    }
+
+    [Fact]
     public void Expiry_summary_query_takes_the_company_from_the_tenant_context()
     {
         ExpirySummaryQueryParameters parameters = _expirySummaryHandler.BuildParameters(ExpectedWarningWindowDays);
