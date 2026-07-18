@@ -62,6 +62,7 @@ public static class JobsServiceExtensions
         services.AddHostedService<ExpiryAlertJob>();
         services.AddHostedService<LowStockAlertJob>();
         services.AddHostedService<CalibrationOverdueAlertJob>();
+        services.AddHostedService<ControlledComplianceAlertJob>();
 
         return services;
     }
