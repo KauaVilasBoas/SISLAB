@@ -2,6 +2,8 @@ import {
   Bell,
   CalendarClock,
   PackageMinus,
+  Presentation,
+  Repeat,
   ShieldAlert,
   Wrench,
   type LucideIcon,
@@ -56,6 +58,8 @@ const TYPE_ICON: Record<NotificationType, LucideIcon> = {
   LowStock: PackageMinus,
   Calibration: Wrench,
   ControlledCompliance: ShieldAlert,
+  PresentationReminder: Presentation,
+  BioteriumReminder: Repeat,
 };
 
 /** Short pt-BR label per notification family, for the type chip. */
@@ -64,6 +68,8 @@ const TYPE_LABEL: Record<NotificationType, string> = {
   LowStock: 'Estoque baixo',
   Calibration: 'Calibração',
   ControlledCompliance: 'Controlados',
+  PresentationReminder: 'Apresentação',
+  BioteriumReminder: 'Biotério',
 };
 
 export function severityPresentation(
@@ -94,6 +100,10 @@ export function notificationDeepLink(targetType: string): string | null {
       return '/inventory';
     case 'equipment':
       return '/equipment';
+    case 'presentation':
+      return '/agenda/presentations';
+    case 'bioterium_assignment':
+      return '/agenda/bioterium';
     default:
       return null;
   }

@@ -30,6 +30,12 @@ public sealed class JobsOptions
 
     /// <summary>Settings for the controlled-compliance alert job (#108).</summary>
     public ControlledComplianceAlertOptions ControlledComplianceAlert { get; init; } = new();
+
+    /// <summary>Settings for the presentation 15-day reminder job (E6 #83).</summary>
+    public PresentationReminderOptions PresentationReminder { get; init; } = new();
+
+    /// <summary>Settings for the biotério weekly reminder job (E6 #83).</summary>
+    public BioteriumReminderOptions BioteriumReminder { get; init; } = new();
 }
 
 /// <summary>
@@ -85,6 +91,23 @@ public sealed class ControlledComplianceAlertOptions
     /// already-expired items are always raised as Critical. Default: 30 days.
     /// </summary>
     public int WindowDays { get; init; } = 30;
+}
+
+/// <summary>Settings for the presentation 15-day reminder job (E6 #83).</summary>
+public sealed class PresentationReminderOptions
+{
+    /// <summary>How often the job runs. Default: once a day.</summary>
+    public TimeSpan Interval { get; init; } = TimeSpan.FromDays(1);
+
+    /// <summary>Days in advance the reminder is sent. Default: 15 days.</summary>
+    public int WindowDays { get; init; } = 15;
+}
+
+/// <summary>Settings for the biotério weekly reminder job (E6 #83).</summary>
+public sealed class BioteriumReminderOptions
+{
+    /// <summary>How often the job runs. Default: daily (it self-limits to Mondays).</summary>
+    public TimeSpan Interval { get; init; } = TimeSpan.FromDays(1);
 }
 
 /// <summary>

@@ -17,5 +17,11 @@ public enum NotificationType
     Calibration = 3,
 
     /// <summary>A controlled item requires a compliance action (controlled-substances bookkeeping, job #66).</summary>
-    ControlledCompliance = 4
+    ControlledCompliance = 4,
+
+    /// <summary>A presentation is approaching its 15-day material deadline (job [E6] #83).</summary>
+    PresentationReminder = 5,
+
+    /// <summary>A biotério cage-cleaning assignment is due this week (job [E6] #83).</summary>
+    BioteriumReminder = 6,
 }
