@@ -21,6 +21,7 @@ import { PendenciesPage } from '@/modules/in-vivo/pages/PendenciesPage';
 import { RoomBookingPage } from '@/modules/agenda/pages/RoomBookingPage';
 import { BioteriumPage } from '@/modules/agenda/pages/BioteriumPage';
 import { PresentationsPage } from '@/modules/agenda/pages/PresentationsPage';
+import { UnifiedCalendarPage } from '@/modules/agenda/pages/UnifiedCalendarPage';
 import { AuditPage } from '@/modules/audit/pages/AuditPage';
 import { NotificationsPage } from '@/modules/notifications/pages/NotificationsPage';
 import { LoginPage } from '@/modules/auth/pages/LoginPage';
@@ -107,6 +108,7 @@ export const router = createBrowserRouter([
       { path: 'agenda/rooms', element: <RoomBookingPage /> },
       { path: 'agenda/bioterium', element: <BioteriumPage /> },
       { path: 'agenda/presentations', element: <PresentationsPage /> },
+      { path: 'agenda/calendar', element: <UnifiedCalendarPage /> },
       { path: 'audit', element: <AuditPage /> },
       { path: 'notifications', element: <NotificationsPage /> },
       { path: '*', element: <Navigate to="/" replace /> },

@@ -84,6 +84,12 @@ export const navGroups: NavGroup[] = [
         description: 'Seminários LAFTE e DOL',
         icon: Presentation,
       },
+      {
+        path: '/agenda/calendar',
+        label: 'Calendário',
+        description: 'Visão unificada da semana',
+        icon: CalendarDays,
+      },
     ],
   },
   {
