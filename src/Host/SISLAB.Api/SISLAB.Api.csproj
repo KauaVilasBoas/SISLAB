@@ -22,6 +22,7 @@
     <ProjectReference Include="..\..\Modules\Audit\SISLAB.Modules.Audit.Application\SISLAB.Modules.Audit.Application.csproj" />
     <ProjectReference Include="..\..\Modules\Configuration\SISLAB.Modules.Configuration.Application\SISLAB.Modules.Configuration.Application.csproj" />
     <ProjectReference Include="..\..\Modules\Experiments\SISLAB.Modules.Experiments.Application\SISLAB.Modules.Experiments.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Agenda\SISLAB.Modules.Agenda.Application\SISLAB.Modules.Agenda.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
