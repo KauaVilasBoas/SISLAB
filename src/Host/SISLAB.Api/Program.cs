@@ -93,6 +93,19 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1",
         Description = "Laboratory management system — .NET 8 modular monolith"
     });
+
+    // Use the fully-qualified type name as the schema ID so that two DTOs from different
+    // modules with the same simple name (e.g. RoomListItem in Agenda vs Configuration)
+    // don't collide and crash the Swagger document generation.
+    options.CustomSchemaIds(type => type.FullName);
+
+    // Swashbuckle doesn't know DateOnly/TimeOnly out of the box. Map them to their
+    // standard OpenAPI string formats so the Agenda endpoints (which use DateOnly for
+    // booking dates and TimeOnly for start/end times) are included in the spec.
+    options.MapType<DateOnly>(() => new Microsoft.OpenApi.Models.OpenApiSchema
+        { Type = "string", Format = "date", Example = new Microsoft.OpenApi.Any.OpenApiString("2026-07-18") });
+    options.MapType<TimeOnly>(() => new Microsoft.OpenApi.Models.OpenApiSchema
+        { Type = "string", Format = "time", Example = new Microsoft.OpenApi.Any.OpenApiString("08:30:00") });
 });
 
 // ---------------------------------------------------------------------------
