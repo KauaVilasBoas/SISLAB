@@ -79,6 +79,26 @@ export const Permissions = {
     checkRemovalEligibility: 'CompanyMembers.CheckRemovalEligibility',
     invite: 'CompanyMembers.InviteMember',
   },
+  /** Experimentos — delineamento in vivo (ProjectsController write endpoints). */
+  projects: {
+    create: 'Projects.Create',
+    addBatch: 'Projects.AddBatch',
+    addGroup: 'Projects.AddGroup',
+    addAnimal: 'Projects.AddAnimal',
+    startBatch: 'Projects.StartBatch',
+  },
+  /** Experimentos — testes comportamentais in vivo (ExperimentsController behavioural write endpoints). */
+  experiments: {
+    createBehavioral: 'Experiments.CreateBehavioral',
+    recordTimepoint: 'Experiments.RecordTimepoint',
+    calculateBehavioral: 'Experiments.CalculateBehavioral',
+  },
+  /** Experimentos — biobanco (SamplesController write endpoints). */
+  samples: {
+    collect: 'Samples.Collect',
+    analyse: 'Samples.Analyse',
+    recordResult: 'Samples.RecordResult',
+  },
   // Auditoria — a trilha (AuditController.List/Export) é apenas [Authorize], sem [RequirePermission];
   // qualquer membro autenticado da empresa lê, então não há código a gatear aqui (guardado pelo drift test).
 } as const;

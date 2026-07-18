@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Upload, Calculator, Grid3x3, CheckCircle2, Download } from 'lucide-react';
+import {
+  ArrowLeft,
+  Loader2,
+  Upload,
+  Calculator,
+  Grid3x3,
+  CheckCircle2,
+  Download,
+} from 'lucide-react';
 import { PageHeader } from '@/shared/components/PageHeader';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
@@ -20,7 +28,8 @@ import {
 import { PlateGrid } from '@/modules/experiments/components/PlateGrid';
 import { DesignPlateModal } from '@/modules/experiments/components/DesignPlateModal';
 import { ImportReadingModal } from '@/modules/experiments/components/ImportReadingModal';
-import type { ExperimentStatus } from '@/modules/experiments/types';
+import { BehavioralExperimentDetail } from '@/modules/in-vivo/components/BehavioralExperimentDetail';
+import { isBehavioralType, type ExperimentStatus } from '@/modules/experiments/types';
 
 /**
  * Experiment detail (card [E11] #68). Shows the header + status, the ordered step flow, the 8×12 plate
@@ -46,7 +55,10 @@ export function ExperimentDetailPage() {
       await calculate.mutateAsync();
       toast('success', 'Cálculo aplicado.');
     } catch (err) {
-      toast('error', (err as ApiError)?.message ?? 'Não foi possível calcular o experimento.');
+      toast(
+        'error',
+        (err as ApiError)?.message ?? 'Não foi possível calcular o experimento.',
+      );
     }
   }
 
@@ -55,7 +67,10 @@ export function ExperimentDetailPage() {
       await exportExperiment.mutateAsync();
       toast('success', 'Exportação gerada.');
     } catch (err) {
-      toast('error', (err as ApiError)?.message ?? 'Não foi possível exportar o experimento.');
+      toast(
+        'error',
+        (err as ApiError)?.message ?? 'Não foi possível exportar o experimento.',
+      );
     }
   }
 
@@ -82,10 +97,18 @@ export function ExperimentDetailPage() {
     );
   }
 
-  const presentation = experimentStatusPresentation[experiment.status as ExperimentStatus];
+  // In vivo behavioural experiments share this list/detail read model but have no plate — delegate to the
+  // behavioural detail (timepoint flow, versioned calc, group × timepoint Prism export).
+  if (isBehavioralType(experiment.type)) {
+    return <BehavioralExperimentDetail experiment={experiment} />;
+  }
+
+  const presentation =
+    experimentStatusPresentation[experiment.status as ExperimentStatus];
   const type = typePresentation(experiment.type);
   const hasPlate = (plate?.wells.length ?? 0) > 0;
-  const hasFullReading = hasPlate && plate!.wells.every((well) => well.rawAbsorbance != null);
+  const hasFullReading =
+    hasPlate && plate!.wells.every((well) => well.rawAbsorbance != null);
   const isCalculated = experiment.calculation != null;
   const canExport =
     isCalculated &&
