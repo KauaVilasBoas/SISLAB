@@ -39,6 +39,11 @@
       enumerate the active companies they scan. Public Application entry point only — never Identity's Domain.
     -->
     <ProjectReference Include="..\..\Modules\Identity\SISLAB.Modules.Identity.Application\SISLAB.Modules.Identity.Application.csproj" />
+    <!--
+      Agenda Application (E6 reminder jobs): the reminder jobs dispatch GetPresentationsForReminderQuery
+      and GetBioteriumForReminderQuery (and MarkPresentationReminderSentCommand) via IMediator.
+    -->
+    <ProjectReference Include="..\..\Modules\Agenda\SISLAB.Modules.Agenda.Application\SISLAB.Modules.Agenda.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -63,6 +63,8 @@ public static class JobsServiceExtensions
         services.AddHostedService<LowStockAlertJob>();
         services.AddHostedService<CalibrationOverdueAlertJob>();
         services.AddHostedService<ControlledComplianceAlertJob>();
+        services.AddHostedService<PresentationReminderJob>();
+        services.AddHostedService<BioteriumReminderJob>();
 
         return services;
     }

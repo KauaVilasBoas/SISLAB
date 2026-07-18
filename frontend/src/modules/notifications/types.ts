@@ -9,7 +9,12 @@
  * with `HasConversion<string>()` — the wire value is the enum name, not a number.
  */
 export type NotificationType =
-  'Expiry' | 'LowStock' | 'Calibration' | 'ControlledCompliance';
+  | 'Expiry'
+  | 'LowStock'
+  | 'Calibration'
+  | 'ControlledCompliance'
+  | 'PresentationReminder'
+  | 'BioteriumReminder';
 
 /** How urgently the operator should act — drives the tone (red/amber/blue) of the row and the type icon. */
 export type NotificationSeverity = 'Info' | 'Warning' | 'Critical';
