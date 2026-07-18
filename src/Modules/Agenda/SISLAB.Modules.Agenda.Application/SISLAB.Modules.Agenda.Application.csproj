@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\SISLAB.Modules.Agenda.Domain\SISLAB.Modules.Agenda.Domain.csproj" />
+    <ProjectReference Include="..\SISLAB.Modules.Agenda.Infrastructure\SISLAB.Modules.Agenda.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Audit\SISLAB.Modules.Audit.Contracts\SISLAB.Modules.Audit.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="SISLAB.Modules.Agenda.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Lumen.Authorization.AspNetCore" Version="3.0.1" />
+  </ItemGroup>
+
+</Project>
