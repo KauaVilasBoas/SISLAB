@@ -45,7 +45,7 @@ builder.Services.Replace(
 // Composition Root — module discovery and registration via assembly scanning.
 // Load order is determined by IModule.Order (lower = first).
 // Convention: Identity = 10, Inventory = 20, Notifications = 30, Audit = 40, Configuration = 50,
-// Experiments = 60.
+// Experiments = 60, Agenda = 70.
 // ---------------------------------------------------------------------------
 Assembly[] moduleAssemblies =
 [
@@ -54,7 +54,8 @@ Assembly[] moduleAssemblies =
     typeof(NotificationsModule).Assembly,
     typeof(AuditModule).Assembly,
     typeof(ConfigurationModule).Assembly,
-    typeof(ExperimentsModule).Assembly
+    typeof(ExperimentsModule).Assembly,
+    typeof(SISLAB.Modules.Agenda.Application.AgendaModule).Assembly
 ];
 
 ModuleLoader.RegisterModules(builder.Services, builder.Configuration, moduleAssemblies);
