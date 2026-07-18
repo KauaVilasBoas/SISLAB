@@ -56,6 +56,12 @@ public sealed class ExperimentsModule : IModule
         services.AddScoped<IPrismCsvFormatter, NitricOxidePrismFormatter>();
         services.AddScoped<IPrismCsvFormatterResolver, PrismCsvFormatterResolver>();
 
+        // In vivo Prism export formatters (card #31 — group × timepoint). A distinct family because an in vivo
+        // export also needs the animal→dose-group mapping from the Project, resolved by formula code from its own
+        // registry. Adding a behavioural assay's export is a new registration here.
+        services.AddScoped<IInVivoPrismFormatter, VonFreyInVivoPrismFormatter>();
+        services.AddScoped<IInVivoPrismFormatterResolver, InVivoPrismFormatterResolver>();
+
         // Write-side composition: module DbContext (schema "experiments"), the repository, the unit of work +
         // Outbox wiring, the ExperimentCalculated translator and the schema migrations hosted service.
         services.AddExperimentsModule(configuration);
