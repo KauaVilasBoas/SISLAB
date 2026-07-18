@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SISLAB.Infrastructure.Multitenancy;
 using SISLAB.Infrastructure.Outbox;
 using SISLAB.Infrastructure.Persistence;
+using SISLAB.Modules.Experiments.Domain.Biobank;
 using SISLAB.Modules.Experiments.Domain.Experiments;
 using SISLAB.Modules.Experiments.Domain.Projects;
 using SISLAB.Modules.Experiments.Infrastructure.Persistence.Configurations;
@@ -41,6 +42,9 @@ public sealed class ExperimentsDbContext : SislabDbContextBase, IOutboxDbContext
     /// <summary>In vivo experimental designs (decision card [E11] #73): Project → Batch → Group → Animal.</summary>
     public DbSet<Project> Projects => Set<Project>();
 
+    /// <summary>Biobank samples (decision card [E11] #89, F4): Sample → Analysis, with a derived balance.</summary>
+    public DbSet<Sample> Samples => Set<Sample>();
+
     /// <inheritdoc />
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
@@ -53,6 +57,7 @@ public sealed class ExperimentsDbContext : SislabDbContextBase, IOutboxDbContext
         modelBuilder.ApplyConfiguration(new PlateExperimentConfiguration());
         modelBuilder.ApplyConfiguration(new BehavioralExperimentConfiguration());
         modelBuilder.ApplyConfiguration(new ProjectConfiguration());
+        modelBuilder.ApplyConfiguration(new SampleConfiguration());
 
         // Outbox table lives in the module schema so the aggregate write and the outbox write share one
         // transaction/one connection (local transactional consistency).

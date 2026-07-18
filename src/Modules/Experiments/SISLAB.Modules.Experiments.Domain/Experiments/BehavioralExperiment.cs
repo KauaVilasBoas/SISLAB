@@ -132,6 +132,35 @@ public abstract class BehavioralExperiment : Experiment
     }
 
     /// <summary>
+    /// Records that a biobank collection was carried out on this experiment (card [E11] #89): appends (once) a
+    /// <see cref="ExperimentStepKind.Collection"/> step and marks it performed by <paramref name="actor"/>. The
+    /// <see cref="Biobank.Sample"/>s themselves are their own aggregate — this only records the collection
+    /// hand-off on the experiment's flow, keeping the two aggregates decoupled (the sample holds the experiment id
+    /// by value). Re-recording a collection simply refreshes the step authorship.
+    /// </summary>
+    public void RecordCollection(string label, string actor, DateTime performedAtUtc)
+    {
+        Guard.AgainstNullOrWhiteSpace(label, nameof(label));
+        Guard.AgainstNullOrWhiteSpace(actor, nameof(actor));
+
+        ExperimentStep step = FindStep(ExperimentStepKind.Collection, label)
+            ?? AddCollectionStep(label);
+
+        step.MarkPerformed(actor, performedAtUtc);
+
+        if (Status == ExperimentStatus.Draft)
+            Start();
+    }
+
+    private ExperimentStep AddCollectionStep(string label)
+    {
+        int nextOrder = Steps.Count == 0 ? 0 : Steps.Max(step => step.Order) + 1;
+        ExperimentStep step = ExperimentStep.Create(nextOrder, ExperimentStepKind.Collection, label);
+        AddStep(step);
+        return step;
+    }
+
+    /// <summary>
     /// Stores the frozen calculation snapshot produced by the versioned protocol, marks the calculation step as
     /// performed and moves the experiment to <see cref="ExperimentStatus.AwaitingAnalysis"/>. Requires recorded
     /// measurements and rejects recalculation of an already-calculated experiment — the snapshot is immutable.
