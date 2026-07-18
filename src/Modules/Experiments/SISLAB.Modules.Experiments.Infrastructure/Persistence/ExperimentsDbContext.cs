@@ -51,6 +51,7 @@ public sealed class ExperimentsDbContext : SislabDbContextBase, IOutboxDbContext
 
         modelBuilder.ApplyConfiguration(new ExperimentConfiguration());
         modelBuilder.ApplyConfiguration(new PlateExperimentConfiguration());
+        modelBuilder.ApplyConfiguration(new BehavioralExperimentConfiguration());
         modelBuilder.ApplyConfiguration(new ProjectConfiguration());
 
         // Outbox table lives in the module schema so the aggregate write and the outbox write share one

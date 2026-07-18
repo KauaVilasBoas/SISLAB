@@ -18,4 +18,16 @@ public enum ExperimentType
 
     /// <summary>In vitro nitric-oxide assay on an 8×12 plate (Griess reaction, nitrite calibration curve).</summary>
     NitricOxide = 2,
+
+    /// <summary>In vivo mechanical allodynia by von Frey up-down (Dixon/Chaplan 50% withdrawal threshold).</summary>
+    VonFrei = 3,
+
+    /// <summary>In vivo thermal nociception by tail-flick (withdrawal latency in seconds).</summary>
+    TailFlick = 4,
+
+    /// <summary>In vivo motor coordination by rota-rod (latency to fall in seconds).</summary>
+    RotaRod = 5,
+
+    /// <summary>In vivo hemogram / complete blood count readouts per animal.</summary>
+    Hemograma = 6,
 }

@@ -48,11 +48,18 @@ public abstract class Experiment : AggregateRoot<Guid>, ITenantEntity
             [ExperimentStatus.InProgress] = new HashSet<ExperimentStatus>
             {
                 ExperimentStatus.AwaitingAnalysis,
+                ExperimentStatus.AwaitingCalculation,
                 ExperimentStatus.Completed,
                 ExperimentStatus.Archived,
             },
             [ExperimentStatus.AwaitingAnalysis] = new HashSet<ExperimentStatus>
             {
+                ExperimentStatus.Completed,
+                ExperimentStatus.Archived,
+            },
+            [ExperimentStatus.AwaitingCalculation] = new HashSet<ExperimentStatus>
+            {
+                ExperimentStatus.AwaitingAnalysis,
                 ExperimentStatus.Completed,
                 ExperimentStatus.Archived,
             },
@@ -119,6 +126,17 @@ public abstract class Experiment : AggregateRoot<Guid>, ITenantEntity
     /// <summary>Finds a step by its kind (the first, by order), or null when the flow has none.</summary>
     public ExperimentStep? FindStep(ExperimentStepKind kind)
         => _steps.OrderBy(step => step.Order).FirstOrDefault(step => step.Kind == kind);
+
+    /// <summary>
+    /// Finds a step by its kind and title (case-insensitive), or null when the flow has none. Used by the in vivo
+    /// timepoint launch to locate the specific timepoint step by its label.
+    /// </summary>
+    public ExperimentStep? FindStep(ExperimentStepKind kind, string title)
+        => _steps
+            .OrderBy(step => step.Order)
+            .FirstOrDefault(step =>
+                step.Kind == kind
+                && string.Equals(step.Title, title.Trim(), StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Moves the experiment into execution. Only valid from <see cref="ExperimentStatus.Draft"/>.</summary>
     public void Start() => TransitionTo(ExperimentStatus.InProgress);

@@ -42,7 +42,11 @@ internal sealed class ExperimentConfiguration : IEntityTypeConfiguration<Experim
         // (see ConfigurePlateExperiment) so every plate subtype inherits them identically.
         builder.HasDiscriminator(experiment => experiment.Type)
             .HasValue<ViabilidadeCelularExperiment>(ExperimentType.ViabilidadeCelular)
-            .HasValue<NitricOxideExperiment>(ExperimentType.NitricOxide);
+            .HasValue<NitricOxideExperiment>(ExperimentType.NitricOxide)
+            .HasValue<VonFreiExperiment>(ExperimentType.VonFrei)
+            .HasValue<TailFlickExperiment>(ExperimentType.TailFlick)
+            .HasValue<RotaRodExperiment>(ExperimentType.RotaRod)
+            .HasValue<HemogramaExperiment>(ExperimentType.Hemograma);
 
         builder.Property(experiment => experiment.Type)
             .HasColumnName("type")
@@ -167,5 +171,62 @@ internal sealed class PlateExperimentConfiguration
         snapshot.Property(s => s.FormulaExpression).HasColumnName("formula_expression").HasMaxLength(1000);
         snapshot.Property(s => s.AppliedAtUtc).HasColumnName("formula_applied_at_utc");
         snapshot.Property(s => s.ResultJson).HasColumnName("formula_result_json").HasColumnType("jsonb");
+    }
+}
+
+/// <summary>
+/// TPH-base configuration for every in vivo behavioural experiment (card [E11] #88): the by-value
+/// <c>ProjectId</c>/<c>BatchId</c> it runs on, its owned raw <c>behavioral_measurements</c> collection, and the
+/// calculation-result snapshot. The snapshot reuses the same <c>formula_*</c> columns as the plate assays — in a
+/// single TPH table these are shared across the hierarchy, so a calculated von Frey and a calculated viability
+/// experiment both land in the same nullable columns. Applied after <see cref="ExperimentConfiguration"/> so the
+/// base hierarchy is already mapped.
+/// </summary>
+internal sealed class BehavioralExperimentConfiguration
+    : IEntityTypeConfiguration<BehavioralExperiment>
+{
+    public void Configure(EntityTypeBuilder<BehavioralExperiment> builder)
+    {
+        builder.Property(experiment => experiment.ProjectId).HasColumnName("project_id");
+        builder.Property(experiment => experiment.BatchId).HasColumnName("batch_id");
+
+        builder.HasIndex(experiment => experiment.ProjectId)
+            .HasDatabaseName("ix_experiments_project_id");
+
+        builder.OwnsMany(experiment => experiment.Measurements, ConfigureMeasurements);
+        builder.Navigation(experiment => experiment.Measurements).AutoInclude();
+
+        // Calculation result: an owned single, table-split into the same nullable snapshot columns the plate
+        // assays use (shared across the TPH hierarchy).
+        builder.OwnsOne(experiment => experiment.CalculationResult, snapshot =>
+        {
+            snapshot.Property(s => s.FormulaName).HasColumnName("formula_name").HasMaxLength(100);
+            snapshot.Property(s => s.FormulaExpression).HasColumnName("formula_expression").HasMaxLength(1000);
+            snapshot.Property(s => s.AppliedAtUtc).HasColumnName("formula_applied_at_utc");
+            snapshot.Property(s => s.ResultJson).HasColumnName("formula_result_json").HasColumnType("jsonb");
+        });
+    }
+
+    private static void ConfigureMeasurements(
+        OwnedNavigationBuilder<BehavioralExperiment, BehavioralMeasurement> measurements)
+    {
+        measurements.ToTable("behavioral_measurements");
+
+        measurements.WithOwner().HasForeignKey("experiment_id");
+        measurements.HasKey(measurement => measurement.Id);
+        measurements.Property(measurement => measurement.Id).HasColumnName("id").ValueGeneratedNever();
+        measurements.Property<Guid>("experiment_id");
+
+        measurements.Property(measurement => measurement.AnimalId).HasColumnName("animal_id").IsRequired();
+        measurements.Property(measurement => measurement.TimepointLabel)
+            .HasColumnName("timepoint_label").HasMaxLength(60).IsRequired();
+        measurements.Property(measurement => measurement.RawValue)
+            .HasColumnName("raw_value").HasMaxLength(500).IsRequired();
+        measurements.Property(measurement => measurement.RecordedBy)
+            .HasColumnName("recorded_by").HasMaxLength(200).IsRequired();
+        measurements.Property(measurement => measurement.RecordedAtUtc)
+            .HasColumnName("recorded_at_utc").IsRequired();
+
+        measurements.HasIndex("experiment_id").HasDatabaseName("ix_behavioral_measurements_experiment_id");
     }
 }

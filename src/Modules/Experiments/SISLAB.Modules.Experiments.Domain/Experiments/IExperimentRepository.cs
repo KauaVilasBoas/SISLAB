@@ -18,6 +18,14 @@ public interface IExperimentRepository
     /// </summary>
     Task<PlateExperiment?> FindPlateExperimentWithPlateAsync(Guid id, CancellationToken ct = default);
 
+    /// <summary>
+    /// Loads a behavioural experiment (von Frey / tail-flick / rota-rod / hemogram) with its measurements eagerly,
+    /// or null when it does not exist for the tenant or is not a behavioural experiment. Used by the timepoint
+    /// launch and calculation commands, which operate on the shared <see cref="BehavioralExperiment"/> lifecycle
+    /// regardless of the assay type.
+    /// </summary>
+    Task<BehavioralExperiment?> FindBehavioralExperimentAsync(Guid id, CancellationToken ct = default);
+
     /// <summary>Adds a new experiment to the write set.</summary>
     Task AddAsync(Experiment experiment, CancellationToken ct = default);
 

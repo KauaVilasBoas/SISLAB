@@ -26,6 +26,13 @@ internal sealed class ExperimentRepository : IExperimentRepository
             .OfType<PlateExperiment>()
             .FirstOrDefaultAsync(experiment => experiment.Id == id, ct);
 
+    public async Task<BehavioralExperiment?> FindBehavioralExperimentAsync(
+        Guid id,
+        CancellationToken ct = default)
+        => await _dbContext.Experiments
+            .OfType<BehavioralExperiment>()
+            .FirstOrDefaultAsync(experiment => experiment.Id == id, ct);
+
     public async Task AddAsync(Experiment experiment, CancellationToken ct = default)
         => await _dbContext.Experiments.AddAsync(experiment, ct);
 
