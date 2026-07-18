@@ -145,6 +145,48 @@ export const Endpoints = {
     calculate: (id: string) => `/api/experiments/${id}/calculate`,
     /** Download the GraphPad Prism-compatible CSV export. */
     export: (id: string) => `/api/experiments/${id}/export`,
+    /** Create an in vivo behavioural experiment (von Frey / tail-flick / rota-rod / hemogram) — card #88. */
+    createBehavioral: '/api/experiments/behavioral',
+    /** Record one behavioural timepoint's readings (one per animal) — card #88. */
+    recordTimepoint: (id: string) => `/api/experiments/${id}/timepoints`,
+    /** Run the versioned behavioural calculation and freeze its snapshot — card #88. */
+    calculateBehavioral: (id: string) => `/api/experiments/${id}/calculate-behavioral`,
+    /** Download the in vivo Prism export laid out group × timepoint — card #31. */
+    exportBehavioral: (id: string) => `/api/experiments/${id}/export-behavioral`,
+    /** Operator pendencies panel (open work across the module) — card #90. */
+    pendencies: '/api/experiments/pendencies',
+  },
+
+  /** Experiments module — in vivo experimental design: Project → Batch → Group → Animal (card [E11] #73). */
+  projects: {
+    /** Paginated list + create. */
+    root: '/api/projects',
+    /** Single project detail (batches, groups, animals). */
+    byId: (id: string) => `/api/projects/${id}`,
+    /** Add a batch (leva) to the project. */
+    batches: (id: string) => `/api/projects/${id}/batches`,
+    /** Add a dose group to a batch. */
+    groups: (id: string, batchId: string) =>
+      `/api/projects/${id}/batches/${batchId}/groups`,
+    /** Enrol an animal into a group. */
+    animals: (id: string, batchId: string, groupId: string) =>
+      `/api/projects/${id}/batches/${batchId}/groups/${groupId}/animals`,
+    /** Start a batch (freezes its design). */
+    startBatch: (id: string, batchId: string) =>
+      `/api/projects/${id}/batches/${batchId}/start`,
+  },
+
+  /** Experiments module — biobank: Sample → Analysis with a derived balance (card [E11] #89). */
+  samples: {
+    /** Paginated list + collect. */
+    root: '/api/samples',
+    /** Single sample detail (derived balance + analyses). */
+    byId: (id: string) => `/api/samples/${id}`,
+    /** Run an analysis against a sample (consumes an aliquot). */
+    analyses: (id: string) => `/api/samples/${id}/analyses`,
+    /** Record the result of a pending analysis. */
+    analysisResult: (id: string, analysisId: string) =>
+      `/api/samples/${id}/analyses/${analysisId}/result`,
   },
 
   audit: {

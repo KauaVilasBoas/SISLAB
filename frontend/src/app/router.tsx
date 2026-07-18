@@ -13,6 +13,11 @@ import { ProfileEditPage } from '@/modules/identity/pages/ProfileEditPage';
 import { ConfigurationPage } from '@/modules/configuration/pages/ConfigurationPage';
 import { ExperimentsPage } from '@/modules/experiments/pages/ExperimentsPage';
 import { ExperimentDetailPage } from '@/modules/experiments/pages/ExperimentDetailPage';
+import { ProjectsPage } from '@/modules/in-vivo/pages/ProjectsPage';
+import { ProjectDetailPage } from '@/modules/in-vivo/pages/ProjectDetailPage';
+import { BiobankPage } from '@/modules/in-vivo/pages/BiobankPage';
+import { SampleDetailPage } from '@/modules/in-vivo/pages/SampleDetailPage';
+import { PendenciesPage } from '@/modules/in-vivo/pages/PendenciesPage';
 import { AuditPage } from '@/modules/audit/pages/AuditPage';
 import { NotificationsPage } from '@/modules/notifications/pages/NotificationsPage';
 import { LoginPage } from '@/modules/auth/pages/LoginPage';
@@ -88,6 +93,13 @@ export const router = createBrowserRouter([
       // [Authorize]-gated; the write actions are permission-gated on the backend).
       { path: 'experiments', element: <ExperimentsPage /> },
       { path: 'experiments/:id', element: <ExperimentDetailPage /> },
+      // In vivo (cards [E11] #73/#89/#90) — experimental design, biobank and pendencies. Reads are only
+      // [Authorize]-gated; the write actions are permission-gated on the backend and in the UI.
+      { path: 'experiments/in-vivo/projects', element: <ProjectsPage /> },
+      { path: 'experiments/in-vivo/projects/:projectId', element: <ProjectDetailPage /> },
+      { path: 'experiments/in-vivo/biobank', element: <BiobankPage /> },
+      { path: 'experiments/in-vivo/biobank/:sampleId', element: <SampleDetailPage /> },
+      { path: 'experiments/in-vivo/pendencies', element: <PendenciesPage /> },
       { path: 'audit', element: <AuditPage /> },
       { path: 'notifications', element: <NotificationsPage /> },
       { path: '*', element: <Navigate to="/" replace /> },

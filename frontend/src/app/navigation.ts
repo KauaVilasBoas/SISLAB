@@ -14,6 +14,8 @@ import {
   FlaskRound,
   QrCode,
   Wallet,
+  Snowflake,
+  ListChecks,
   type LucideIcon,
 } from 'lucide-react';
 import { Permissions } from '@/modules/auth/permissions';
@@ -99,11 +101,24 @@ export const navGroups: NavGroup[] = [
         icon: FlaskRound,
       },
       {
-        path: '/experiments/in-vivo',
+        // In vivo experimental design (card [E11] #73). Visible to every member — the list/detail read
+        // endpoints are only [Authorize]-gated; the write actions are permission-gated on the backend.
+        path: '/experiments/in-vivo/projects',
         label: 'In vivo',
-        description: 'Em breve',
+        description: 'Projetos e delineamento',
         icon: FlaskConical,
-        disabled: true,
+      },
+      {
+        path: '/experiments/in-vivo/biobank',
+        label: 'Biobanco',
+        description: 'Amostras e análises',
+        icon: Snowflake,
+      },
+      {
+        path: '/experiments/in-vivo/pendencies',
+        label: 'Pendências',
+        description: 'Trabalho em aberto',
+        icon: ListChecks,
       },
     ],
   },
@@ -161,7 +176,10 @@ export const navGroups: NavGroup[] = [
         icon: Users,
         // Two tabs (Members / Profiles); the screen is reachable if the user can list either. Both backend
         // read endpoints are [RequirePermission]-gated, so the whole entry is hidden without either code.
-        permissionAny: [Permissions.members.listEnriched, Permissions.profiles.listProfiles],
+        permissionAny: [
+          Permissions.members.listEnriched,
+          Permissions.profiles.listProfiles,
+        ],
       },
       {
         path: '/configuration',

@@ -6,14 +6,18 @@
 
 /** Lifecycle status name as the backend serializes the enum. */
 export type ExperimentStatus =
-  | 'Draft'
-  | 'InProgress'
-  | 'AwaitingAnalysis'
-  | 'Completed'
-  | 'Archived';
+  'Draft' | 'InProgress' | 'AwaitingAnalysis' | 'Completed' | 'Archived';
 
-/** Assay type discriminator name. */
+/** Assay type discriminator name (in vitro plate assays; the in vivo behavioural ones live in the in-vivo module). */
 export type ExperimentType = 'ViabilidadeCelular' | 'NitricOxide';
+
+/** The behavioural (in vivo) assay type names the backend may return on a shared experiment detail. */
+export const BEHAVIORAL_TYPES = ['VonFrei', 'TailFlick', 'RotaRod', 'Hemograma'] as const;
+
+/** True when the experiment type name is one of the in vivo behavioural assays (not a plate assay). */
+export function isBehavioralType(type: string): boolean {
+  return (BEHAVIORAL_TYPES as readonly string[]).includes(type);
+}
 
 /** Well role name as the backend serializes the enum. */
 export type WellRole = 'Control' | 'Blank' | 'CurvePoint' | 'Sample' | 'Standard';
