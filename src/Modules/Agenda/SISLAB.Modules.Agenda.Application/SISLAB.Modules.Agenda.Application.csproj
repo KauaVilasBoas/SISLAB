@@ -8,6 +8,9 @@
     <!-- Experiments.Contracts: IExperimentDirectory, to resolve an experiment's title on the calendar
          projection without JOINing the experiments schema (module isolation, section 2). -->
     <ProjectReference Include="..\..\Experiments\SISLAB.Modules.Experiments.Contracts\SISLAB.Modules.Experiments.Contracts.csproj" />
+    <!-- Identity.Contracts: ILumenUserGateway, to resolve a responsible person's display name on the room
+         occupancy projection without touching Lumen's store directly (module isolation, section 2). -->
+    <ProjectReference Include="..\..\Identity\SISLAB.Modules.Identity.Contracts\SISLAB.Modules.Identity.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
