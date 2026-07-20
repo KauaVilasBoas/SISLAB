@@ -44,6 +44,18 @@ public sealed class RoomsController : SislabControllerBase
         return Ok(new ApiResult<IReadOnlyList<BookingListItem>>(true, "Calendar retrieved.", bookings));
     }
 
+    /// <summary>
+    /// Room-occupancy timeline for a single day (card [E10.11]) — the read model behind the Gantt view. Every
+    /// RoomBooking agenda entry with an occurrence on the date, recurring series expanded and EXDATE honoured.
+    /// </summary>
+    [HttpGet("/api/agenda/rooms/occupancy")]
+    [ProducesResponseType(typeof(ApiResult<IReadOnlyList<RoomOccupancySlot>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetOccupancy([FromQuery] DateOnly date, CancellationToken ct)
+    {
+        IReadOnlyList<RoomOccupancySlot> slots = await _mediator.SendAsync(new GetRoomOccupancyQuery(date), ct);
+        return Ok(new ApiResult<IReadOnlyList<RoomOccupancySlot>>(true, "Room occupancy retrieved.", slots));
+    }
+
     [HttpPost("bookings")]
     [RequirePermission]
     [ProducesResponseType(typeof(ApiResult<CreateBookingResponse>), StatusCodes.Status200OK)]
