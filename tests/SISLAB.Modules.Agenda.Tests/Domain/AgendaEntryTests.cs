@@ -153,6 +153,49 @@ public sealed class AgendaEntryTests
     }
 
     [Fact]
+    public void SetReminders_StoresRemindersAndCollapsesDuplicates()
+    {
+        AgendaEntry entry = CreateSimple();
+
+        entry.SetReminders(
+        [
+            EntryReminder.Create(30, ReminderNotificationType.InApp),
+            EntryReminder.Create(30, ReminderNotificationType.InApp), // duplicate lead time + channel
+            EntryReminder.Create(60, ReminderNotificationType.InApp),
+        ]);
+
+        Assert.Equal(2, entry.Reminders.Count);
+        Assert.Contains(entry.Reminders, r => r.MinutesBefore == 30);
+        Assert.Contains(entry.Reminders, r => r.MinutesBefore == 60);
+    }
+
+    [Fact]
+    public void SetReminders_WithEmpty_ClearsReminders()
+    {
+        AgendaEntry entry = CreateSimple();
+        entry.SetReminders([EntryReminder.Create(15, ReminderNotificationType.InApp)]);
+
+        entry.SetReminders([]);
+
+        Assert.Empty(entry.Reminders);
+    }
+
+    [Fact]
+    public void EntryReminder_Create_WithNonPositiveLead_Throws()
+        => Assert.Throws<ArgumentOutOfRangeException>(
+            () => EntryReminder.Create(0, ReminderNotificationType.InApp));
+
+    [Fact]
+    public void Create_WithReminders_StoresThem()
+    {
+        AgendaEntry entry = AgendaEntry.Create(
+            Company, "x", null, Start, End, false, AgendaActivityType.Other, null, null, Responsible, Start,
+            reminders: [EntryReminder.Create(10, ReminderNotificationType.InApp)]);
+
+        Assert.Single(entry.Reminders);
+    }
+
+    [Fact]
     public void Reallocate_ChangesResponsibleAndRaisesUpdatedEvent()
     {
         AgendaEntry entry = CreateSimple();

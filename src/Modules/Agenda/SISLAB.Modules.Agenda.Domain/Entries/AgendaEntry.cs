@@ -33,6 +33,7 @@ namespace SISLAB.Modules.Agenda.Domain.Entries;
 public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
 {
     private readonly List<DateOnly> _excludedDates = [];
+    private readonly List<EntryReminder> _reminders = [];
 
     public Guid CompanyId { get; private set; }
     public string Title { get; private set; } = default!;
@@ -51,6 +52,9 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
     /// one-off entry. Read-only to the outside; mutated only via <see cref="CancelOccurrence"/>.
     /// </summary>
     public IReadOnlyList<DateOnly> ExcludedDates => _excludedDates.AsReadOnly();
+
+    /// <summary>The reminders configured for this entry (card [E10.8] #5). Empty when none are set.</summary>
+    public IReadOnlyList<EntryReminder> Reminders => _reminders.AsReadOnly();
 
     /// <summary><see langword="true"/> when the entry is the head of a recurring series.</summary>
     public bool IsRecurring => RecurrenceRule is not null;
@@ -99,7 +103,8 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
         Guid? experimentId,
         RecurrenceRuleSpec? recurrenceRule,
         Guid responsibleId,
-        DateTime createdAtUtc)
+        DateTime createdAtUtc,
+        IEnumerable<EntryReminder>? reminders = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
         GuardInterval(startDateUtc, endDateUtc, isAllDay);
@@ -117,6 +122,9 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
             recurrenceRule,
             responsibleId,
             createdAtUtc);
+
+        if (reminders is not null)
+            entry.SetReminders(reminders);
 
         entry.RaiseDomainEvent(new AgendaEntryCreated(
             companyId, entry.Id, activityType, startDateUtc, recurrenceRule is not null));
@@ -162,6 +170,26 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
     {
         ResponsibleId = responsibleId;
         RaiseDomainEvent(new AgendaEntryUpdated(CompanyId, Id, StartDateUtc));
+    }
+
+    /// <summary>
+    /// Replaces the entry's reminder configuration with <paramref name="reminders"/> (card [E10.8] #5). Passing
+    /// an empty set clears all reminders. Duplicate lead times (same minutes-before + channel) are collapsed so
+    /// the same reminder never fires twice for one occurrence.
+    /// </summary>
+    public void SetReminders(IEnumerable<EntryReminder> reminders)
+    {
+        _reminders.Clear();
+
+        foreach (EntryReminder reminder in reminders)
+        {
+            bool alreadyConfigured = _reminders.Any(existing =>
+                existing.MinutesBefore == reminder.MinutesBefore
+                && existing.NotificationType == reminder.NotificationType);
+
+            if (!alreadyConfigured)
+                _reminders.Add(reminder);
+        }
     }
 
     /// <summary>

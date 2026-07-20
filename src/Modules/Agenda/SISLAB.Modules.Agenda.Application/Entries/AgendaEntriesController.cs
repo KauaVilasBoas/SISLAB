@@ -72,7 +72,7 @@ public sealed class AgendaEntriesController : SislabControllerBase
         Guid id = await _mediator.SendAsync(
             new CreateAgendaEntryCommand(
                 body.Title, body.Description, body.StartDateUtc, body.EndDateUtc, body.IsAllDay,
-                body.ActivityType, body.ExperimentId, body.RecurrenceRule, ResolveResponsible()),
+                body.ActivityType, body.ExperimentId, body.RecurrenceRule, ResolveResponsible(), body.Reminders),
             ct);
 
         return Ok(new ApiResult<Guid>(true, "Agenda entry created.", id));
@@ -91,7 +91,7 @@ public sealed class AgendaEntriesController : SislabControllerBase
             new UpdateAgendaEntryCommand(
                 id, body.EditScope, body.OccurrenceDate, body.Title, body.Description,
                 body.StartDateUtc, body.EndDateUtc, body.IsAllDay, body.ActivityType,
-                body.ExperimentId, body.RecurrenceRule),
+                body.ExperimentId, body.RecurrenceRule, body.Reminders),
             ct);
 
         return Ok(new ApiResult<Guid>(true, "Agenda entry updated.", resultId));
@@ -148,7 +148,8 @@ public sealed record CreateAgendaEntryRequest(
     bool IsAllDay,
     AgendaActivityType ActivityType,
     Guid? ExperimentId,
-    string? RecurrenceRule);
+    string? RecurrenceRule,
+    IReadOnlyList<ReminderInput>? Reminders = null);
 
 /// <summary>
 /// Request body for updating a calendar entry (card [E10.3] #3). <see cref="OccurrenceDate"/> is required for a
@@ -167,4 +168,5 @@ public sealed record UpdateAgendaEntryRequest(
     bool IsAllDay,
     AgendaActivityType ActivityType,
     Guid? ExperimentId,
-    string? RecurrenceRule);
+    string? RecurrenceRule,
+    IReadOnlyList<ReminderInput>? Reminders = null);

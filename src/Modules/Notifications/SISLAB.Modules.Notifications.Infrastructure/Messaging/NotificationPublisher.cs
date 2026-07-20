@@ -91,6 +91,7 @@ internal sealed class NotificationPublisher : INotificationPublisher
         NotificationTypeCode.ControlledCompliance => NotificationType.ControlledCompliance,
         NotificationTypeCode.PresentationReminder => NotificationType.PresentationReminder,
         NotificationTypeCode.BioteriumReminder => NotificationType.BioteriumReminder,
+        NotificationTypeCode.AgendaReminder => NotificationType.AgendaReminder,
         _ => throw new DomainException($"Unknown notification type code '{code}'.")
     };
 
