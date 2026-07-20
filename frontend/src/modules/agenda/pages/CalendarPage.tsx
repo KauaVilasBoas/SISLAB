@@ -25,6 +25,7 @@ import {
   type CalendarFilters,
 } from '@/modules/agenda/api/entries.queries';
 import { DayView, MonthView, WeekView } from '@/modules/agenda/components/CalendarViews';
+import { RoomOccupancyGantt } from '@/modules/agenda/components/RoomOccupancyGantt';
 import { EventDetailPanel } from '@/modules/agenda/components/EventDetailPanel';
 import { EntryFormModal } from '@/modules/agenda/components/EntryFormModal';
 import { CalendarFiltersBar } from '@/modules/agenda/components/CalendarFiltersBar';
@@ -34,6 +35,7 @@ const VIEWS: { key: CalendarView; label: string }[] = [
   { key: 'day', label: 'Dia' },
   { key: 'week', label: 'Semana' },
   { key: 'month', label: 'Mês' },
+  { key: 'rooms', label: 'Salas' },
 ];
 
 /**
@@ -59,8 +61,15 @@ export function CalendarPage() {
   );
   const [experimentLabel, setExperimentLabel] = useState<string | null>(null);
 
+  const isRoomsView = view === 'rooms';
   const range = rangeForView(view, anchorDate);
-  const { data: items = [], isLoading } = useCalendarEntries({ ...range, ...filters });
+  const { data: items = [], isLoading } = useCalendarEntries({
+    ...range,
+    ...filters,
+    // The Salas view has its own occupancy query; suppress the calendar-entries fetch.
+    start: isRoomsView ? '' : range.start,
+    end: isRoomsView ? '' : range.end,
+  });
 
   const deleteEntry = useDeleteEntry();
   const cancelOccurrence = useCancelOccurrence();
@@ -163,7 +172,7 @@ export function CalendarPage() {
     });
   }
 
-  const ViewComponent = { day: DayView, week: WeekView, month: MonthView }[view];
+  const ViewComponent = { day: DayView, week: WeekView, month: MonthView, rooms: DayView }[view];
 
   return (
     <div className="space-y-5">
@@ -243,7 +252,9 @@ export function CalendarPage() {
       {/* Calendar + detail panel */}
       <div className="flex gap-4">
         <div className="min-w-0 flex-1">
-          {isLoading ? (
+          {isRoomsView ? (
+            <RoomOccupancyGantt date={anchorDate} />
+          ) : isLoading ? (
             <div className="flex items-center justify-center gap-2 py-24 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" /> Carregando calendário…
             </div>
@@ -258,7 +269,7 @@ export function CalendarPage() {
           )}
         </div>
 
-        {selected && (
+        {!isRoomsView && selected && (
           <EventDetailPanel
             item={selected}
             onClose={() => setSelected(null)}

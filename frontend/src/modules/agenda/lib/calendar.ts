@@ -3,7 +3,7 @@
  * event instants come from the API as UTC ISO strings and are rendered in the browser's local zone.
  */
 
-export type CalendarView = 'day' | 'week' | 'month';
+export type CalendarView = 'day' | 'week' | 'month' | 'rooms';
 
 /** Local 'YYYY-MM-DD' for a Date (not UTC — the calendar grid is a local-day grid). */
 export function toIsoDate(date: Date): string {
@@ -54,7 +54,8 @@ export function weekDays(iso: string): string[] {
  * `iso`. Month view is padded to whole weeks so the grid's leading/trailing days are populated.
  */
 export function rangeForView(view: CalendarView, iso: string): { start: string; end: string } {
-  if (view === 'day') return { start: iso, end: iso };
+  // 'rooms' is a single-day occupancy view fed by its own query; a day-range keeps callers total.
+  if (view === 'day' || view === 'rooms') return { start: iso, end: iso };
   if (view === 'week') {
     const days = weekDays(iso);
     return { start: days[0], end: days[6] };
@@ -93,7 +94,7 @@ export function minutesSinceMidnight(isoUtc: string): number {
 /** A human range label for the current view, e.g. "12 – 18 de mai" or "maio de 2026". */
 export function viewTitle(view: CalendarView, iso: string): string {
   const date = parseIsoDate(iso);
-  if (view === 'day') {
+  if (view === 'day' || view === 'rooms') {
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
   }
   if (view === 'week') {
