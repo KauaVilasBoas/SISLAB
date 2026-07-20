@@ -26,6 +26,8 @@
     <!-- Experiments.Contracts: the IExperimentDirectory port the calendar read-side depends on (faked). -->
     <ProjectReference Include="..\..\src\Modules\Experiments\SISLAB.Modules.Experiments.Contracts\SISLAB.Modules.Experiments.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Shared\SISLAB.SharedKernel\SISLAB.SharedKernel.csproj" />
+    <!-- Shared test doubles: FixedClock + StubTenantContext. -->
+    <ProjectReference Include="..\SISLAB.TestSupport\SISLAB.TestSupport.csproj" />
   </ItemGroup>
 
   <ItemGroup>
