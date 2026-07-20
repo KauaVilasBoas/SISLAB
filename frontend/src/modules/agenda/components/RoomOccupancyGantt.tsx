@@ -45,11 +45,12 @@ interface Lane {
 }
 
 /**
- * One Custom Series datum: `[laneIndex, startMs, endMs, isConflict]` plus the source slot carried through for the
- * tooltip. The first four are numeric/boolean so `api.value(i)`/`api.coord(...)` can position the bar.
+ * One Custom Series datum: `[laneIndex, startMs, endMs, isConflict, fill]` plus the source slot carried through
+ * for the tooltip. The first three are numeric so `api.coord(...)` can position the bar; `fill` is the resolved
+ * bar colour (the entry's own override or the lane fallback), read by `renderItem` via `api.value(4)`.
  */
 interface GanttDatum {
-  value: [number, number, number, boolean];
+  value: [number, number, number, boolean, string];
   slot: RoomOccupancySlot;
   laneLabel: string;
 }
@@ -97,13 +98,17 @@ export function RoomOccupancyGantt({ date }: RoomOccupancyGanttProps) {
     const laneIndex = new Map(lanes.map((lane, index) => [lane.key, index]));
     return slots.map((slot) => {
       const key = slot.roomId ?? '__no_room__';
+      const lane = laneIndex.get(key) ?? 0;
       const isConflict = slots.some((other) => other !== slot && hasConflict(slot, other));
+      // The entry's own colour override (card [E10.12]) wins; otherwise the lane keeps its stable per-room hue.
+      const fill = slot.color ?? LANE_PALETTE[lane % LANE_PALETTE.length];
       return {
         value: [
-          laneIndex.get(key) ?? 0,
+          lane,
           new Date(slot.startUtc).getTime(),
           new Date(slot.endUtc).getTime(),
           isConflict,
+          fill,
         ],
         slot,
         laneLabel: slot.roomName ?? 'Sem sala',
@@ -202,8 +207,8 @@ export function RoomOccupancyGantt({ date }: RoomOccupancyGanttProps) {
 
 /**
  * Draws one booking as a rectangle: X spans start→end (clamped to a minimum width so a very short slot stays
- * visible), Y is centred on the room lane at 60% of the lane height, and the fill cycles the lane palette. A
- * conflicting slot gets a red outline on top of its fill.
+ * visible), Y is centred on the room lane at 60% of the lane height, and the fill is the datum's resolved colour
+ * (the entry's own override, or the lane palette fallback). A conflicting slot gets a red outline on top of its fill.
  */
 function renderItem(
   _params: CustomSeriesRenderItemParams,
@@ -215,7 +220,7 @@ function renderItem(
   const isConflict = api.value(3) as unknown as boolean;
   const laneHeight = (api.size?.([0, 1]) as number[])[1];
   const barHeight = laneHeight * BAR_HEIGHT_RATIO;
-  const fill = LANE_PALETTE[laneIndex % LANE_PALETTE.length];
+  const fill = api.value(4) as unknown as string;
 
   return {
     type: 'rect',

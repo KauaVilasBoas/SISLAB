@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using SISLAB.Modules.Agenda.Domain.Entries.Events;
 using SISLAB.SharedKernel.Domain;
 using SISLAB.SharedKernel.Multitenancy;
@@ -32,6 +33,12 @@ namespace SISLAB.Modules.Agenda.Domain.Entries;
 /// </remarks>
 public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
 {
+    // A CSS hex colour (#rrggbb) — the Google-Calendar-style per-entry override the operator may pick. Kept as a
+    // compiled, anchored pattern so a malformed colour is rejected at the aggregate boundary rather than flowing
+    // through to the read-side / front-end.
+    private static readonly Regex HexColorPattern =
+        new("^#[0-9a-fA-F]{6}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     private readonly List<DateOnly> _excludedDates = [];
     private readonly List<EntryReminder> _reminders = [];
 
@@ -51,6 +58,15 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
     /// and normalised to <see langword="null"/> by the factory/edit methods when the entry is not a room booking.
     /// </summary>
     public Guid? RoomId { get; private set; }
+
+    /// <summary>
+    /// The operator-chosen display colour for this entry as a CSS hex string (<c>#rrggbb</c>), Google-Calendar
+    /// style (card [E10.12]). <see langword="null"/> means "use the automatic colour" derived from the
+    /// <see cref="ActivityType"/> on the read-side/front-end — no colour is imposed by default. When set it must
+    /// match <c>^#[0-9a-fA-F]{6}$</c>; the value is normalised to lowercase so equal colours compare equal.
+    /// </summary>
+    public string? Color { get; private set; }
+
     public RecurrenceRuleSpec? RecurrenceRule { get; private set; }
     public Guid ResponsibleId { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
@@ -82,7 +98,8 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
         Guid? roomId,
         RecurrenceRuleSpec? recurrenceRule,
         Guid responsibleId,
-        DateTime createdAtUtc) : base(id)
+        DateTime createdAtUtc,
+        string? color) : base(id)
     {
         CompanyId = companyId;
         Title = title;
@@ -96,6 +113,7 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
         RecurrenceRule = recurrenceRule;
         ResponsibleId = responsibleId;
         CreatedAtUtc = createdAtUtc;
+        Color = NormaliseColor(color);
     }
 
     /// <summary>
@@ -115,7 +133,8 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
         RecurrenceRuleSpec? recurrenceRule,
         Guid responsibleId,
         DateTime createdAtUtc,
-        IEnumerable<EntryReminder>? reminders = null)
+        IEnumerable<EntryReminder>? reminders = null,
+        string? color = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
         GuardInterval(startDateUtc, endDateUtc, isAllDay);
@@ -133,7 +152,8 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
             roomId,
             recurrenceRule,
             responsibleId,
-            createdAtUtc);
+            createdAtUtc,
+            color);
 
         if (reminders is not null)
             entry.SetReminders(reminders);
@@ -158,7 +178,8 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
         AgendaActivityType activityType,
         Guid? experimentId,
         Guid? roomId,
-        RecurrenceRuleSpec? recurrenceRule)
+        RecurrenceRuleSpec? recurrenceRule,
+        string? color = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
         GuardInterval(startDateUtc, endDateUtc, isAllDay);
@@ -172,6 +193,7 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
         ExperimentId = experimentId;
         RoomId = NormaliseRoomId(activityType, roomId);
         RecurrenceRule = recurrenceRule;
+        Color = NormaliseColor(color);
 
         RaiseDomainEvent(new AgendaEntryUpdated(CompanyId, Id, startDateUtc));
     }
@@ -245,6 +267,22 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
     // caller — the field is simply irrelevant for other types.
     private static Guid? NormaliseRoomId(AgendaActivityType activityType, Guid? roomId)
         => activityType == AgendaActivityType.RoomBooking ? roomId : null;
+
+    // A colour is optional; when present it must be a well-formed #rrggbb hex. Normalise to lowercase so the same
+    // colour picked as "#D50000" or "#d50000" is stored (and compared) identically. A blank string collapses to
+    // "no override" rather than a spurious value.
+    private static string? NormaliseColor(string? color)
+    {
+        if (string.IsNullOrWhiteSpace(color))
+            return null;
+
+        string trimmed = color.Trim();
+        if (!HexColorPattern.IsMatch(trimmed))
+            throw new ArgumentException(
+                $"'{color}' is not a valid entry colour; expected a #rrggbb hex string.", nameof(color));
+
+        return trimmed.ToLowerInvariant();
+    }
 
     private static void GuardInterval(DateTime startDateUtc, DateTime endDateUtc, bool isAllDay)
     {

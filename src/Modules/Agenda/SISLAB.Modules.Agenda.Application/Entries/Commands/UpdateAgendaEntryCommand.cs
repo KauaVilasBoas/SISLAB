@@ -31,7 +31,8 @@ public sealed record UpdateAgendaEntryCommand(
     Guid? ExperimentId,
     Guid? RoomId,
     string? RecurrenceRule,
-    IReadOnlyList<ReminderInput>? Reminders = null) : ICommand<AgendaEntryMutationResult>;
+    IReadOnlyList<ReminderInput>? Reminders = null,
+    string? Color = null) : ICommand<AgendaEntryMutationResult>;
 
 internal sealed class UpdateAgendaEntryCommandHandler
     : ICommandHandler<UpdateAgendaEntryCommand, AgendaEntryMutationResult>
@@ -79,7 +80,8 @@ internal sealed class UpdateAgendaEntryCommandHandler
         {
             entry.Reschedule(
                 command.Title, command.Description, command.StartDateUtc, command.EndDateUtc,
-                command.IsAllDay, command.ActivityType, command.ExperimentId, command.RoomId, recurrence);
+                command.IsAllDay, command.ActivityType, command.ExperimentId, command.RoomId, recurrence,
+                command.Color);
 
             if (command.Reminders is not null)
                 entry.SetReminders(command.Reminders.Select(CreateAgendaEntryCommandHandler.ToReminder));
@@ -117,7 +119,8 @@ internal sealed class UpdateAgendaEntryCommandHandler
             command.IsAllDay, command.ActivityType, command.ExperimentId, command.RoomId,
             recurrenceRule: null,
             original.ResponsibleId,
-            _clock.UtcNow);
+            _clock.UtcNow,
+            color: command.Color);
 
         _repository.Add(detached);
         return detached.Id;
@@ -143,7 +146,8 @@ internal sealed class UpdateAgendaEntryCommandHandler
             command.IsAllDay, command.ActivityType, command.ExperimentId, command.RoomId,
             recurrence ?? original.RecurrenceRule,
             original.ResponsibleId,
-            _clock.UtcNow);
+            _clock.UtcNow,
+            color: command.Color);
 
         _repository.Add(newSeries);
         return newSeries.Id;

@@ -23,7 +23,8 @@ public sealed record CreateAgendaEntryCommand(
     Guid? RoomId,
     string? RecurrenceRule,
     Guid ResponsibleId,
-    IReadOnlyList<ReminderInput>? Reminders = null) : ICommand<AgendaEntryMutationResult>;
+    IReadOnlyList<ReminderInput>? Reminders = null,
+    string? Color = null) : ICommand<AgendaEntryMutationResult>;
 
 /// <summary>A reminder to configure on the entry (card [E10.8] #5): fire this many minutes before each occurrence.</summary>
 public sealed record ReminderInput(int MinutesBefore, ReminderNotificationType NotificationType);
@@ -73,7 +74,8 @@ internal sealed class CreateAgendaEntryCommandHandler
             recurrence,
             command.ResponsibleId,
             _clock.UtcNow,
-            command.Reminders?.Select(ToReminder));
+            command.Reminders?.Select(ToReminder),
+            command.Color);
 
         _repository.Add(entry);
 

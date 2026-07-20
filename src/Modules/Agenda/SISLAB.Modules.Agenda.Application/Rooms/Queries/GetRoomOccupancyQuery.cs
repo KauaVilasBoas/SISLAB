@@ -35,7 +35,8 @@ public sealed record RoomOccupancySlot(
     DateTime StartUtc,
     DateTime EndUtc,
     Guid ResponsibleId,
-    string ResponsibleName);
+    string ResponsibleName,
+    string? Color);
 
 internal sealed class GetRoomOccupancyQueryHandler
     : BaseDataAccess, IQueryHandler<GetRoomOccupancyQuery, IReadOnlyList<RoomOccupancySlot>>
@@ -54,6 +55,7 @@ internal sealed class GetRoomOccupancyQueryHandler
             e.excluded_dates  AS excludeddatesjson,
             e.responsible_id  AS responsibleid,
             e.room_id         AS roomid,
+            e.color           AS color,
             r.name            AS roomname
         FROM agenda.agenda_entries e
         LEFT JOIN agenda.rooms r
@@ -155,7 +157,10 @@ internal sealed class GetRoomOccupancyQueryHandler
             StartUtc: occurrence.StartUtc,
             EndUtc: occurrence.EndUtc,
             ResponsibleId: row.ResponsibleId,
-            ResponsibleName: responsibleNames.GetValueOrDefault(row.ResponsibleId, string.Empty));
+            ResponsibleName: responsibleNames.GetValueOrDefault(row.ResponsibleId, string.Empty),
+            // The operator's per-entry colour override (card [E10.12]); null lets the Gantt fall back to the lane
+            // (per-room) colour.
+            Color: row.Color);
 
     /// <summary>
     /// The Gantt lane label for a slot: the joined <paramref name="joinedName"/> when the room row exists,
@@ -177,5 +182,6 @@ internal sealed class GetRoomOccupancyQueryHandler
         string? ExcludedDatesJson,
         Guid ResponsibleId,
         Guid? RoomId,
+        string? Color,
         string? RoomName);
 }

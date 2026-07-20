@@ -31,6 +31,9 @@ internal sealed class AgendaEntryConfiguration : IEntityTypeConfiguration<Agenda
         // Room association (card [E10.11]): a by-value id, no FK across the aggregate boundary. Nullable — set
         // only for a RoomBooking entry.
         builder.Property(e => e.RoomId).HasColumnName("room_id");
+        // Per-entry display colour override (card [E10.12]): a #rrggbb hex string, or null to use the automatic
+        // activity-type colour. Fixed 7-char width — the aggregate already guarantees the format.
+        builder.Property(e => e.Color).HasColumnName("color").HasMaxLength(7);
         builder.Property(e => e.ResponsibleId).IsRequired();
         builder.Property(e => e.CreatedAtUtc).IsRequired();
 

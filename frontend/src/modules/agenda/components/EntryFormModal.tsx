@@ -6,6 +6,7 @@ import { Label } from '@/shared/components/ui/label';
 import { useToast } from '@/shared/components/ui/toast';
 import { ACTIVITY_TYPE_LABEL } from '@/modules/agenda/presentation';
 import { RecurrenceEditor } from '@/modules/agenda/components/RecurrenceEditor';
+import { EntryColorPicker } from '@/modules/agenda/components/EntryColorPicker';
 import { ExperimentSelect } from '@/modules/agenda/components/ExperimentSelect';
 import { EditRecurringDialog } from '@/modules/agenda/components/EditRecurringDialog';
 import { useCreateEntry, useUpdateEntry } from '@/modules/agenda/api/entries.queries';
@@ -83,6 +84,7 @@ export function EntryFormModal({ open, onClose, editing, defaultDate }: EntryFor
   const [experimentLabel, setExperimentLabel] = useState<string | null>(initial.experimentLabel);
   const [roomId, setRoomId] = useState<string | null>(initial.roomId);
   const [recurrenceRule, setRecurrenceRule] = useState<string | null>(initial.recurrenceRule);
+  const [color, setColor] = useState<string | null>(initial.color);
 
   // Rooms only matter for a RoomBooking; load them lazily and let the operator pick which room the entry occupies.
   const rooms = useRooms();
@@ -107,6 +109,7 @@ export function EntryFormModal({ open, onClose, editing, defaultDate }: EntryFor
       // A room only belongs to a RoomBooking; the backend also normalises this, but keep the payload honest.
       roomId: activityType === 'RoomBooking' ? roomId : null,
       recurrenceRule,
+      color,
     };
   }
 
@@ -183,7 +186,16 @@ export function EntryFormModal({ open, onClose, editing, defaultDate }: EntryFor
       <div className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="title">Título</Label>
-          <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
+          <div className="flex items-center gap-2">
+            <EntryColorPicker value={color} onChange={setColor} />
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              autoFocus
+              className="flex-1"
+            />
+          </div>
         </div>
 
         <div className="space-y-1.5">
@@ -331,6 +343,7 @@ function buildInitialState(editing: CalendarItem | null, defaultDate: string) {
       // Pre-populate the recurrence editor with the series' raw RRULE so editing a recurring entry no longer
       // opens with an empty recurrence field (the RecurrenceEditor parses this string into its preset/custom UI).
       recurrenceRule: editing.recurrenceRule,
+      color: editing.color,
     };
   }
 
@@ -349,5 +362,6 @@ function buildInitialState(editing: CalendarItem | null, defaultDate: string) {
     experimentLabel: null as string | null,
     roomId: null as string | null,
     recurrenceRule: null as string | null,
+    color: null as string | null,
   };
 }
