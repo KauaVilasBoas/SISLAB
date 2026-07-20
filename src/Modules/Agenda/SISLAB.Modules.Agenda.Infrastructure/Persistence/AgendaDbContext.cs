@@ -5,6 +5,7 @@ using SISLAB.Modules.Agenda.Domain.Bioterium;
 using SISLAB.Modules.Agenda.Domain.Entries;
 using SISLAB.Modules.Agenda.Domain.Presentations;
 using SISLAB.Modules.Agenda.Domain.Rooms;
+using SISLAB.Modules.Agenda.Domain.Subscriptions;
 using SISLAB.SharedKernel.Multitenancy;
 
 namespace SISLAB.Modules.Agenda.Infrastructure.Persistence;
@@ -21,6 +22,7 @@ public sealed class AgendaDbContext : SislabDbContextBase, IOutboxDbContext
     public DbSet<BioteriumAssignment> BioteriumAssignments => Set<BioteriumAssignment>();
     public DbSet<Presentation> Presentations => Set<Presentation>();
     public DbSet<AgendaEntry> AgendaEntries => Set<AgendaEntry>();
+    public DbSet<IcalSubscription> IcalSubscriptions => Set<IcalSubscription>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     public AgendaDbContext(
