@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SISLAB.Infrastructure.Outbox;
 using SISLAB.Infrastructure.Persistence;
 using SISLAB.Modules.Agenda.Domain.Bioterium;
+using SISLAB.Modules.Agenda.Domain.Entries;
 using SISLAB.Modules.Agenda.Domain.Presentations;
 using SISLAB.Modules.Agenda.Domain.Rooms;
 using SISLAB.SharedKernel.Multitenancy;
@@ -19,6 +20,7 @@ public sealed class AgendaDbContext : SislabDbContextBase, IOutboxDbContext
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<BioteriumAssignment> BioteriumAssignments => Set<BioteriumAssignment>();
     public DbSet<Presentation> Presentations => Set<Presentation>();
+    public DbSet<AgendaEntry> AgendaEntries => Set<AgendaEntry>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     public AgendaDbContext(

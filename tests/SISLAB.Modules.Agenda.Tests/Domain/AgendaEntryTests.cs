@@ -1,0 +1,167 @@
+using SISLAB.Modules.Agenda.Domain.Entries;
+using SISLAB.Modules.Agenda.Domain.Entries.Events;
+
+namespace SISLAB.Modules.Agenda.Tests.Domain;
+
+/// <summary>
+/// Unit tests for the <see cref="AgendaEntry"/> aggregate (card [E10.1] #1): construction invariants, the
+/// three edit-scope building blocks (all/only-this/this-and-following) and the domain events they raise.
+/// </summary>
+public sealed class AgendaEntryTests
+{
+    private static readonly Guid Company = Guid.NewGuid();
+    private static readonly Guid Responsible = Guid.NewGuid();
+    private static readonly DateTime Start = new(2026, 8, 1, 9, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime End = new(2026, 8, 1, 10, 0, 0, DateTimeKind.Utc);
+
+    private static AgendaEntry CreateSimple(RecurrenceRuleSpec? rule = null) => AgendaEntry.Create(
+        Company, "Standup", "daily sync", Start, End,
+        isAllDay: false, AgendaActivityType.Other, experimentId: null,
+        recurrenceRule: rule, Responsible, createdAtUtc: Start);
+
+    [Fact]
+    public void Create_WithValidData_SetsFieldsAndRaisesCreatedEvent()
+    {
+        AgendaEntry entry = CreateSimple();
+
+        Assert.Equal("Standup", entry.Title);
+        Assert.Equal(Company, entry.CompanyId);
+        Assert.False(entry.IsRecurring);
+        Assert.Empty(entry.ExcludedDates);
+        Assert.Single(entry.DomainEvents);
+        AgendaEntryCreated created = Assert.IsType<AgendaEntryCreated>(entry.DomainEvents[0]);
+        Assert.Equal(entry.Id, created.EntryId);
+        Assert.False(created.IsRecurring);
+    }
+
+    [Fact]
+    public void Create_TrimsTitleAndDescription()
+    {
+        AgendaEntry entry = AgendaEntry.Create(
+            Company, "  Standup  ", "  sync  ", Start, End, false,
+            AgendaActivityType.Other, null, null, Responsible, Start);
+
+        Assert.Equal("Standup", entry.Title);
+        Assert.Equal("sync", entry.Description);
+    }
+
+    [Fact]
+    public void Create_WithBlankTitle_Throws()
+        => Assert.Throws<ArgumentException>(() => AgendaEntry.Create(
+            Company, "   ", null, Start, End, false,
+            AgendaActivityType.Other, null, null, Responsible, Start));
+
+    [Fact]
+    public void Create_TimedEntry_WithEndNotAfterStart_Throws()
+        => Assert.Throws<ArgumentException>(() => AgendaEntry.Create(
+            Company, "x", null, Start, Start, isAllDay: false,
+            AgendaActivityType.Other, null, null, Responsible, Start));
+
+    [Fact]
+    public void Create_AllDayEntry_MayShareStartAndEnd()
+    {
+        AgendaEntry entry = AgendaEntry.Create(
+            Company, "Holiday", null, Start, Start, isAllDay: true,
+            AgendaActivityType.Other, null, null, Responsible, Start);
+
+        Assert.True(entry.IsAllDay);
+    }
+
+    [Fact]
+    public void CancelOccurrence_OnRecurringEntry_ExcludesDateAndRaisesEvent()
+    {
+        AgendaEntry entry = CreateSimple(RecurrenceRuleSpec.Create("FREQ=DAILY"));
+        entry.ClearDomainEvents();
+        var day = new DateOnly(2026, 8, 3);
+
+        entry.CancelOccurrence(day);
+
+        Assert.Contains(day, entry.ExcludedDates);
+        AgendaEntryOccurrenceCancelled evt =
+            Assert.IsType<AgendaEntryOccurrenceCancelled>(Assert.Single(entry.DomainEvents));
+        Assert.Equal(day, evt.OccurrenceDate);
+    }
+
+    [Fact]
+    public void CancelOccurrence_IsIdempotent()
+    {
+        AgendaEntry entry = CreateSimple(RecurrenceRuleSpec.Create("FREQ=DAILY"));
+        var day = new DateOnly(2026, 8, 3);
+
+        entry.CancelOccurrence(day);
+        entry.ClearDomainEvents();
+        entry.CancelOccurrence(day);
+
+        Assert.Single(entry.ExcludedDates);
+        Assert.Empty(entry.DomainEvents);
+    }
+
+    [Fact]
+    public void CancelOccurrence_OnNonRecurringEntry_Throws()
+    {
+        AgendaEntry entry = CreateSimple();
+        Assert.Throws<InvalidOperationException>(() => entry.CancelOccurrence(new DateOnly(2026, 8, 3)));
+    }
+
+    [Fact]
+    public void TruncateAt_RewritesUntilAndKeepsSeriesRecurring()
+    {
+        AgendaEntry entry = CreateSimple(RecurrenceRuleSpec.Create("FREQ=WEEKLY;BYDAY=MO"));
+        var split = new DateTime(2026, 9, 1, 9, 0, 0, DateTimeKind.Utc);
+
+        entry.TruncateAt(split);
+
+        Assert.True(entry.IsRecurring);
+        Assert.Contains("UNTIL=", entry.RecurrenceRule!.Value);
+    }
+
+    [Fact]
+    public void TruncateAt_OnNonRecurringEntry_Throws()
+    {
+        AgendaEntry entry = CreateSimple();
+        Assert.Throws<InvalidOperationException>(() => entry.TruncateAt(Start));
+    }
+
+    [Fact]
+    public void Reschedule_OverwritesFieldsAndRaisesUpdatedEvent()
+    {
+        AgendaEntry entry = CreateSimple();
+        entry.ClearDomainEvents();
+        var newStart = Start.AddDays(1);
+        var newEnd = End.AddDays(1);
+
+        entry.Reschedule("Retro", "post-mortem", newStart, newEnd, false,
+            AgendaActivityType.Presentation, null, null);
+
+        Assert.Equal("Retro", entry.Title);
+        Assert.Equal(newStart, entry.StartDateUtc);
+        Assert.Equal(AgendaActivityType.Presentation, entry.ActivityType);
+        Assert.IsType<AgendaEntryUpdated>(Assert.Single(entry.DomainEvents));
+    }
+
+    [Fact]
+    public void Reschedule_PreservesExistingExclusions()
+    {
+        AgendaEntry entry = CreateSimple(RecurrenceRuleSpec.Create("FREQ=DAILY"));
+        var day = new DateOnly(2026, 8, 3);
+        entry.CancelOccurrence(day);
+
+        entry.Reschedule("Standup", null, Start, End, false, AgendaActivityType.Other, null,
+            RecurrenceRuleSpec.Create("FREQ=DAILY"));
+
+        Assert.Contains(day, entry.ExcludedDates);
+    }
+
+    [Fact]
+    public void Reallocate_ChangesResponsibleAndRaisesUpdatedEvent()
+    {
+        AgendaEntry entry = CreateSimple();
+        entry.ClearDomainEvents();
+        var newResponsible = Guid.NewGuid();
+
+        entry.Reallocate(newResponsible);
+
+        Assert.Equal(newResponsible, entry.ResponsibleId);
+        Assert.IsType<AgendaEntryUpdated>(Assert.Single(entry.DomainEvents));
+    }
+}
