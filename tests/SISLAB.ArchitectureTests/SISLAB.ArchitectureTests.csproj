@@ -48,6 +48,9 @@
     <ProjectReference Include="..\..\src\Modules\Experiments\SISLAB.Modules.Experiments.Application\SISLAB.Modules.Experiments.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Experiments\SISLAB.Modules.Experiments.Contracts\SISLAB.Modules.Experiments.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Experiments\SISLAB.Modules.Experiments.Infrastructure\SISLAB.Modules.Experiments.Infrastructure.csproj" />
+    <!-- Agenda module (card [E10]): loaded so the write-endpoint authorization rule can evaluate the improved
+         calendar controller's actions and the isolation rules can see the module's real types. -->
+    <ProjectReference Include="..\..\src\Modules\Agenda\SISLAB.Modules.Agenda.Application\SISLAB.Modules.Agenda.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
