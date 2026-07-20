@@ -3,8 +3,10 @@ using SISLAB.Modules.Audit.Application.AuditRead;
 namespace SISLAB.Modules.Audit.Tests;
 
 /// <summary>
-/// Tests for <see cref="AuditCsvFormatter"/> (card [E9] #57): a header row is always emitted, entries are
-/// rendered one per line, and RFC 4180 escaping keeps a JSON payload (with commas/quotes) from breaking a row.
+/// Tests for <see cref="AuditCsvFormatter"/> (card [E9] #57). The export is written for a lab user: the header
+/// row and cells are Portuguese, the action/entity codes are translated, and the raw JSON payload is parsed into
+/// readable quantity / unit / divergence / reason columns. RFC 4180 escaping keeps a value with commas/quotes in
+/// a single cell.
 /// </summary>
 public sealed class AuditCsvFormatterTests
 {
@@ -15,7 +17,7 @@ public sealed class AuditCsvFormatterTests
 
         string[] lines = csv.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
         Assert.Single(lines);
-        Assert.StartsWith("Id,UserId,Action,EntityType,EntityId,OccurredAtUtc,Payload", lines[0]);
+        Assert.Equal("Data/Hora,Responsável,Ação,Tipo,Quantidade,Unidade,Divergência,Motivo", lines[0]);
     }
 
     [Fact]
@@ -23,8 +25,8 @@ public sealed class AuditCsvFormatterTests
     {
         IReadOnlyList<AuditEntryListItem> entries =
         [
-            Entry(action: "consumption", payload: "{\"q\":30}"),
-            Entry(action: "disposal", payload: "{\"q\":5}")
+            Entry(action: "consumption", payload: "{\"Quantity\":30}"),
+            Entry(action: "disposal", payload: "{\"Quantity\":5}")
         ];
 
         string csv = AuditCsvFormatter.ToCsv(entries);
@@ -34,15 +36,30 @@ public sealed class AuditCsvFormatterTests
     }
 
     [Fact]
-    public void Escapes_fields_that_contain_commas_or_quotes()
+    public void Translates_action_and_parses_the_payload_into_readable_columns()
     {
-        // A JSON payload naturally contains commas and quotes; it must be quoted and its quotes doubled so it
-        // stays in a single CSV cell.
-        AuditEntryListItem entry = Entry(action: "consumption", payload: "{\"reason\":\"a, b\"}");
+        AuditEntryListItem entry = Entry(
+            action: "consumption",
+            payload: "{\"Quantity\":30,\"Unit\":\"mL\",\"Reason\":\"rotina\"}");
 
         string csv = AuditCsvFormatter.ToCsv([entry]);
 
-        Assert.Contains("\"{\"\"reason\"\":\"\"a, b\"\"}\"", csv);
+        // The action code is translated and the payload is flattened into its own cells — no raw JSON leaks.
+        Assert.Contains("Consumo,Item de estoque,30,mL,,rotina", csv);
+        Assert.DoesNotContain("Quantity", csv);
+    }
+
+    [Fact]
+    public void Escapes_fields_that_contain_commas_or_quotes()
+    {
+        // A reason naturally contains a comma; it must be quoted so it stays in a single CSV cell.
+        AuditEntryListItem entry = Entry(
+            action: "consumption",
+            payload: "{\"Reason\":\"a, b\"}");
+
+        string csv = AuditCsvFormatter.ToCsv([entry]);
+
+        Assert.Contains("\"a, b\"", csv);
     }
 
     private static AuditEntryListItem Entry(string action, string payload) => new(
