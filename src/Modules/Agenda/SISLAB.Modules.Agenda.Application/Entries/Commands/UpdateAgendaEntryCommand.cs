@@ -1,3 +1,4 @@
+using SISLAB.Modules.Agenda.Application.Entries.Conflicts;
 using SISLAB.Modules.Agenda.Domain.Entries;
 using SISLAB.SharedKernel.Exceptions;
 using SISLAB.SharedKernel.Messaging;
@@ -29,31 +30,49 @@ public sealed record UpdateAgendaEntryCommand(
     AgendaActivityType ActivityType,
     Guid? ExperimentId,
     string? RecurrenceRule,
-    IReadOnlyList<ReminderInput>? Reminders = null) : ICommand<Guid>;
+    IReadOnlyList<ReminderInput>? Reminders = null) : ICommand<AgendaEntryMutationResult>;
 
-internal sealed class UpdateAgendaEntryCommandHandler : ICommandHandler<UpdateAgendaEntryCommand, Guid>
+internal sealed class UpdateAgendaEntryCommandHandler
+    : ICommandHandler<UpdateAgendaEntryCommand, AgendaEntryMutationResult>
 {
     private readonly IAgendaEntryRepository _repository;
     private readonly ITenantContext _tenantContext;
     private readonly IClock _clock;
+    private readonly IAgendaConflictChecker _conflictChecker;
 
     public UpdateAgendaEntryCommandHandler(
         IAgendaEntryRepository repository,
         ITenantContext tenantContext,
-        IClock clock)
+        IClock clock,
+        IAgendaConflictChecker conflictChecker)
     {
         _repository = repository;
         _tenantContext = tenantContext;
         _clock = clock;
+        _conflictChecker = conflictChecker;
     }
 
-    public async Task<Guid> HandleAsync(UpdateAgendaEntryCommand command, CancellationToken cancellationToken = default)
+    public async Task<AgendaEntryMutationResult> HandleAsync(
+        UpdateAgendaEntryCommand command, CancellationToken cancellationToken = default)
     {
         AgendaEntry entry = await _repository.GetByIdAsync(command.EntryId, cancellationToken)
             ?? throw new NotFoundException($"Agenda entry {command.EntryId} not found.");
 
         RecurrenceRuleSpec? recurrence = RecurrenceRuleSpec.CreateOptional(command.RecurrenceRule);
 
+        Guid resultId = ApplyEdit(entry, command, recurrence);
+
+        // Advisory only — report overlaps of the edited schedule but never block the update (card [E10.9] #6).
+        // Exclude the entry we just touched so a series never conflicts with itself.
+        IReadOnlyList<string> warnings = await _conflictChecker.CheckAsync(
+            entry.ResponsibleId, command.ActivityType, command.StartDateUtc, command.EndDateUtc,
+            recurrence?.Value, excludedDates: [], excludeEntryId: resultId, cancellationToken);
+
+        return new AgendaEntryMutationResult(resultId, warnings);
+    }
+
+    private Guid ApplyEdit(AgendaEntry entry, UpdateAgendaEntryCommand command, RecurrenceRuleSpec? recurrence)
+    {
         // A one-off entry has no series to split — collapse every scope to a direct in-place edit.
         if (!entry.IsRecurring || command.Scope == EditScope.AllOccurrences)
         {
