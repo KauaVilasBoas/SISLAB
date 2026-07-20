@@ -23,13 +23,13 @@ public sealed class AgendaEntryCommandHandlerTests
 
     private static CreateAgendaEntryCommand NewCreate(string? rrule = null) => new(
         "Standup", "sync", Start, End, IsAllDay: false, AgendaActivityType.Other,
-        ExperimentId: null, RecurrenceRule: rrule, Responsible);
+        ExperimentId: null, RoomId: null, RecurrenceRule: rrule, Responsible);
 
     private static AgendaEntry SeedRecurring(FakeAgendaEntryRepository repo)
     {
         AgendaEntry entry = AgendaEntry.Create(
             Company, "Standup", "sync", Start, End, false, AgendaActivityType.Other,
-            null, RecurrenceRuleSpec.Create("FREQ=WEEKLY;BYDAY=FR"), Responsible, Start);
+            null, null, RecurrenceRuleSpec.Create("FREQ=WEEKLY;BYDAY=FR"), Responsible, Start);
         repo.Seed(entry);
         return entry;
     }
@@ -81,7 +81,7 @@ public sealed class AgendaEntryCommandHandlerTests
 
         AgendaEntryMutationResult result = await handler.HandleAsync(new UpdateAgendaEntryCommand(
             entry.Id, EditScope.AllOccurrences, OccurrenceDate: null,
-            "Retro", null, Start, End, false, AgendaActivityType.Other, null, "FREQ=WEEKLY;BYDAY=FR"));
+            "Retro", null, Start, End, false, AgendaActivityType.Other, null, null, "FREQ=WEEKLY;BYDAY=FR"));
 
         // A series must never conflict with itself: the id under check is excluded from the candidate set.
         Assert.Equal(result.EntryId, conflicts.LastExcludeEntryId);
@@ -97,7 +97,7 @@ public sealed class AgendaEntryCommandHandlerTests
 
         Guid resultId = (await handler.HandleAsync(new UpdateAgendaEntryCommand(
             entry.Id, EditScope.AllOccurrences, OccurrenceDate: null,
-            "Retro", null, Start, End, false, AgendaActivityType.Presentation, null, "FREQ=WEEKLY;BYDAY=FR"))).EntryId;
+            "Retro", null, Start, End, false, AgendaActivityType.Presentation, null, null, "FREQ=WEEKLY;BYDAY=FR"))).EntryId;
 
         Assert.Equal(entry.Id, resultId);
         Assert.Equal("Retro", entry.Title);
@@ -114,7 +114,7 @@ public sealed class AgendaEntryCommandHandlerTests
 
         Guid resultId = (await handler.HandleAsync(new UpdateAgendaEntryCommand(
             entry.Id, EditScope.OnlyThis, occurrence,
-            "Moved", null, Start.AddHours(2), End.AddHours(2), false, AgendaActivityType.Other, null, null))).EntryId;
+            "Moved", null, Start.AddHours(2), End.AddHours(2), false, AgendaActivityType.Other, null, null, null))).EntryId;
 
         Assert.Contains(occurrence, entry.ExcludedDates);
         AgendaEntry detached = Assert.Single(repo.Added);
@@ -133,7 +133,7 @@ public sealed class AgendaEntryCommandHandlerTests
 
         Guid resultId = (await handler.HandleAsync(new UpdateAgendaEntryCommand(
             entry.Id, EditScope.ThisAndFollowing, occurrence,
-            "New series", null, Start, End, false, AgendaActivityType.Other, null, "FREQ=WEEKLY;BYDAY=FR"))).EntryId;
+            "New series", null, Start, End, false, AgendaActivityType.Other, null, null, "FREQ=WEEKLY;BYDAY=FR"))).EntryId;
 
         Assert.Contains("UNTIL=", entry.RecurrenceRule!.Value); // original truncated
         AgendaEntry forked = Assert.Single(repo.Added);
@@ -151,7 +151,7 @@ public sealed class AgendaEntryCommandHandlerTests
 
         await Assert.ThrowsAsync<BusinessException>(() => handler.HandleAsync(new UpdateAgendaEntryCommand(
             entry.Id, EditScope.ThisAndFollowing, OccurrenceDate: null,
-            "x", null, Start, End, false, AgendaActivityType.Other, null, "FREQ=WEEKLY")));
+            "x", null, Start, End, false, AgendaActivityType.Other, null, null, "FREQ=WEEKLY")));
     }
 
     [Fact]
@@ -160,7 +160,7 @@ public sealed class AgendaEntryCommandHandlerTests
         var handler = new UpdateAgendaEntryCommandHandler(new FakeAgendaEntryRepository(), Tenant, Clock, NoConflicts);
         await Assert.ThrowsAsync<NotFoundException>(() => handler.HandleAsync(new UpdateAgendaEntryCommand(
             Guid.NewGuid(), EditScope.AllOccurrences, null,
-            "x", null, Start, End, false, AgendaActivityType.Other, null, null)));
+            "x", null, Start, End, false, AgendaActivityType.Other, null, null, null)));
     }
 
     [Fact]
@@ -181,7 +181,7 @@ public sealed class AgendaEntryCommandHandlerTests
     {
         var repo = new FakeAgendaEntryRepository();
         AgendaEntry oneOff = AgendaEntry.Create(
-            Company, "x", null, Start, End, false, AgendaActivityType.Other, null, null, Responsible, Start);
+            Company, "x", null, Start, End, false, AgendaActivityType.Other, null, null, null, Responsible, Start);
         repo.Seed(oneOff);
         var handler = new CancelAgendaOccurrenceCommandHandler(repo);
 

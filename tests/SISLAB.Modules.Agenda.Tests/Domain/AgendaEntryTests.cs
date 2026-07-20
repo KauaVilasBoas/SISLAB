@@ -16,7 +16,7 @@ public sealed class AgendaEntryTests
 
     private static AgendaEntry CreateSimple(RecurrenceRuleSpec? rule = null) => AgendaEntry.Create(
         Company, "Standup", "daily sync", Start, End,
-        isAllDay: false, AgendaActivityType.Other, experimentId: null,
+        isAllDay: false, AgendaActivityType.Other, experimentId: null, roomId: null,
         recurrenceRule: rule, Responsible, createdAtUtc: Start);
 
     [Fact]
@@ -39,7 +39,7 @@ public sealed class AgendaEntryTests
     {
         AgendaEntry entry = AgendaEntry.Create(
             Company, "  Standup  ", "  sync  ", Start, End, false,
-            AgendaActivityType.Other, null, null, Responsible, Start);
+            AgendaActivityType.Other, null, null, null, Responsible, Start);
 
         Assert.Equal("Standup", entry.Title);
         Assert.Equal("sync", entry.Description);
@@ -49,20 +49,20 @@ public sealed class AgendaEntryTests
     public void Create_WithBlankTitle_Throws()
         => Assert.Throws<ArgumentException>(() => AgendaEntry.Create(
             Company, "   ", null, Start, End, false,
-            AgendaActivityType.Other, null, null, Responsible, Start));
+            AgendaActivityType.Other, null, null, null, Responsible, Start));
 
     [Fact]
     public void Create_TimedEntry_WithEndNotAfterStart_Throws()
         => Assert.Throws<ArgumentException>(() => AgendaEntry.Create(
             Company, "x", null, Start, Start, isAllDay: false,
-            AgendaActivityType.Other, null, null, Responsible, Start));
+            AgendaActivityType.Other, null, null, null, Responsible, Start));
 
     [Fact]
     public void Create_AllDayEntry_MayShareStartAndEnd()
     {
         AgendaEntry entry = AgendaEntry.Create(
             Company, "Holiday", null, Start, Start, isAllDay: true,
-            AgendaActivityType.Other, null, null, Responsible, Start);
+            AgendaActivityType.Other, null, null, null, Responsible, Start);
 
         Assert.True(entry.IsAllDay);
     }
@@ -131,7 +131,7 @@ public sealed class AgendaEntryTests
         var newEnd = End.AddDays(1);
 
         entry.Reschedule("Retro", "post-mortem", newStart, newEnd, false,
-            AgendaActivityType.Presentation, null, null);
+            AgendaActivityType.Presentation, null, null, null);
 
         Assert.Equal("Retro", entry.Title);
         Assert.Equal(newStart, entry.StartDateUtc);
@@ -146,7 +146,7 @@ public sealed class AgendaEntryTests
         var day = new DateOnly(2026, 8, 3);
         entry.CancelOccurrence(day);
 
-        entry.Reschedule("Standup", null, Start, End, false, AgendaActivityType.Other, null,
+        entry.Reschedule("Standup", null, Start, End, false, AgendaActivityType.Other, null, null,
             RecurrenceRuleSpec.Create("FREQ=DAILY"));
 
         Assert.Contains(day, entry.ExcludedDates);
@@ -189,10 +189,48 @@ public sealed class AgendaEntryTests
     public void Create_WithReminders_StoresThem()
     {
         AgendaEntry entry = AgendaEntry.Create(
-            Company, "x", null, Start, End, false, AgendaActivityType.Other, null, null, Responsible, Start,
+            Company, "x", null, Start, End, false, AgendaActivityType.Other, null, null, null, Responsible, Start,
             reminders: [EntryReminder.Create(10, ReminderNotificationType.InApp)]);
 
         Assert.Single(entry.Reminders);
+    }
+
+    [Fact]
+    public void Create_RoomBooking_KeepsRoomId()
+    {
+        var roomId = Guid.NewGuid();
+
+        AgendaEntry entry = AgendaEntry.Create(
+            Company, "Lab 1 booking", null, Start, End, false,
+            AgendaActivityType.RoomBooking, experimentId: null, roomId: roomId,
+            recurrenceRule: null, Responsible, Start);
+
+        Assert.Equal(roomId, entry.RoomId);
+    }
+
+    [Fact]
+    public void Create_NonRoomBooking_DropsRoomId()
+    {
+        AgendaEntry entry = AgendaEntry.Create(
+            Company, "Standup", null, Start, End, false,
+            AgendaActivityType.Other, experimentId: null, roomId: Guid.NewGuid(),
+            recurrenceRule: null, Responsible, Start);
+
+        Assert.Null(entry.RoomId);
+    }
+
+    [Fact]
+    public void Reschedule_AwayFromRoomBooking_ClearsRoomId()
+    {
+        AgendaEntry entry = AgendaEntry.Create(
+            Company, "Lab 1 booking", null, Start, End, false,
+            AgendaActivityType.RoomBooking, experimentId: null, roomId: Guid.NewGuid(),
+            recurrenceRule: null, Responsible, Start);
+
+        entry.Reschedule("Now a talk", null, Start, End, false,
+            AgendaActivityType.Presentation, experimentId: null, roomId: Guid.NewGuid(), recurrenceRule: null);
+
+        Assert.Null(entry.RoomId);
     }
 
     [Fact]

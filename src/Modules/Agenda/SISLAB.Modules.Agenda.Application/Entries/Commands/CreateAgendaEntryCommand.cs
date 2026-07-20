@@ -20,6 +20,7 @@ public sealed record CreateAgendaEntryCommand(
     bool IsAllDay,
     AgendaActivityType ActivityType,
     Guid? ExperimentId,
+    Guid? RoomId,
     string? RecurrenceRule,
     Guid ResponsibleId,
     IReadOnlyList<ReminderInput>? Reminders = null) : ICommand<AgendaEntryMutationResult>;
@@ -68,6 +69,7 @@ internal sealed class CreateAgendaEntryCommandHandler
             command.IsAllDay,
             command.ActivityType,
             command.ExperimentId,
+            command.RoomId,
             recurrence,
             command.ResponsibleId,
             _clock.UtcNow,

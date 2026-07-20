@@ -9,6 +9,7 @@ import { RecurrenceEditor } from '@/modules/agenda/components/RecurrenceEditor';
 import { ExperimentSelect } from '@/modules/agenda/components/ExperimentSelect';
 import { EditRecurringDialog } from '@/modules/agenda/components/EditRecurringDialog';
 import { useCreateEntry, useUpdateEntry } from '@/modules/agenda/api/entries.queries';
+import { useRooms } from '@/modules/agenda/api/rooms.queries';
 import type {
   AgendaActivityType,
   AgendaConflictWarning,
@@ -80,7 +81,11 @@ export function EntryFormModal({ open, onClose, editing, defaultDate }: EntryFor
   const [activityType, setActivityType] = useState<AgendaActivityType>(initial.activityType);
   const [experimentId, setExperimentId] = useState<string | null>(initial.experimentId);
   const [experimentLabel, setExperimentLabel] = useState<string | null>(initial.experimentLabel);
+  const [roomId, setRoomId] = useState<string | null>(initial.roomId);
   const [recurrenceRule, setRecurrenceRule] = useState<string | null>(initial.recurrenceRule);
+
+  // Rooms only matter for a RoomBooking; load them lazily and let the operator pick which room the entry occupies.
+  const rooms = useRooms();
 
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
 
@@ -99,6 +104,8 @@ export function EntryFormModal({ open, onClose, editing, defaultDate }: EntryFor
       isAllDay,
       activityType,
       experimentId,
+      // A room only belongs to a RoomBooking; the backend also normalises this, but keep the payload honest.
+      roomId: activityType === 'RoomBooking' ? roomId : null,
       recurrenceRule,
     };
   }
@@ -259,6 +266,25 @@ export function EntryFormModal({ open, onClose, editing, defaultDate }: EntryFor
           </select>
         </div>
 
+        {activityType === 'RoomBooking' && (
+          <div className="space-y-1.5">
+            <Label htmlFor="roomId">Sala</Label>
+            <select
+              id="roomId"
+              value={roomId ?? ''}
+              onChange={(e) => setRoomId(e.target.value || null)}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="">Sem sala</option>
+              {(rooms.data ?? []).map((room) => (
+                <option key={room.id} value={room.id}>
+                  {room.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <ExperimentSelect
           value={experimentId}
           valueLabel={experimentLabel}
@@ -301,6 +327,7 @@ function buildInitialState(editing: CalendarItem | null, defaultDate: string) {
       activityType: editing.activityType,
       experimentId: editing.experimentId,
       experimentLabel: editing.experimentName,
+      roomId: editing.roomId,
       recurrenceRule: editing.isRecurring ? null : null,
     };
   }
@@ -318,6 +345,7 @@ function buildInitialState(editing: CalendarItem | null, defaultDate: string) {
     activityType: 'Other' as AgendaActivityType,
     experimentId: null as string | null,
     experimentLabel: null as string | null,
+    roomId: null as string | null,
     recurrenceRule: null as string | null,
   };
 }

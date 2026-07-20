@@ -26,6 +26,7 @@ public sealed record CalendarItem(
     AgendaActivityType ActivityType,
     Guid? ExperimentId,
     string? ExperimentName,
+    Guid? RoomId,
     DateTime StartDateUtc,
     DateTime EndDateUtc,
     bool IsAllDay,
@@ -51,6 +52,7 @@ internal sealed class GetCalendarQueryHandler
             e.is_all_day        AS isallday,
             e.activity_type     AS activitytype,
             e.experiment_id     AS experimentid,
+            e.room_id           AS roomid,
             e.recurrence_rule   AS recurrencerule,
             e.responsible_id    AS responsibleid,
             e.excluded_dates    AS excludeddatesjson
@@ -164,6 +166,7 @@ internal sealed class GetCalendarQueryHandler
             ActivityType: Enum.Parse<AgendaActivityType>(row.ActivityType),
             ExperimentId: row.ExperimentId,
             ExperimentName: experimentName,
+            RoomId: row.RoomId,
             StartDateUtc: occurrence.StartUtc,
             EndDateUtc: occurrence.EndUtc,
             IsAllDay: row.IsAllDay,
@@ -187,6 +190,7 @@ internal sealed class GetCalendarQueryHandler
         bool IsAllDay,
         string ActivityType,
         Guid? ExperimentId,
+        Guid? RoomId,
         string? RecurrenceRule,
         Guid ResponsibleId,
         string? ExcludedDatesJson);

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SISLAB.Modules.Agenda.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using SISLAB.Modules.Agenda.Infrastructure.Persistence;
 namespace SISLAB.Modules.Agenda.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AgendaDbContext))]
-    partial class AgendaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260720123931_AddRoomIdToAgendaEntry")]
+    partial class AddRoomIdToAgendaEntry
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
