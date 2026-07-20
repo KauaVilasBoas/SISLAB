@@ -5,6 +5,9 @@
     <ProjectReference Include="..\SISLAB.Modules.Agenda.Infrastructure\SISLAB.Modules.Agenda.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Audit\SISLAB.Modules.Audit.Contracts\SISLAB.Modules.Audit.Contracts.csproj" />
+    <!-- Experiments.Contracts: IExperimentDirectory, to resolve an experiment's title on the calendar
+         projection without JOINing the experiments schema (module isolation, section 2). -->
+    <ProjectReference Include="..\..\Experiments\SISLAB.Modules.Experiments.Contracts\SISLAB.Modules.Experiments.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -13,6 +16,8 @@
 
   <ItemGroup>
     <PackageReference Include="Lumen.Authorization.AspNetCore" Version="3.0.1" />
+    <!-- RFC 5545 recurrence expansion (RRULE/EXDATE) for the calendar read-side and .ics export (E10.4/E10.10). -->
+    <PackageReference Include="Ical.Net" Version="4.2.0" />
   </ItemGroup>
 
 </Project>

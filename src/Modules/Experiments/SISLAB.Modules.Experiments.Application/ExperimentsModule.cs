@@ -7,6 +7,8 @@ using SISLAB.Infrastructure.DependencyInjection;
 using SISLAB.Infrastructure.Modules;
 using SISLAB.Modules.Experiments.Application.Export;
 using SISLAB.Modules.Experiments.Application.Protocols;
+using SISLAB.Modules.Experiments.Application.PublicApi;
+using SISLAB.Modules.Experiments.Contracts;
 using SISLAB.Modules.Experiments.Infrastructure.DependencyInjection;
 
 namespace SISLAB.Modules.Experiments.Application;
@@ -61,6 +63,11 @@ public sealed class ExperimentsModule : IModule
         // registry. Adding a behavioural assay's export is a new registration here.
         services.AddScoped<IInVivoPrismFormatter, VonFreyInVivoPrismFormatter>();
         services.AddScoped<IInVivoPrismFormatterResolver, InVivoPrismFormatterResolver>();
+
+        // Public boundary (card [E10.4] #4): the adapter that implements IExperimentDirectory by resolving
+        // experiment titles by id through a tenant-scoped Dapper lookup. Lets the Agenda calendar show an
+        // experiment's name without JOINing the experiments schema or touching the Experiments internals.
+        services.AddScoped<IExperimentDirectory, ExperimentDirectory>();
 
         // Write-side composition: module DbContext (schema "experiments"), the repository, the unit of work +
         // Outbox wiring, the ExperimentCalculated translator and the schema migrations hosted service.
