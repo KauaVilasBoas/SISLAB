@@ -5,6 +5,7 @@ using SISLAB.Infrastructure.DependencyInjection;
 using SISLAB.Infrastructure.Modules;
 using SISLAB.Modules.Agenda.Application.Entries.Conflicts;
 using SISLAB.Modules.Agenda.Application.Entries.Recurrence;
+using SISLAB.Modules.Agenda.Application.Subscriptions.Queries;
 using SISLAB.Modules.Agenda.Infrastructure.DependencyInjection;
 
 namespace SISLAB.Modules.Agenda.Application;
@@ -34,6 +35,9 @@ public sealed class AgendaModule : IModule
 
         // Advisory scheduling-conflict detector (card [E10.9] #6). Scoped — it reads the active tenant.
         services.AddScoped<IAgendaConflictChecker, AgendaConflictChecker>();
+
+        // Stateless RFC 5545 .ics writer (Ical.Net) for the public feed (card [E10.10]). Singleton — no state.
+        services.AddSingleton<IcalFeedBuilder>();
 
         services.AddAgendaModule(configuration);
     }
