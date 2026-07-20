@@ -29,6 +29,7 @@ public sealed record UpdateAgendaEntryCommand(
     bool IsAllDay,
     AgendaActivityType ActivityType,
     Guid? ExperimentId,
+    Guid? RoomId,
     string? RecurrenceRule,
     IReadOnlyList<ReminderInput>? Reminders = null) : ICommand<AgendaEntryMutationResult>;
 
@@ -78,7 +79,7 @@ internal sealed class UpdateAgendaEntryCommandHandler
         {
             entry.Reschedule(
                 command.Title, command.Description, command.StartDateUtc, command.EndDateUtc,
-                command.IsAllDay, command.ActivityType, command.ExperimentId, recurrence);
+                command.IsAllDay, command.ActivityType, command.ExperimentId, command.RoomId, recurrence);
 
             if (command.Reminders is not null)
                 entry.SetReminders(command.Reminders.Select(CreateAgendaEntryCommandHandler.ToReminder));
@@ -113,7 +114,7 @@ internal sealed class UpdateAgendaEntryCommandHandler
         AgendaEntry detached = AgendaEntry.Create(
             _tenantContext.CompanyId,
             command.Title, command.Description, command.StartDateUtc, command.EndDateUtc,
-            command.IsAllDay, command.ActivityType, command.ExperimentId,
+            command.IsAllDay, command.ActivityType, command.ExperimentId, command.RoomId,
             recurrenceRule: null,
             original.ResponsibleId,
             _clock.UtcNow);
@@ -139,7 +140,7 @@ internal sealed class UpdateAgendaEntryCommandHandler
         AgendaEntry newSeries = AgendaEntry.Create(
             _tenantContext.CompanyId,
             command.Title, command.Description, command.StartDateUtc, command.EndDateUtc,
-            command.IsAllDay, command.ActivityType, command.ExperimentId,
+            command.IsAllDay, command.ActivityType, command.ExperimentId, command.RoomId,
             recurrence ?? original.RecurrenceRule,
             original.ResponsibleId,
             _clock.UtcNow);

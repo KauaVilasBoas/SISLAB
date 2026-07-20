@@ -43,6 +43,14 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
     public bool IsAllDay { get; private set; }
     public AgendaActivityType ActivityType { get; private set; }
     public Guid? ExperimentId { get; private set; }
+
+    /// <summary>
+    /// The room this entry occupies (card [E10.11]), referenced by value — no navigation, no FK across the
+    /// aggregate boundary (module isolation, §2). Only meaningful for a
+    /// <see cref="AgendaActivityType.RoomBooking"/> entry; <see langword="null"/> for every other activity type,
+    /// and normalised to <see langword="null"/> by the factory/edit methods when the entry is not a room booking.
+    /// </summary>
+    public Guid? RoomId { get; private set; }
     public RecurrenceRuleSpec? RecurrenceRule { get; private set; }
     public Guid ResponsibleId { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
@@ -71,6 +79,7 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
         bool isAllDay,
         AgendaActivityType activityType,
         Guid? experimentId,
+        Guid? roomId,
         RecurrenceRuleSpec? recurrenceRule,
         Guid responsibleId,
         DateTime createdAtUtc) : base(id)
@@ -83,6 +92,7 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
         IsAllDay = isAllDay;
         ActivityType = activityType;
         ExperimentId = experimentId;
+        RoomId = NormaliseRoomId(activityType, roomId);
         RecurrenceRule = recurrenceRule;
         ResponsibleId = responsibleId;
         CreatedAtUtc = createdAtUtc;
@@ -101,6 +111,7 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
         bool isAllDay,
         AgendaActivityType activityType,
         Guid? experimentId,
+        Guid? roomId,
         RecurrenceRuleSpec? recurrenceRule,
         Guid responsibleId,
         DateTime createdAtUtc,
@@ -119,6 +130,7 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
             isAllDay,
             activityType,
             experimentId,
+            roomId,
             recurrenceRule,
             responsibleId,
             createdAtUtc);
@@ -145,6 +157,7 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
         bool isAllDay,
         AgendaActivityType activityType,
         Guid? experimentId,
+        Guid? roomId,
         RecurrenceRuleSpec? recurrenceRule)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
@@ -157,6 +170,7 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
         IsAllDay = isAllDay;
         ActivityType = activityType;
         ExperimentId = experimentId;
+        RoomId = NormaliseRoomId(activityType, roomId);
         RecurrenceRule = recurrenceRule;
 
         RaiseDomainEvent(new AgendaEntryUpdated(CompanyId, Id, startDateUtc));
@@ -225,6 +239,12 @@ public sealed class AgendaEntry : AggregateRoot<Guid>, ITenantEntity
         RecurrenceRule = RecurrenceRule!.WithUntil(splitStartUtc.AddSeconds(-1));
         RaiseDomainEvent(new AgendaEntryUpdated(CompanyId, Id, StartDateUtc));
     }
+
+    // A room association only makes sense for a room booking; drop any stray room id supplied for another
+    // activity type so the invariant "RoomId is set only for a RoomBooking" holds without throwing on the
+    // caller — the field is simply irrelevant for other types.
+    private static Guid? NormaliseRoomId(AgendaActivityType activityType, Guid? roomId)
+        => activityType == AgendaActivityType.RoomBooking ? roomId : null;
 
     private static void GuardInterval(DateTime startDateUtc, DateTime endDateUtc, bool isAllDay)
     {

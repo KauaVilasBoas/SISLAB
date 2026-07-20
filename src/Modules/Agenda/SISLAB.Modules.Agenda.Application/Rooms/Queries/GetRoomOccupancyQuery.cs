@@ -19,9 +19,10 @@ namespace SISLAB.Modules.Agenda.Application.Rooms.Queries;
 /// <remarks>
 /// The responsible person's display name is resolved through <c>Identity.Contracts</c>
 /// (<see cref="ILumenUserGateway"/>) — never a cross-schema JOIN into Lumen's store (module isolation, §2).
-/// The unified <see cref="AgendaEntry"/> does not yet carry a room association, so <see cref="RoomOccupancySlot.RoomId"/>
-/// / <see cref="RoomOccupancySlot.RoomName"/> are surfaced as nullable for the Gantt lane and remain
-/// <see langword="null"/> until a room link is added to the aggregate (tracked follow-up).
+/// The room comes from the entry's <see cref="AgendaEntry.RoomId"/> (card [E10.11]); its display name is a
+/// same-schema, same-module <c>LEFT JOIN</c> onto <c>agenda.rooms</c>, so the Gantt can group its lanes by room.
+/// Both stay <see langword="null"/> for an entry that has no room association (a non-RoomBooking never reaches
+/// this query, but a RoomBooking created before a room was picked can still surface with a null lane).
 /// </remarks>
 public sealed record GetRoomOccupancyQuery(DateOnly Date) : IQuery<IReadOnlyList<RoomOccupancySlot>>;
 
@@ -51,8 +52,13 @@ internal sealed class GetRoomOccupancyQueryHandler
             e.end_date_utc    AS enddateutc,
             e.recurrence_rule AS recurrencerule,
             e.excluded_dates  AS excludeddatesjson,
-            e.responsible_id  AS responsibleid
+            e.responsible_id  AS responsibleid,
+            e.room_id         AS roomid,
+            r.name            AS roomname
         FROM agenda.agenda_entries e
+        LEFT JOIN agenda.rooms r
+               ON r.id = e.room_id
+              AND r.company_id = e.company_id
         WHERE e.company_id = @CompanyId
           AND e.activity_type = 'RoomBooking'
           AND e.start_date_utc <= @DayEnd
@@ -142,14 +148,22 @@ internal sealed class GetRoomOccupancyQueryHandler
     private static RoomOccupancySlot ToSlot(
         OccupancyRow row, EntryOccurrence occurrence, IReadOnlyDictionary<Guid, string> responsibleNames)
         => new(
-            RoomId: null,
-            RoomName: null,
+            RoomId: row.RoomId,
+            RoomName: ResolveRoomName(row.RoomId, row.RoomName),
             EntryId: row.Id,
             Title: row.Title,
             StartUtc: occurrence.StartUtc,
             EndUtc: occurrence.EndUtc,
             ResponsibleId: row.ResponsibleId,
             ResponsibleName: responsibleNames.GetValueOrDefault(row.ResponsibleId, string.Empty));
+
+    /// <summary>
+    /// The Gantt lane label for a slot: the joined <paramref name="joinedName"/> when the room row exists,
+    /// otherwise the raw <paramref name="roomId"/> as text so an orphaned/legacy association still renders a
+    /// stable lane instead of a blank one; <see langword="null"/> only when the entry has no room at all.
+    /// </summary>
+    internal static string? ResolveRoomName(Guid? roomId, string? joinedName)
+        => joinedName ?? roomId?.ToString();
 
     private static IReadOnlyList<DateOnly> DeserializeExcludedDates(string? json)
         => string.IsNullOrWhiteSpace(json) ? [] : JsonSerializer.Deserialize<List<DateOnly>>(json) ?? [];
@@ -161,5 +175,7 @@ internal sealed class GetRoomOccupancyQueryHandler
         DateTime EndDateUtc,
         string? RecurrenceRule,
         string? ExcludedDatesJson,
-        Guid ResponsibleId);
+        Guid ResponsibleId,
+        Guid? RoomId,
+        string? RoomName);
 }

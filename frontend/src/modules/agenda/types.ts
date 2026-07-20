@@ -94,6 +94,7 @@ export interface CalendarItem {
   activityType: AgendaActivityType;
   experimentId: string | null;
   experimentName: string | null;
+  roomId: string | null;
   startDateUtc: string;   // ISO 8601 UTC
   endDateUtc: string;     // ISO 8601 UTC
   isAllDay: boolean;
@@ -120,6 +121,7 @@ export interface CreateAgendaEntryRequest {
   isAllDay: boolean;
   activityType: AgendaActivityType;
   experimentId: string | null;
+  roomId: string | null;
   recurrenceRule: string | null;
 }
 

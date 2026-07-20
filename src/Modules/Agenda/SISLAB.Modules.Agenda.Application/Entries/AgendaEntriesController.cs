@@ -72,7 +72,8 @@ public sealed class AgendaEntriesController : SislabControllerBase
         AgendaEntryMutationResult result = await _mediator.SendAsync(
             new CreateAgendaEntryCommand(
                 body.Title, body.Description, body.StartDateUtc, body.EndDateUtc, body.IsAllDay,
-                body.ActivityType, body.ExperimentId, body.RecurrenceRule, ResolveResponsible(), body.Reminders),
+                body.ActivityType, body.ExperimentId, body.RoomId, body.RecurrenceRule,
+                ResolveResponsible(), body.Reminders),
             ct);
 
         // 200 OK even with warnings — conflicts are advisory (card [E10.9] #6), not a block.
@@ -92,7 +93,7 @@ public sealed class AgendaEntriesController : SislabControllerBase
             new UpdateAgendaEntryCommand(
                 id, body.EditScope, body.OccurrenceDate, body.Title, body.Description,
                 body.StartDateUtc, body.EndDateUtc, body.IsAllDay, body.ActivityType,
-                body.ExperimentId, body.RecurrenceRule, body.Reminders),
+                body.ExperimentId, body.RoomId, body.RecurrenceRule, body.Reminders),
             ct);
 
         // 200 OK even with warnings — conflicts are advisory (card [E10.9] #6), not a block.
@@ -150,6 +151,7 @@ public sealed record CreateAgendaEntryRequest(
     bool IsAllDay,
     AgendaActivityType ActivityType,
     Guid? ExperimentId,
+    Guid? RoomId,
     string? RecurrenceRule,
     IReadOnlyList<ReminderInput>? Reminders = null);
 
@@ -170,5 +172,6 @@ public sealed record UpdateAgendaEntryRequest(
     bool IsAllDay,
     AgendaActivityType ActivityType,
     Guid? ExperimentId,
+    Guid? RoomId,
     string? RecurrenceRule,
     IReadOnlyList<ReminderInput>? Reminders = null);

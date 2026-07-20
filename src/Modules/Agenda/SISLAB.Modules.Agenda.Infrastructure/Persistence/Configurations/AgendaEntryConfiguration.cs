@@ -28,6 +28,9 @@ internal sealed class AgendaEntryConfiguration : IEntityTypeConfiguration<Agenda
         builder.Property(e => e.IsAllDay).IsRequired();
         builder.Property(e => e.ActivityType).IsRequired().HasConversion<string>().HasMaxLength(30);
         builder.Property(e => e.ExperimentId);
+        // Room association (card [E10.11]): a by-value id, no FK across the aggregate boundary. Nullable — set
+        // only for a RoomBooking entry.
+        builder.Property(e => e.RoomId).HasColumnName("room_id");
         builder.Property(e => e.ResponsibleId).IsRequired();
         builder.Property(e => e.CreatedAtUtc).IsRequired();
 
