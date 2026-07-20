@@ -99,6 +99,7 @@ export interface CalendarItem {
   endDateUtc: string;     // ISO 8601 UTC
   isAllDay: boolean;
   isRecurring: boolean;
+  recurrenceRule: string | null; // raw RFC 5545 RRULE, null for a one-off — pre-populates the edit form
   occurrenceDate: string; // 'YYYY-MM-DD' — the occurrence's EXDATE key
   responsibleId: string;
 }
