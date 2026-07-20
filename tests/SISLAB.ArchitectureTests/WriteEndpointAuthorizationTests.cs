@@ -40,6 +40,7 @@ public sealed class WriteEndpointAuthorizationTests
         typeof(Modules.Notifications.Application.NotificationsModule).Assembly,
         typeof(Modules.Identity.Application.IdentityModule).Assembly,
         typeof(Modules.Experiments.Application.ExperimentsModule).Assembly,
+        typeof(Modules.Agenda.Application.AgendaModule).Assembly,
     ];
 
     /// <summary>The MVC verb attributes that denote a state-changing action.</summary>
