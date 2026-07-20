@@ -71,3 +71,80 @@ export interface PresentationListItem {
   reminderSent: boolean;
   notes: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Improved calendar — unified AgendaEntry model (cards [E10.3]/[E10.4]/[E10.5-7])
+// ---------------------------------------------------------------------------
+
+/** Kind of activity an agenda entry represents — drives its colour and the type filter. */
+export type AgendaActivityType =
+  | 'RoomBooking'
+  | 'Experiment'
+  | 'Bioterium'
+  | 'Presentation'
+  | 'Other';
+
+/** How editing a recurring entry should scope (Google-Calendar semantics). */
+export type EditScope = 'OnlyThis' | 'ThisAndFollowing' | 'AllOccurrences';
+
+/** A single materialised calendar occurrence returned by GET /api/agenda/calendar. */
+export interface CalendarItem {
+  id: string;
+  title: string;
+  activityType: AgendaActivityType;
+  experimentId: string | null;
+  experimentName: string | null;
+  startDateUtc: string;   // ISO 8601 UTC
+  endDateUtc: string;     // ISO 8601 UTC
+  isAllDay: boolean;
+  isRecurring: boolean;
+  occurrenceDate: string; // 'YYYY-MM-DD' — the occurrence's EXDATE key
+  responsibleId: string;
+}
+
+/** Advisory scheduling warnings a create/update may return (never blocks the write). */
+export type AgendaConflictWarning = 'conflict_person' | 'conflict_room';
+
+/** Result of creating/updating an entry: the id to display plus advisory conflict warnings. */
+export interface AgendaEntryMutationResult {
+  entryId: string;
+  warnings: AgendaConflictWarning[];
+}
+
+/** Body of POST /api/agenda/entries. `recurrenceRule` is an RFC 5545 RRULE or null for a one-off. */
+export interface CreateAgendaEntryRequest {
+  title: string;
+  description: string | null;
+  startDateUtc: string;
+  endDateUtc: string;
+  isAllDay: boolean;
+  activityType: AgendaActivityType;
+  experimentId: string | null;
+  recurrenceRule: string | null;
+}
+
+/** Body of PUT /api/agenda/entries/{id}. Carries the Google-Calendar edit scope. */
+export interface UpdateAgendaEntryRequest {
+  editScope: EditScope;
+  occurrenceDate: string | null;
+  title: string;
+  description: string | null;
+  startDateUtc: string;
+  endDateUtc: string;
+  isAllDay: boolean;
+  activityType: AgendaActivityType;
+  experimentId: string | null;
+  recurrenceRule: string | null;
+}
+
+/** A single occupied slot on the room-occupancy Gantt (card [E10.11]). */
+export interface RoomOccupancySlot {
+  roomId: string | null;
+  roomName: string | null;
+  entryId: string;
+  title: string;
+  startUtc: string;
+  endUtc: string;
+  responsibleId: string;
+  responsibleName: string;
+}

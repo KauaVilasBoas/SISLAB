@@ -1,4 +1,11 @@
-import type { AgendaActivity, AssignmentStatus, PresentationStatus, PresentationType, RoomType } from './types';
+import type {
+  AgendaActivity,
+  AgendaActivityType,
+  AssignmentStatus,
+  PresentationStatus,
+  PresentationType,
+  RoomType,
+} from './types';
 
 export const ROOM_TYPE_LABEL: Record<RoomType, string> = {
   Lab: 'Laboratório',
@@ -51,6 +58,58 @@ export const PRESENTATION_STATUS_VARIANT: Record<PresentationStatus, 'default' |
   Scheduled: 'secondary',
   Done: 'default',
   Cancelled: 'outline',
+};
+
+// ---------------------------------------------------------------------------
+// Improved calendar — AgendaActivityType presentation (cards [E10.5-7])
+// ---------------------------------------------------------------------------
+
+export const ACTIVITY_TYPE_LABEL: Record<AgendaActivityType, string> = {
+  RoomBooking: 'Reserva de sala',
+  Experiment: 'Experimento',
+  Bioterium: 'Biotério',
+  Presentation: 'Apresentação',
+  Other: 'Outro',
+};
+
+/**
+ * Per-activity-type colour tokens for the calendar event chips. Each entry keeps the accent, a soft
+ * background, a border and a solid dot so the same palette drives both the event block and the legend.
+ */
+export const ACTIVITY_TYPE_COLOR: Record<
+  AgendaActivityType,
+  { bg: string; border: string; text: string; dot: string }
+> = {
+  RoomBooking: {
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/40',
+    text: 'text-blue-700 dark:text-blue-300',
+    dot: 'bg-blue-500',
+  },
+  Experiment: {
+    bg: 'bg-emerald-500/10',
+    border: 'border-emerald-500/40',
+    text: 'text-emerald-700 dark:text-emerald-300',
+    dot: 'bg-emerald-500',
+  },
+  Bioterium: {
+    bg: 'bg-amber-500/10',
+    border: 'border-amber-500/40',
+    text: 'text-amber-700 dark:text-amber-300',
+    dot: 'bg-amber-500',
+  },
+  Presentation: {
+    bg: 'bg-purple-500/10',
+    border: 'border-purple-500/40',
+    text: 'text-purple-700 dark:text-purple-300',
+    dot: 'bg-purple-500',
+  },
+  Other: {
+    bg: 'bg-slate-500/10',
+    border: 'border-slate-500/40',
+    text: 'text-slate-700 dark:text-slate-300',
+    dot: 'bg-slate-500',
+  },
 };
 
 export function formatDate(isoDate: string): string {

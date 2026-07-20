@@ -202,6 +202,16 @@ export const Endpoints = {
     presentations: '/api/presentations',
     reschedulePresentation: (id: string) => `/api/presentations/${id}/reschedule`,
     cancelPresentation: (id: string) => `/api/presentations/${id}`,
+
+    /** Improved calendar — unified AgendaEntry model (cards [E10.3]/[E10.4]/[E10.11]). */
+    entriesCalendar: '/api/agenda/calendar',
+    entries: '/api/agenda/entries',
+    entry: (id: string) => `/api/agenda/entries/${id}`,
+    cancelOccurrence: (id: string, date: string) =>
+      `/api/agenda/entries/${id}/occurrences/${date}`,
+    roomOccupancy: '/api/agenda/rooms/occupancy',
+    /** iCal feed subscription token (card [E10.10]). */
+    icalSubscribe: '/api/agenda/ical/subscribe',
   },
 
   audit: {
