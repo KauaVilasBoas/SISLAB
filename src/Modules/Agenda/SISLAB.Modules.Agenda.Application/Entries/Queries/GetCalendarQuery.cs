@@ -33,7 +33,8 @@ public sealed record CalendarItem(
     bool IsRecurring,
     string? RecurrenceRule,
     DateOnly OccurrenceDate,
-    Guid ResponsibleId);
+    Guid ResponsibleId,
+    string? Color);
 
 internal sealed class GetCalendarQueryHandler
     : BaseDataAccess, IQueryHandler<GetCalendarQuery, IReadOnlyList<CalendarItem>>
@@ -56,6 +57,7 @@ internal sealed class GetCalendarQueryHandler
             e.room_id           AS roomid,
             e.recurrence_rule   AS recurrencerule,
             e.responsible_id    AS responsibleid,
+            e.color             AS color,
             e.excluded_dates    AS excludeddatesjson
         FROM agenda.agenda_entries e
         WHERE e.company_id = @CompanyId
@@ -175,7 +177,10 @@ internal sealed class GetCalendarQueryHandler
             // Surface the raw RRULE so the edit form can pre-populate the recurrence editor (card [E10.6]).
             RecurrenceRule: row.RecurrenceRule,
             OccurrenceDate: occurrence.OccurrenceDate,
-            ResponsibleId: row.ResponsibleId);
+            ResponsibleId: row.ResponsibleId,
+            // The operator's per-entry colour override (card [E10.12]); null lets the front-end fall back to the
+            // automatic activity-type colour.
+            Color: row.Color);
     }
 
     private static IReadOnlyList<DateOnly> DeserializeExcludedDates(string? json)
@@ -196,5 +201,6 @@ internal sealed class GetCalendarQueryHandler
         Guid? RoomId,
         string? RecurrenceRule,
         Guid ResponsibleId,
+        string? Color,
         string? ExcludedDatesJson);
 }

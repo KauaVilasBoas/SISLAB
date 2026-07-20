@@ -42,6 +42,13 @@ function EventChip({
   compact?: boolean;
 }) {
   const color = ACTIVITY_TYPE_COLOR[item.activityType];
+  // A per-entry colour override (card [E10.12]) wins over the automatic activity-type palette: render a soft
+  // tinted chip with the chosen hue via inline styles (Tailwind cannot take a runtime hex). When no override is
+  // set, fall back to the activity-type utility classes.
+  const custom = item.color;
+  const customStyle = custom
+    ? { backgroundColor: `${custom}1a`, borderColor: `${custom}66`, color: custom }
+    : undefined;
   return (
     <button
       type="button"
@@ -51,13 +58,15 @@ function EventChip({
       }}
       className={cn(
         'flex w-full items-center gap-1 rounded border px-1.5 py-1 text-left text-xs transition-colors',
-        color.bg,
-        color.border,
-        color.text,
+        !custom && [color.bg, color.border, color.text],
         selected && 'ring-2 ring-ring',
       )}
+      style={customStyle}
     >
-      <span className={cn('size-2 shrink-0 rounded-full', color.dot)} />
+      <span
+        className={cn('size-2 shrink-0 rounded-full', !custom && color.dot)}
+        style={custom ? { backgroundColor: custom } : undefined}
+      />
       {!item.isAllDay && !compact && (
         <span className="shrink-0 tabular-nums opacity-80">{localTime(item.startDateUtc)}</span>
       )}

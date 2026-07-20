@@ -102,6 +102,7 @@ export interface CalendarItem {
   recurrenceRule: string | null; // raw RFC 5545 RRULE, null for a one-off — pre-populates the edit form
   occurrenceDate: string; // 'YYYY-MM-DD' — the occurrence's EXDATE key
   responsibleId: string;
+  color: string | null; // per-entry '#rrggbb' override, or null to use the automatic activity-type colour
 }
 
 /** Advisory scheduling warnings a create/update may return (never blocks the write). */
@@ -124,6 +125,7 @@ export interface CreateAgendaEntryRequest {
   experimentId: string | null;
   roomId: string | null;
   recurrenceRule: string | null;
+  color: string | null;
 }
 
 /** Body of PUT /api/agenda/entries/{id}. Carries the Google-Calendar edit scope. */
@@ -137,7 +139,9 @@ export interface UpdateAgendaEntryRequest {
   isAllDay: boolean;
   activityType: AgendaActivityType;
   experimentId: string | null;
+  roomId: string | null;
   recurrenceRule: string | null;
+  color: string | null;
 }
 
 /** A single occupied slot on the room-occupancy Gantt (card [E10.11]). */
@@ -150,4 +154,5 @@ export interface RoomOccupancySlot {
   endUtc: string;
   responsibleId: string;
   responsibleName: string;
+  color: string | null; // per-entry '#rrggbb' override, or null to use the lane (per-room) colour
 }

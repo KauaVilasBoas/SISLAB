@@ -73,7 +73,7 @@ public sealed class AgendaEntriesController : SislabControllerBase
             new CreateAgendaEntryCommand(
                 body.Title, body.Description, body.StartDateUtc, body.EndDateUtc, body.IsAllDay,
                 body.ActivityType, body.ExperimentId, body.RoomId, body.RecurrenceRule,
-                ResolveResponsible(), body.Reminders),
+                ResolveResponsible(), body.Reminders, body.Color),
             ct);
 
         // 200 OK even with warnings — conflicts are advisory (card [E10.9] #6), not a block.
@@ -93,7 +93,7 @@ public sealed class AgendaEntriesController : SislabControllerBase
             new UpdateAgendaEntryCommand(
                 id, body.EditScope, body.OccurrenceDate, body.Title, body.Description,
                 body.StartDateUtc, body.EndDateUtc, body.IsAllDay, body.ActivityType,
-                body.ExperimentId, body.RoomId, body.RecurrenceRule, body.Reminders),
+                body.ExperimentId, body.RoomId, body.RecurrenceRule, body.Reminders, body.Color),
             ct);
 
         // 200 OK even with warnings — conflicts are advisory (card [E10.9] #6), not a block.
@@ -153,7 +153,8 @@ public sealed record CreateAgendaEntryRequest(
     Guid? ExperimentId,
     Guid? RoomId,
     string? RecurrenceRule,
-    IReadOnlyList<ReminderInput>? Reminders = null);
+    IReadOnlyList<ReminderInput>? Reminders = null,
+    string? Color = null);
 
 /// <summary>
 /// Request body for updating a calendar entry (card [E10.3] #3). <see cref="OccurrenceDate"/> is required for a
@@ -174,4 +175,5 @@ public sealed record UpdateAgendaEntryRequest(
     Guid? ExperimentId,
     Guid? RoomId,
     string? RecurrenceRule,
-    IReadOnlyList<ReminderInput>? Reminders = null);
+    IReadOnlyList<ReminderInput>? Reminders = null,
+    string? Color = null);

@@ -112,6 +112,21 @@ export const ACTIVITY_TYPE_COLOR: Record<
   },
 };
 
+/**
+ * The Google-Calendar-style swatch palette for the per-entry colour picker (card [E10.12]). Six rows of five
+ * hues spanning the full wheel; the operator may pick any of these as an entry's `#rrggbb` override, or clear it
+ * back to the automatic activity-type colour. Values are lowercase hex to match the backend's normalisation so
+ * the "currently selected" swatch compares equal to a stored colour.
+ */
+export const ENTRY_COLOR_PALETTE = [
+  '#d50000', '#e67c73', '#f4511e', '#f6bf26', '#33b679',
+  '#0b8043', '#039be5', '#3f51b5', '#7986cb', '#8e24aa',
+  '#616161', '#a79b8e', '#795548', '#e91e63', '#ad1457',
+  '#d81b60', '#c0392b', '#e53935', '#fb8c00', '#f09300',
+  '#f57f17', '#33691e', '#1b5e20', '#004d40', '#006064',
+  '#01579b', '#0288d1', '#1565c0', '#283593', '#4a148c',
+] as const;
+
 export function formatDate(isoDate: string): string {
   const [y, m, d] = isoDate.split('-');
   return `${d}/${m}/${y}`;

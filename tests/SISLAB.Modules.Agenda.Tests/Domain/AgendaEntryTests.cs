@@ -234,6 +234,53 @@ public sealed class AgendaEntryTests
     }
 
     [Fact]
+    public void Create_WithColor_NormalisesToLowercase()
+    {
+        AgendaEntry entry = AgendaEntry.Create(
+            Company, "x", null, Start, End, false, AgendaActivityType.Other, null, null, null, Responsible, Start,
+            color: "#D50000");
+
+        Assert.Equal("#d50000", entry.Color);
+    }
+
+    [Fact]
+    public void Create_WithoutColor_LeavesColorNull()
+        => Assert.Null(CreateSimple().Color);
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Create_WithBlankColor_CollapsesToNull(string color)
+    {
+        AgendaEntry entry = AgendaEntry.Create(
+            Company, "x", null, Start, End, false, AgendaActivityType.Other, null, null, null, Responsible, Start,
+            color: color);
+
+        Assert.Null(entry.Color);
+    }
+
+    [Theory]
+    [InlineData("d50000")]     // missing '#'
+    [InlineData("#d500")]      // too short
+    [InlineData("#d500000")]   // too long
+    [InlineData("#gggggg")]    // non-hex digits
+    public void Create_WithMalformedColor_Throws(string color)
+        => Assert.Throws<ArgumentException>(() => AgendaEntry.Create(
+            Company, "x", null, Start, End, false, AgendaActivityType.Other, null, null, null, Responsible, Start,
+            color: color));
+
+    [Fact]
+    public void Reschedule_UpdatesColor()
+    {
+        AgendaEntry entry = CreateSimple();
+
+        entry.Reschedule("Standup", null, Start, End, false, AgendaActivityType.Other, null, null, null,
+            color: "#33b679");
+
+        Assert.Equal("#33b679", entry.Color);
+    }
+
+    [Fact]
     public void Reallocate_ChangesResponsibleAndRaisesUpdatedEvent()
     {
         AgendaEntry entry = CreateSimple();
