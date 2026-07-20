@@ -31,6 +31,7 @@ public sealed record CalendarItem(
     DateTime EndDateUtc,
     bool IsAllDay,
     bool IsRecurring,
+    string? RecurrenceRule,
     DateOnly OccurrenceDate,
     Guid ResponsibleId);
 
@@ -171,6 +172,8 @@ internal sealed class GetCalendarQueryHandler
             EndDateUtc: occurrence.EndUtc,
             IsAllDay: row.IsAllDay,
             IsRecurring: row.RecurrenceRule is not null,
+            // Surface the raw RRULE so the edit form can pre-populate the recurrence editor (card [E10.6]).
+            RecurrenceRule: row.RecurrenceRule,
             OccurrenceDate: occurrence.OccurrenceDate,
             ResponsibleId: row.ResponsibleId);
     }

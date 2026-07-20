@@ -328,7 +328,9 @@ function buildInitialState(editing: CalendarItem | null, defaultDate: string) {
       experimentId: editing.experimentId,
       experimentLabel: editing.experimentName,
       roomId: editing.roomId,
-      recurrenceRule: editing.isRecurring ? null : null,
+      // Pre-populate the recurrence editor with the series' raw RRULE so editing a recurring entry no longer
+      // opens with an empty recurrence field (the RecurrenceEditor parses this string into its preset/custom UI).
+      recurrenceRule: editing.recurrenceRule,
     };
   }
 
