@@ -6,6 +6,7 @@ using SISLAB.Infrastructure.Messaging.Behaviors;
 using SISLAB.Infrastructure.Outbox;
 using SISLAB.Infrastructure.Persistence;
 using SISLAB.Modules.Agenda.Domain.Bioterium;
+using SISLAB.Modules.Agenda.Domain.Entries;
 using SISLAB.Modules.Agenda.Domain.Presentations;
 using SISLAB.Modules.Agenda.Domain.Rooms;
 using SISLAB.Modules.Agenda.Infrastructure.Persistence;
@@ -36,6 +37,7 @@ public static class AgendaModuleServiceExtensions
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<IBioteriumRepository, BioteriumRepository>();
         services.AddScoped<IPresentationRepository, PresentationRepository>();
+        services.AddScoped<IAgendaEntryRepository, AgendaEntryRepository>();
 
         services.AddScoped<IOutboxDbContext>(sp => sp.GetRequiredService<AgendaDbContext>());
         services.AddScoped<OutboxWriter>();
