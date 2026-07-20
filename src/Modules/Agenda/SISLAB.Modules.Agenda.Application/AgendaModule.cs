@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SISLAB.Infrastructure.DependencyInjection;
 using SISLAB.Infrastructure.Modules;
+using SISLAB.Modules.Agenda.Application.Entries.Conflicts;
 using SISLAB.Modules.Agenda.Application.Entries.Recurrence;
 using SISLAB.Modules.Agenda.Infrastructure.DependencyInjection;
 
@@ -30,6 +31,9 @@ public sealed class AgendaModule : IModule
         // Stateless RFC 5545 recurrence expander (Ical.Net), shared by the calendar, conflict and occupancy
         // read paths. Singleton — it holds no state and creates a fresh CalendarEvent per call.
         services.AddSingleton<RecurrenceExpander>();
+
+        // Advisory scheduling-conflict detector (card [E10.9] #6). Scoped — it reads the active tenant.
+        services.AddScoped<IAgendaConflictChecker, AgendaConflictChecker>();
 
         services.AddAgendaModule(configuration);
     }

@@ -66,16 +66,17 @@ public sealed class AgendaEntriesController : SislabControllerBase
     /// <summary>Creates a calendar entry (one-off or the head of a recurring series).</summary>
     [HttpPost]
     [RequirePermission]
-    [ProducesResponseType(typeof(ApiResult<Guid>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult<AgendaEntryMutationResult>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Create([FromBody] CreateAgendaEntryRequest body, CancellationToken ct)
     {
-        Guid id = await _mediator.SendAsync(
+        AgendaEntryMutationResult result = await _mediator.SendAsync(
             new CreateAgendaEntryCommand(
                 body.Title, body.Description, body.StartDateUtc, body.EndDateUtc, body.IsAllDay,
                 body.ActivityType, body.ExperimentId, body.RecurrenceRule, ResolveResponsible(), body.Reminders),
             ct);
 
-        return Ok(new ApiResult<Guid>(true, "Agenda entry created.", id));
+        // 200 OK even with warnings — conflicts are advisory (card [E10.9] #6), not a block.
+        return Ok(new ApiResult<AgendaEntryMutationResult>(true, "Agenda entry created.", result));
     }
 
     /// <summary>
@@ -84,17 +85,18 @@ public sealed class AgendaEntriesController : SislabControllerBase
     /// </summary>
     [HttpPut("{id:guid}")]
     [RequirePermission]
-    [ProducesResponseType(typeof(ApiResult<Guid>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult<AgendaEntryMutationResult>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateAgendaEntryRequest body, CancellationToken ct)
     {
-        Guid resultId = await _mediator.SendAsync(
+        AgendaEntryMutationResult result = await _mediator.SendAsync(
             new UpdateAgendaEntryCommand(
                 id, body.EditScope, body.OccurrenceDate, body.Title, body.Description,
                 body.StartDateUtc, body.EndDateUtc, body.IsAllDay, body.ActivityType,
                 body.ExperimentId, body.RecurrenceRule, body.Reminders),
             ct);
 
-        return Ok(new ApiResult<Guid>(true, "Agenda entry updated.", resultId));
+        // 200 OK even with warnings — conflicts are advisory (card [E10.9] #6), not a block.
+        return Ok(new ApiResult<AgendaEntryMutationResult>(true, "Agenda entry updated.", result));
     }
 
     /// <summary>Cancels a single occurrence of a recurring entry (adds an RFC 5545 EXDATE).</summary>
