@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SISLAB.Infrastructure.AspNetCore;
 using SISLAB.Modules.Agenda.Application.Entries.Commands;
+using SISLAB.Modules.Agenda.Application.Entries.Queries;
 using SISLAB.Modules.Agenda.Domain.Entries;
 using SISLAB.SharedKernel.Exceptions;
 using SISLAB.SharedKernel.Http;
@@ -35,6 +36,31 @@ public sealed class AgendaEntriesController : SislabControllerBase
     {
         _mediator = mediator;
         _userIdAccessor = userIdAccessor;
+    }
+
+    /// <summary>
+    /// Returns every occurrence in the date range for the calendar view (card [E10.4] #4): one-off entries plus
+    /// each expanded instance of a recurring series. Filters are opt-in; <c>onlyMine</c> restricts to the
+    /// caller's own entries.
+    /// </summary>
+    [HttpGet("/api/agenda/calendar")]
+    [ProducesResponseType(typeof(ApiResult<IReadOnlyList<CalendarItem>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCalendar(
+        [FromQuery] DateOnly start,
+        [FromQuery] DateOnly end,
+        [FromQuery] AgendaActivityType? activityType,
+        [FromQuery] Guid? responsibleId,
+        [FromQuery] Guid? experimentId,
+        [FromQuery] bool onlyMine,
+        CancellationToken ct)
+    {
+        var filters = new CalendarFilters(
+            activityType, responsibleId, experimentId, onlyMine, CurrentUserIdOrNull());
+
+        IReadOnlyList<CalendarItem> items = await _mediator.SendAsync(
+            new GetCalendarQuery(start, end, filters), ct);
+
+        return Ok(new ApiResult<IReadOnlyList<CalendarItem>>(true, "Calendar retrieved.", items));
     }
 
     /// <summary>Creates a calendar entry (one-off or the head of a recurring series).</summary>
@@ -101,6 +127,13 @@ public sealed class AgendaEntriesController : SislabControllerBase
 
         return userId;
     }
+
+    /// <summary>
+    /// The authenticated user's id, or <see langword="null"/> when it cannot be resolved. Used only to back the
+    /// opt-in <c>onlyMine</c> filter, so a read need not hard-fail when the principal is thin.
+    /// </summary>
+    private Guid? CurrentUserIdOrNull()
+        => _userIdAccessor.TryGetUserId(User, out Guid userId) && userId != Guid.Empty ? userId : null;
 }
 
 /// <summary>Request body for creating a calendar entry (card [E10.3] #3).</summary>
