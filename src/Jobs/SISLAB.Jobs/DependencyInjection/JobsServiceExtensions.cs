@@ -5,6 +5,7 @@ using SISLAB.Infrastructure.Messaging;
 using SISLAB.Infrastructure.Outbox;
 using SISLAB.Jobs.Configuration;
 using SISLAB.Jobs.Jobs;
+using SISLAB.Modules.Agenda.Application.Entries.Recurrence;
 using SISLAB.SharedKernel.Messaging;
 
 namespace SISLAB.Jobs.DependencyInjection;
@@ -45,6 +46,11 @@ public static class JobsServiceExtensions
         //    because it is host/background infrastructure, not a module concern.
         services.TryAddScoped<OutboxDispatcher>();
 
+        // The RFC 5545 recurrence expander backing AgendaReminderJob (E10.8 #5). It normally comes from the
+        // Agenda module registration, but TryAdd here keeps the Jobs host self-contained: the worker can compose
+        // its own graph (and be tested in isolation) without depending on module registration order.
+        services.TryAddSingleton<RecurrenceExpander>();
+
         // 4. Tenant-override seam for the per-company alert scans (Fork #1 → A). It is contributed by
         //    AddSislabInfrastructure (ITenantContextOverride → TenantContextOverride, Scoped) and read by
         //    the effective ITenantContext (OverridableTenantContext, composed in the Identity module). This
@@ -65,6 +71,7 @@ public static class JobsServiceExtensions
         services.AddHostedService<ControlledComplianceAlertJob>();
         services.AddHostedService<PresentationReminderJob>();
         services.AddHostedService<BioteriumReminderJob>();
+        services.AddHostedService<AgendaReminderJob>();
 
         return services;
     }

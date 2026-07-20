@@ -20,7 +20,11 @@ public sealed record CreateAgendaEntryCommand(
     AgendaActivityType ActivityType,
     Guid? ExperimentId,
     string? RecurrenceRule,
-    Guid ResponsibleId) : ICommand<Guid>;
+    Guid ResponsibleId,
+    IReadOnlyList<ReminderInput>? Reminders = null) : ICommand<Guid>;
+
+/// <summary>A reminder to configure on the entry (card [E10.8] #5): fire this many minutes before each occurrence.</summary>
+public sealed record ReminderInput(int MinutesBefore, ReminderNotificationType NotificationType);
 
 internal sealed class CreateAgendaEntryCommandHandler : ICommandHandler<CreateAgendaEntryCommand, Guid>
 {
@@ -53,9 +57,13 @@ internal sealed class CreateAgendaEntryCommandHandler : ICommandHandler<CreateAg
             command.ExperimentId,
             recurrence,
             command.ResponsibleId,
-            _clock.UtcNow);
+            _clock.UtcNow,
+            command.Reminders?.Select(ToReminder));
 
         _repository.Add(entry);
         return Task.FromResult(entry.Id);
     }
+
+    internal static EntryReminder ToReminder(ReminderInput input)
+        => EntryReminder.Create(input.MinutesBefore, input.NotificationType);
 }

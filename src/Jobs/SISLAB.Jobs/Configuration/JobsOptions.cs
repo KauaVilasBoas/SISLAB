@@ -36,6 +36,9 @@ public sealed class JobsOptions
 
     /// <summary>Settings for the biotério weekly reminder job (E6 #83).</summary>
     public BioteriumReminderOptions BioteriumReminder { get; init; } = new();
+
+    /// <summary>Settings for the configurable calendar-entry reminder job (E10.8 #5).</summary>
+    public AgendaReminderOptions AgendaReminder { get; init; } = new();
 }
 
 /// <summary>
@@ -108,6 +111,24 @@ public sealed class BioteriumReminderOptions
 {
     /// <summary>How often the job runs. Default: daily (it self-limits to Mondays).</summary>
     public TimeSpan Interval { get; init; } = TimeSpan.FromDays(1);
+}
+
+/// <summary>
+/// Settings for the configurable calendar-entry reminder job (card [E10.8] #5). The job runs frequently and
+/// fires each entry's reminders <c>MinutesBefore</c> the occurrence start. <see cref="Interval"/> doubles as the
+/// firing tolerance: a reminder whose fire-time fell within the last interval is raised now, so no reminder is
+/// missed between ticks and none double-fires (backed by an occurrence-bucketed dedupe key).
+/// </summary>
+public sealed class AgendaReminderOptions
+{
+    /// <summary>How often the reminder scan runs (and the fire-time tolerance window). Default: 5 minutes.</summary>
+    public TimeSpan Interval { get; init; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// How far ahead to expand recurring series when hunting for upcoming occurrences. Bounds the expansion cost;
+    /// must exceed the largest configured reminder lead time. Default: 30 days.
+    /// </summary>
+    public TimeSpan LookAhead { get; init; } = TimeSpan.FromDays(30);
 }
 
 /// <summary>

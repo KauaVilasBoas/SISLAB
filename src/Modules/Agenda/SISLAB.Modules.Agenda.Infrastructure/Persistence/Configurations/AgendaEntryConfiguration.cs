@@ -56,6 +56,26 @@ internal sealed class AgendaEntryConfiguration : IEntityTypeConfiguration<Agenda
                     dates => dates.Aggregate(0, (hash, date) => HashCode.Combine(hash, date.GetHashCode())),
                     dates => dates.ToList()));
 
+        // Reminders (card [E10.8] #5): an entry-owned collection in its own table, always loaded/saved with the
+        // parent. Owned (not a separate aggregate) because a reminder has no lifecycle outside its entry. Mapped
+        // through the read-only Reminders navigation with field access, so EF writes the backing _reminders list
+        // and no shadow duplicate navigation is created.
+        builder.OwnsMany(e => e.Reminders, reminders =>
+        {
+            reminders.ToTable("entry_reminders");
+            reminders.WithOwner().HasForeignKey("entry_id");
+            reminders.HasKey(r => r.Id);
+            reminders.Property(r => r.Id).ValueGeneratedNever().HasColumnName("id");
+            reminders.Property(r => r.MinutesBefore).IsRequired().HasColumnName("minutes_before");
+            reminders.Property(r => r.NotificationType)
+                .IsRequired().HasConversion<string>().HasMaxLength(20).HasColumnName("notification_type");
+
+            reminders.HasIndex("entry_id").HasDatabaseName("ix_entry_reminders_entry_id");
+        });
+        builder.Navigation(e => e.Reminders)
+            .HasField("_reminders")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
         builder.HasIndex(e => new { e.CompanyId, e.StartDateUtc })
             .HasDatabaseName("ix_agenda_entries_company_start");
         builder.HasIndex(e => new { e.CompanyId, e.ActivityType })

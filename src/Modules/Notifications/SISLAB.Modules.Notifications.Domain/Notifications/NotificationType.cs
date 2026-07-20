@@ -24,4 +24,7 @@ public enum NotificationType
 
     /// <summary>A biotério cage-cleaning assignment is due this week (job [E6] #83).</summary>
     BioteriumReminder = 6,
+
+    /// <summary>A calendar entry occurrence is approaching its configured reminder lead time (job [E10.8] #5).</summary>
+    AgendaReminder = 7,
 }

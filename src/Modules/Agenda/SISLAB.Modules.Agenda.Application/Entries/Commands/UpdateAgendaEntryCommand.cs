@@ -28,7 +28,8 @@ public sealed record UpdateAgendaEntryCommand(
     bool IsAllDay,
     AgendaActivityType ActivityType,
     Guid? ExperimentId,
-    string? RecurrenceRule) : ICommand<Guid>;
+    string? RecurrenceRule,
+    IReadOnlyList<ReminderInput>? Reminders = null) : ICommand<Guid>;
 
 internal sealed class UpdateAgendaEntryCommandHandler : ICommandHandler<UpdateAgendaEntryCommand, Guid>
 {
@@ -59,6 +60,10 @@ internal sealed class UpdateAgendaEntryCommandHandler : ICommandHandler<UpdateAg
             entry.Reschedule(
                 command.Title, command.Description, command.StartDateUtc, command.EndDateUtc,
                 command.IsAllDay, command.ActivityType, command.ExperimentId, recurrence);
+
+            if (command.Reminders is not null)
+                entry.SetReminders(command.Reminders.Select(CreateAgendaEntryCommandHandler.ToReminder));
+
             return entry.Id;
         }
 
