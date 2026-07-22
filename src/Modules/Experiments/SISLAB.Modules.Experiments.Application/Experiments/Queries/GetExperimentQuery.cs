@@ -29,18 +29,21 @@ public sealed record ExperimentDetail(
     Guid? CompoundPartnerId,
     DateTime CreatedAtUtc,
     string CreatedBy,
+    Guid? ResponsibleUserId,
     IReadOnlyList<ExperimentStepDetail> Steps,
     IReadOnlyList<PlateWellDetail> Wells,
     ExperimentCalculationDetail? Calculation);
 
 /// <summary>A step in the experiment's flow, as shown on the detail page.</summary>
 public sealed record ExperimentStepDetail(
+    Guid Id,
     int Order,
     string Kind,
     string Title,
     string? PerformedBy,
     DateTime? PerformedAtUtc,
-    string? Notes);
+    string? Notes,
+    IReadOnlyList<Guid> ResponsibleUserIds);
 
 /// <summary>A designed well on the detail page, with its optional reading.</summary>
 public sealed record PlateWellDetail(
@@ -72,6 +75,7 @@ internal sealed class GetExperimentQueryHandler
             e.compound_partner_id  AS compoundpartnerid,
             e.created_at_utc       AS createdatutc,
             e.created_by           AS createdby,
+            e.responsible_user_id  AS responsibleuserid,
             e.formula_name         AS formulaname,
             e.formula_expression   AS formulaexpression,
             e.formula_applied_at_utc AS appliedatutc,
@@ -84,6 +88,7 @@ internal sealed class GetExperimentQueryHandler
     private const string StepsSql =
         """
         SELECT
+            s.id,
             s.step_order         AS order,
             s.kind,
             s.title,
@@ -96,6 +101,22 @@ internal sealed class GetExperimentQueryHandler
         WHERE e.company_id = @CompanyId
           AND s.experiment_id = @ExperimentId
         ORDER BY s.step_order ASC;
+        """;
+
+    // Step responsibles (card [E11]) for this experiment, scoped through the tenant-checked experiment. One row
+    // per (step, user); the handler groups them by step_id onto each step.
+    private const string StepResponsiblesSql =
+        """
+        SELECT
+            r.step_id  AS stepid,
+            r.user_id  AS userid
+        FROM experiments.experiment_step_responsibles AS r
+        INNER JOIN experiments.experiment_steps AS s
+            ON s.id = r.step_id
+        INNER JOIN experiments.experiments AS e
+            ON e.id = s.experiment_id
+        WHERE e.company_id = @CompanyId
+          AND s.experiment_id = @ExperimentId;
         """;
 
     private const string WellsSql =
@@ -135,8 +156,26 @@ internal sealed class GetExperimentQueryHandler
             new CommandDefinition(HeaderSql, parameters, cancellationToken: cancellationToken))
             ?? throw new NotFoundException($"Experiment '{request.ExperimentId}' was not found.");
 
-        IReadOnlyList<ExperimentStepDetail> steps = (await connection.QueryAsync<ExperimentStepDetail>(
+        IReadOnlyList<ExperimentStepRow> stepRows = (await connection.QueryAsync<ExperimentStepRow>(
             new CommandDefinition(StepsSql, parameters, cancellationToken: cancellationToken))).AsList();
+
+        IReadOnlyList<StepResponsibleRow> responsibleRows = (await connection.QueryAsync<StepResponsibleRow>(
+            new CommandDefinition(StepResponsiblesSql, parameters, cancellationToken: cancellationToken))).AsList();
+
+        ILookup<Guid, Guid> responsiblesByStep =
+            responsibleRows.ToLookup(row => row.StepId, row => row.UserId);
+
+        IReadOnlyList<ExperimentStepDetail> steps = stepRows
+            .Select(step => new ExperimentStepDetail(
+                step.Id,
+                step.Order,
+                step.Kind,
+                step.Title,
+                step.PerformedBy,
+                step.PerformedAtUtc,
+                step.Notes,
+                responsiblesByStep[step.Id].ToList()))
+            .ToList();
 
         IReadOnlyList<PlateWellDetail> wells = (await connection.QueryAsync<PlateWellDetail>(
             new CommandDefinition(WellsSql, parameters, cancellationToken: cancellationToken))).AsList();
@@ -158,6 +197,7 @@ internal sealed class GetExperimentQueryHandler
             header.CompoundPartnerId,
             header.CreatedAtUtc,
             header.CreatedBy,
+            header.ResponsibleUserId,
             steps,
             wells,
             calculation);
@@ -172,8 +212,20 @@ internal sealed class GetExperimentQueryHandler
         Guid? CompoundPartnerId,
         DateTime CreatedAtUtc,
         string CreatedBy,
+        Guid? ResponsibleUserId,
         string? FormulaName,
         string? FormulaExpression,
         DateTime? AppliedAtUtc,
         string? ResultJson);
+
+    private sealed record ExperimentStepRow(
+        Guid Id,
+        int Order,
+        string Kind,
+        string Title,
+        string? PerformedBy,
+        DateTime? PerformedAtUtc,
+        string? Notes);
+
+    private sealed record StepResponsibleRow(Guid StepId, Guid UserId);
 }

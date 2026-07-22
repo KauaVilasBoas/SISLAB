@@ -35,15 +35,18 @@ internal sealed class CalculateBehavioralExperimentCommandHandler
     private readonly IExperimentRepository _experiments;
     private readonly IExperimentProtocolResolver _protocolResolver;
     private readonly IAuditActorAccessor _actorAccessor;
+    private readonly ICurrentUserContext _currentUser;
 
     public CalculateBehavioralExperimentCommandHandler(
         IExperimentRepository experiments,
         IExperimentProtocolResolver protocolResolver,
-        IAuditActorAccessor actorAccessor)
+        IAuditActorAccessor actorAccessor,
+        ICurrentUserContext currentUser)
     {
         _experiments = experiments;
         _protocolResolver = protocolResolver;
         _actorAccessor = actorAccessor;
+        _currentUser = currentUser;
     }
 
     public async Task<Unit> HandleAsync(
@@ -53,6 +56,9 @@ internal sealed class CalculateBehavioralExperimentCommandHandler
         BehavioralExperiment experiment =
             await _experiments.FindBehavioralExperimentAsync(request.ExperimentId, cancellationToken)
             ?? throw new NotFoundException($"Behavioural experiment '{request.ExperimentId}' was not found.");
+
+        // Responsibility gate (card [E11]): the lead or the calculation step's responsible may calculate.
+        experiment.EnsureCanBeEditedBy(_currentUser.RequireUserId(), ExperimentStepKind.Calculation);
 
         IExperimentProtocol protocol = _protocolResolver.Resolve(experiment.Type);
         FormulaSnapshot snapshot = protocol.Calculate(experiment);
