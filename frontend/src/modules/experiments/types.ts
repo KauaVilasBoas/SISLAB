@@ -35,12 +35,15 @@ export interface ExperimentListItem {
 
 /** A step in the experiment's execution flow. */
 export interface ExperimentStepDetail {
+  id: string;
   order: number;
   kind: string;
   title: string;
   performedBy: string | null;
   performedAtUtc: string | null;
   notes: string | null;
+  /** Lumen user ids designated as responsible for this step (card [E11]). */
+  responsibleUserIds: string[];
 }
 
 /** A designed well with its optional imported reading, on the detail. */
@@ -71,6 +74,8 @@ export interface ExperimentDetail {
   compoundPartnerId: string | null;
   createdAtUtc: string;
   createdBy: string;
+  /** Lead responsible's Lumen user id (card [E11]); null for experiments created before responsibility. */
+  responsibleUserId: string | null;
   steps: ExperimentStepDetail[];
   wells: PlateWellDetail[];
   calculation: ExperimentCalculationDetail | null;
@@ -108,4 +113,13 @@ export interface DesignPlateWellRequest {
   role: WellRole;
   concentrationUm: number | null;
   sampleId: string | null;
+}
+
+/**
+ * Request body to assign a responsible (card [E11]) — the lead of an experiment
+ * (PUT /experiments/{id}/responsible) or a responsible on a step
+ * (POST /experiments/{id}/steps/{stepId}/responsibles). Carries the target member's Lumen user id.
+ */
+export interface AssignResponsibleRequest {
+  responsibleUserId: string;
 }

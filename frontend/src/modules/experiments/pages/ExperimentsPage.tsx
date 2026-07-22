@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/shared/components/PageHeader';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
-import { cn } from '@/shared/lib/utils';
+import { MultiSelect, type MultiSelectOption } from '@/shared/components/ui/multi-select';
 import { useExperiments } from '@/modules/experiments/api/experiments.queries';
+import { useMembers } from '@/modules/identity/api/identity.queries';
 import { CreateExperimentModal } from '@/modules/experiments/components/CreateExperimentModal';
 import {
   experimentStatusPresentation,
@@ -16,11 +17,11 @@ import type { ExperimentStatus } from '@/modules/experiments/types';
 
 const PAGE_SIZE = 20;
 
-const STATUS_FILTERS: { value: string; label: string }[] = [
-  { value: '', label: 'Todos' },
+const STATUS_OPTIONS: MultiSelectOption[] = [
   { value: 'Draft', label: 'Rascunho' },
   { value: 'InProgress', label: 'Em andamento' },
   { value: 'AwaitingAnalysis', label: 'Aguardando análise' },
+  { value: 'AwaitingCalculation', label: 'Aguardando cálculo' },
   { value: 'Completed', label: 'Concluído' },
   { value: 'Archived', label: 'Arquivado' },
 ];
@@ -32,11 +33,46 @@ const STATUS_FILTERS: { value: string; label: string }[] = [
  */
 export function ExperimentsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState('');
   const [creating, setCreating] = useState(false);
 
-  const { data, isLoading, isError } = useExperiments({ page, pageSize: PAGE_SIZE, status });
+  // Filters persist in the URL query string (recarregar mantém a seleção — same pattern as the calendar).
+  const statuses = searchParams.getAll('status');
+  const responsibleIds = searchParams.getAll('responsibleId');
+
+  const { data: members } = useMembers();
+  const memberOptions: MultiSelectOption[] = useMemo(
+    () =>
+      (members ?? []).map((member) => ({
+        value: member.userId,
+        label: member.username || member.email,
+        hint: member.username ? member.email : undefined,
+      })),
+    [members],
+  );
+
+  const setFilter = (key: 'status' | 'responsibleId', values: string[]) => {
+    const next = new URLSearchParams(searchParams);
+    next.delete(key);
+    values.forEach((value) => next.append(key, value));
+    setSearchParams(next, { replace: true });
+    setPage(1);
+  };
+
+  const clearFilters = () => {
+    setSearchParams(new URLSearchParams(), { replace: true });
+    setPage(1);
+  };
+
+  const hasFilters = statuses.length > 0 || responsibleIds.length > 0;
+
+  const { data, isLoading, isError } = useExperiments({
+    page,
+    pageSize: PAGE_SIZE,
+    statuses,
+    responsibleIds,
+  });
 
   const items = data?.items ?? [];
   const totalPages = data?.totalPages ?? 0;
@@ -54,31 +90,34 @@ export function ExperimentsPage() {
         }
       />
 
-      <div
-        role="tablist"
-        aria-label="Filtrar por status"
-        className="inline-flex flex-wrap gap-1 rounded-lg bg-muted p-1"
-      >
-        {STATUS_FILTERS.map(({ value, label }) => (
-          <button
-            key={value || 'all'}
-            role="tab"
-            type="button"
-            aria-selected={status === value}
-            onClick={() => {
-              setStatus(value);
-              setPage(1);
-            }}
-            className={cn(
-              'rounded-md px-4 py-1.5 text-sm font-medium transition-colors',
-              status === value
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-4">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Status</label>
+          <MultiSelect
+            label="Filtrar por status"
+            placeholder="Todos os status"
+            options={STATUS_OPTIONS}
+            selected={statuses}
+            onChange={(values) => setFilter('status', values)}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Responsável</label>
+          <MultiSelect
+            label="Filtrar por responsável"
+            placeholder="Todos os responsáveis"
+            options={memberOptions}
+            selected={responsibleIds}
+            onChange={(values) => setFilter('responsibleId', values)}
+          />
+        </div>
+
+        {hasFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="ml-auto">
+            Limpar filtros
+          </Button>
+        )}
       </div>
 
       <div className="rounded-lg border bg-card">

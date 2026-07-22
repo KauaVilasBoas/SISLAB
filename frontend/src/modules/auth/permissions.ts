@@ -93,6 +93,12 @@ export const Permissions = {
     recordTimepoint: 'Experiments.RecordTimepoint',
     calculateBehavioral: 'Experiments.CalculateBehavioral',
   },
+  /** Experimentos — responsabilidade (ExperimentsController responsible-assignment endpoints, card [E11]). */
+  experimentResponsibility: {
+    assignResponsible: 'Experiments.AssignResponsible',
+    assignStepResponsible: 'Experiments.AssignStepResponsible',
+    removeStepResponsible: 'Experiments.RemoveStepResponsible',
+  },
   /** Experimentos — biobanco (SamplesController write endpoints). */
   samples: {
     collect: 'Samples.Collect',

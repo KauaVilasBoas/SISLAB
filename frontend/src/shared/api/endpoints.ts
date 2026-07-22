@@ -155,6 +155,14 @@ export const Endpoints = {
     exportBehavioral: (id: string) => `/api/experiments/${id}/export-behavioral`,
     /** Operator pendencies panel (open work across the module) — card #90. */
     pendencies: '/api/experiments/pendencies',
+    /** Set/replace the experiment's lead responsible (full edit authority) — card [E11]. */
+    responsible: (id: string) => `/api/experiments/${id}/responsible`,
+    /** Add a responsible to a step (step-scoped edit authority) — card [E11]. */
+    stepResponsibles: (id: string, stepId: string) =>
+      `/api/experiments/${id}/steps/${stepId}/responsibles`,
+    /** Remove a responsible from a step (idempotent) — card [E11]. */
+    stepResponsible: (id: string, stepId: string, userId: string) =>
+      `/api/experiments/${id}/steps/${stepId}/responsibles/${userId}`,
   },
 
   /** Experiments module — in vivo experimental design: Project → Batch → Group → Animal (card [E11] #73). */
