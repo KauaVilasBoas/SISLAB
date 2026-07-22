@@ -12,6 +12,7 @@ import {
   formatDate,
 } from '@/modules/experiments/components/experiment-presentation';
 import type { ExperimentDetail, ExperimentStatus } from '@/modules/experiments/types';
+import { ResponsibilityPanel } from '@/modules/experiments/components/ResponsibilityPanel';
 import { behavioralTypePresentation } from '@/modules/in-vivo/presentation';
 import type { BehavioralType } from '@/modules/in-vivo/types';
 import {
@@ -144,6 +145,8 @@ export function BehavioralExperimentDetail({
           ))}
         </ol>
       </div>
+
+      <ResponsibilityPanel experiment={experiment} />
 
       {isCalculated && (
         <div className="flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">

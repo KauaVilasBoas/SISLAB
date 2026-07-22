@@ -3,6 +3,7 @@ import { api, httpClient } from '@/shared/api/http';
 import { Endpoints } from '@/shared/api/endpoints';
 import type { PagedResult } from '@/shared/types/api';
 import type {
+  AssignResponsibleRequest,
   CreateExperimentRequest,
   DesignPlateWellRequest,
   ExperimentDetail,
@@ -24,23 +25,38 @@ export const experimentKeys = {
 export interface ListExperimentsParams {
   page: number;
   pageSize: number;
-  status?: string;
+  /** Multi-select status filter (card [E11], DP-6): repeated `?status=` values (OR). */
+  statuses?: string[];
+  /** Multi-select responsible filter (card [E11]): repeated `?responsibleId=` Lumen user ids (OR). */
+  responsibleIds?: string[];
+}
+
+/**
+ * Builds the experiments-list query string with repeated keys for the multi-select filters
+ * (`?status=a&status=b&responsibleId=x&responsibleId=y`), the shape the controller's `string[]`/`Guid[]`
+ * binders expect. Empty arrays are omitted so an unset filter adds nothing.
+ */
+function buildListQuery(params: ListExperimentsParams): string {
+  const search = new URLSearchParams();
+  search.set('page', String(params.page));
+  search.set('pageSize', String(params.pageSize));
+  (params.statuses ?? []).forEach((status) => search.append('status', status));
+  (params.responsibleIds ?? []).forEach((id) => search.append('responsibleId', id));
+  return search.toString();
 }
 
 // ---------------------------------------------------------------------------
 // Queries
 // ---------------------------------------------------------------------------
 
-/** Paginated experiments of the active company, optionally filtered by status. */
+/** Paginated experiments of the active company, optionally filtered by status and/or responsible (multi-select). */
 export function useExperiments(params: ListExperimentsParams) {
   return useQuery({
     queryKey: experimentKeys.list(params),
     queryFn: () =>
-      api.get<PagedResult<ExperimentListItem>>(Endpoints.experiments.root, {
-        page: params.page,
-        pageSize: params.pageSize,
-        status: params.status || undefined,
-      }),
+      api.get<PagedResult<ExperimentListItem>>(
+        `${Endpoints.experiments.root}?${buildListQuery(params)}`,
+      ),
   });
 }
 
@@ -130,6 +146,42 @@ export function useExportExperiment(id: string) {
       anchor.remove();
       URL.revokeObjectURL(url);
     },
+  });
+}
+
+/**
+ * Sets (or replaces) the experiment's lead responsible (card [E11]) — full edit authority over the
+ * experiment. Invalidates the detail (to reflect the new lead) and the list (its responsible filter).
+ */
+export function useAssignResponsible(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: AssignResponsibleRequest) =>
+      api.put<void>(Endpoints.experiments.responsible(id), body),
+    onSuccess: () => invalidateExperiment(queryClient, id),
+  });
+}
+
+/**
+ * Adds a responsible to a specific step (card [E11]) — step-scoped edit authority. Invalidates the
+ * detail so the step's responsible chips reflect the change; also refreshes the list filter.
+ */
+export function useAssignStepResponsible(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ stepId, body }: { stepId: string; body: AssignResponsibleRequest }) =>
+      api.post<void>(Endpoints.experiments.stepResponsibles(id, stepId), body),
+    onSuccess: () => invalidateExperiment(queryClient, id),
+  });
+}
+
+/** Removes a responsible from a step (card [E11]). Idempotent. Invalidates the experiment detail + list. */
+export function useRemoveStepResponsible(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ stepId, userId }: { stepId: string; userId: string }) =>
+      api.del<void>(Endpoints.experiments.stepResponsible(id, stepId, userId)),
+    onSuccess: () => invalidateExperiment(queryClient, id),
   });
 }
 

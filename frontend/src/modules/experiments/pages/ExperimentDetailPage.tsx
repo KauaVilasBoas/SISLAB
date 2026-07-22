@@ -28,6 +28,7 @@ import {
 import { PlateGrid } from '@/modules/experiments/components/PlateGrid';
 import { DesignPlateModal } from '@/modules/experiments/components/DesignPlateModal';
 import { ImportReadingModal } from '@/modules/experiments/components/ImportReadingModal';
+import { ResponsibilityPanel } from '@/modules/experiments/components/ResponsibilityPanel';
 import { BehavioralExperimentDetail } from '@/modules/in-vivo/components/BehavioralExperimentDetail';
 import { isBehavioralType, type ExperimentStatus } from '@/modules/experiments/types';
 
@@ -237,6 +238,8 @@ export function ExperimentDetailPage() {
               ))}
             </ol>
           </div>
+
+          <ResponsibilityPanel experiment={experiment} />
 
           <div className="rounded-lg border bg-card p-5 text-sm">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
