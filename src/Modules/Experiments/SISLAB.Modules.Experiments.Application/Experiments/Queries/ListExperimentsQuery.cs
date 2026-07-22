@@ -19,11 +19,23 @@ namespace SISLAB.Modules.Experiments.Application.Experiments.Queries;
 /// </remarks>
 public sealed record ListExperimentsQuery : PagedQuery<PagedResult<ExperimentListItem>>
 {
-    /// <summary>Optional lifecycle-status filter (matched against the persisted name); null lists every status.</summary>
-    public string? Status { get; init; }
+    /// <summary>
+    /// Optional lifecycle-status <b>multi-select</b> filter (card [E11], DP-6): each value is matched against the
+    /// persisted status name; an experiment matches when its status is in the set (OR). Null or empty lists every
+    /// status.
+    /// </summary>
+    public IReadOnlyList<string>? Statuses { get; init; }
 
     /// <summary>Optional type filter (matched against the persisted discriminator); null lists every type.</summary>
     public string? Type { get; init; }
+
+    /// <summary>
+    /// Optional responsible <b>multi-select</b> filter (card [E11]): each value is a Lumen user id. An experiment
+    /// matches when <b>any</b> of these users is its lead responsible <i>or</i> a responsible of <i>any</i> of its
+    /// steps (OR within the filter). Null or empty applies no responsible filter. Deduplicated via EXISTS so an
+    /// experiment with several matching steps is never counted twice.
+    /// </summary>
+    public IReadOnlyList<Guid>? ResponsibleUserIds { get; init; }
 }
 
 /// <summary>Flat read row for the experiments list. Never leaks the aggregate or its value objects.</summary>
@@ -57,8 +69,23 @@ internal sealed class ListExperimentsQueryHandler
                 (COUNT(*) OVER ())::int AS total_rows
             FROM experiments.experiments AS e
             WHERE e.company_id = @CompanyId
-              AND (@Status IS NULL OR e.status = @Status)
+              AND (@HasStatusFilter = FALSE OR e.status = ANY(@Statuses))
               AND (@Type IS NULL OR e.type = @Type)
+              AND (
+                    @HasResponsibleFilter = FALSE
+                    OR e.responsible_user_id = ANY(@ResponsibleUserIds)
+                    -- OR a responsible of ANY of this experiment's steps is in the selected set. EXISTS (not a
+                    -- JOIN) keeps one row per experiment, so the total_rows window count stays correct even when
+                    -- several steps match.
+                    OR EXISTS (
+                        SELECT 1
+                        FROM experiments.experiment_steps AS s
+                        INNER JOIN experiments.experiment_step_responsibles AS r
+                            ON r.step_id = s.id
+                        WHERE s.experiment_id = e.id
+                          AND r.user_id = ANY(@ResponsibleUserIds)
+                    )
+                  )
         )
         SELECT
             id,
@@ -105,15 +132,53 @@ internal sealed class ListExperimentsQueryHandler
     /// (never the request), and blank filters collapse to null. Extracted so the tenant guard, filter
     /// normalization and pagination are unit-testable without a live database.
     /// </summary>
-    internal ExperimentsListQueryParameters BuildParameters(ListExperimentsQuery request) => new(
-        CompanyId: _tenantContext.CompanyId,
-        Status: NormalizeFilter(request.Status),
-        Type: NormalizeFilter(request.Type),
-        FirstResult: request.FirstResult,
-        LastResult: request.LastResult);
+    internal ExperimentsListQueryParameters BuildParameters(ListExperimentsQuery request)
+    {
+        string[]? statuses = NormalizeList(request.Statuses);
+        Guid[]? responsibleUserIds = NormalizeGuidList(request.ResponsibleUserIds);
+
+        return new ExperimentsListQueryParameters(
+            CompanyId: _tenantContext.CompanyId,
+            HasStatusFilter: statuses is not null,
+            Statuses: statuses,
+            Type: NormalizeFilter(request.Type),
+            HasResponsibleFilter: responsibleUserIds is not null,
+            ResponsibleUserIds: responsibleUserIds,
+            FirstResult: request.FirstResult,
+            LastResult: request.LastResult);
+    }
 
     private static string? NormalizeFilter(string? value)
         => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    /// <summary>Trims/de-dupes the status values, dropping blanks; returns null when nothing usable remains.</summary>
+    private static string[]? NormalizeList(IReadOnlyList<string>? values)
+    {
+        if (values is null)
+            return null;
+
+        string[] normalized = values
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        return normalized.Length == 0 ? null : normalized;
+    }
+
+    /// <summary>De-dupes the user ids, dropping empties; returns null when nothing usable remains.</summary>
+    private static Guid[]? NormalizeGuidList(IReadOnlyList<Guid>? values)
+    {
+        if (values is null)
+            return null;
+
+        Guid[] normalized = values
+            .Where(value => value != Guid.Empty)
+            .Distinct()
+            .ToArray();
+
+        return normalized.Length == 0 ? null : normalized;
+    }
 
     private sealed record ExperimentListRow(
         Guid Id,
@@ -137,7 +202,10 @@ internal sealed class ListExperimentsQueryHandler
 /// </summary>
 internal sealed record ExperimentsListQueryParameters(
     Guid CompanyId,
-    string? Status,
+    bool HasStatusFilter,
+    string[]? Statuses,
     string? Type,
+    bool HasResponsibleFilter,
+    Guid[]? ResponsibleUserIds,
     int FirstResult,
     int LastResult);
