@@ -111,6 +111,14 @@ public abstract class Experiment : AggregateRoot<Guid>, ITenantEntity
     /// <summary>Actor who created the experiment (identity claim).</summary>
     public string CreatedBy { get; private set; }
 
+    /// <summary>
+    /// The experiment's lead responsible (card [E11] — the "bigger chain", full authority over everything in the
+    /// experiment), referenced <b>by value</b> via their Lumen user id — never a cross-module FK. Distinct from
+    /// <see cref="CreatedBy"/> (the audit actor claim): this is <i>who may edit</i>, and it is null only for
+    /// experiments created before responsibility was introduced.
+    /// </summary>
+    public Guid? ResponsibleUserId { get; private set; }
+
     public DateTime CreatedAtUtc { get; private set; }
 
     /// <summary>The ordered execution flow of this experiment.</summary>
@@ -186,4 +194,94 @@ public abstract class Experiment : AggregateRoot<Guid>, ITenantEntity
     /// <summary>Raises the creation event; called by the subtype factory once the aggregate is built.</summary>
     protected void RaiseCreated()
         => RaiseDomainEvent(new ExperimentCreatedEvent(CompanyId, Id, Type, Title));
+
+    // ----------------------------------------------------------------------------------------------------
+    // Responsibility (card [E11]). Two levels of edit authority, both referenced by value via the Lumen user
+    // id: the lead responsible for the whole experiment and one-or-more responsibles per step. Membership of a
+    // user in the active company is validated in the application layer (through the Identity Contracts) before
+    // these are called — the aggregate only owns the invariant "who may edit".
+    // ----------------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Sets the experiment's lead responsible (full authority). Replaces any previous lead. The application layer
+    /// must have validated that <paramref name="userId"/> belongs to the active company before calling.
+    /// </summary>
+    public void AssignResponsible(Guid userId)
+    {
+        Guard.AgainstEmptyGuid(userId, nameof(userId));
+        ResponsibleUserId = userId;
+    }
+
+    /// <summary>Adds <paramref name="userId"/> as a responsible of the step identified by <paramref name="stepId"/>.</summary>
+    public void AssignStepResponsible(Guid stepId, Guid userId)
+        => RequireStep(stepId).AssignResponsible(userId);
+
+    /// <summary>Removes <paramref name="userId"/> from the responsibles of the step identified by <paramref name="stepId"/>.</summary>
+    public void RemoveStepResponsible(Guid stepId, Guid userId)
+        => RequireStep(stepId).RemoveResponsible(userId);
+
+    /// <summary>
+    /// True once <i>any</i> responsibility has been configured on the experiment (a lead, or at least one step
+    /// responsible). While nothing is configured, the responsibility gate is dormant — see
+    /// <see cref="CanBeEditedBy"/>.
+    /// </summary>
+    public bool HasResponsibilityConfigured
+        => ResponsibleUserId is not null || _steps.Any(step => step.ResponsibleUserIds.Count > 0);
+
+    /// <summary>
+    /// The core edit-authorization rule (card [E11]): a user may edit when they are the experiment's lead
+    /// responsible <b>or</b> — for a step-scoped edit — a responsible of that specific step. The lead has authority
+    /// over everything; a step responsible only over their step. This is <i>data/ownership</i> authorization,
+    /// complementary to Lumen's <c>[RequirePermission]</c> — it never replaces it.
+    /// </summary>
+    /// <remarks>
+    /// Backward-compatibility: when the experiment has <b>no</b> responsibility configured at all
+    /// (<see cref="HasResponsibilityConfigured"/> is false — e.g. created before this feature), the gate is
+    /// dormant and edits fall through to Lumen's permission gate. It only starts constraining once someone is
+    /// designated, so introducing responsibility never locks anyone out of pre-existing experiments.
+    /// </remarks>
+    /// <param name="userId">The user attempting the edit (their Lumen user id).</param>
+    /// <param name="stepId">The step being edited, or null for an experiment-wide edit (only the lead may do it).</param>
+    public bool CanBeEditedBy(Guid userId, Guid? stepId = null)
+    {
+        if (!HasResponsibilityConfigured)
+            return true;
+
+        if (userId == Guid.Empty)
+            return false;
+
+        if (ResponsibleUserId == userId)
+            return true;
+
+        return stepId is { } id
+            && _steps.FirstOrDefault(step => step.Id == id) is { } step
+            && step.IsResponsible(userId);
+    }
+
+    /// <summary>
+    /// Guard form of <see cref="CanBeEditedBy"/>: throws <see cref="ForbiddenException"/> (mapped to HTTP 403)
+    /// when the user is neither the lead responsible nor a responsible of the given step.
+    /// </summary>
+    public void EnsureCanBeEditedBy(Guid userId, Guid? stepId = null)
+    {
+        if (!CanBeEditedBy(userId, stepId))
+            throw new ForbiddenException(
+                $"You are not a responsible of experiment '{Title}' and cannot edit it.");
+    }
+
+    /// <summary>
+    /// Guard form scoped to a step identified by its <paramref name="kind"/> (the first step of that kind in the
+    /// flow): the lead responsible or a responsible of that step may proceed. Used by the write commands that act
+    /// on a specific stage of the flow (design → the Baseline step, import → Measurement, calculate → Calculation).
+    /// </summary>
+    public void EnsureCanBeEditedBy(Guid userId, ExperimentStepKind kind)
+        => EnsureCanBeEditedBy(userId, FindStep(kind)?.Id);
+
+    private ExperimentStep RequireStep(Guid stepId)
+    {
+        Guard.AgainstEmptyGuid(stepId, nameof(stepId));
+
+        return _steps.FirstOrDefault(step => step.Id == stepId)
+            ?? throw new DomainException($"Step '{stepId}' does not belong to experiment '{Title}'.");
+    }
 }

@@ -70,6 +70,11 @@ internal sealed class ExperimentConfiguration : IEntityTypeConfiguration<Experim
             .IsRequired()
             .HasMaxLength(200);
 
+        // Lead responsible (card [E11]): the user by value (Lumen id), nullable for experiments created before
+        // responsibility existed. Not a cross-module FK — a plain uuid column.
+        builder.Property(experiment => experiment.ResponsibleUserId)
+            .HasColumnName("responsible_user_id");
+
         builder.Property(experiment => experiment.CreatedAtUtc)
             .IsRequired();
 
@@ -103,6 +108,27 @@ internal sealed class ExperimentConfiguration : IEntityTypeConfiguration<Experim
         steps.Property(step => step.Notes).HasColumnName("notes").HasMaxLength(2000);
 
         steps.HasIndex("experiment_id").HasDatabaseName("ix_experiment_steps_experiment_id");
+
+        // Step responsibles (card [E11]): a nested owned collection in its own junction table. Backed by the
+        // private "_responsibles" field on the step (mutated only through the aggregate). Each row is a user by
+        // value (Lumen id); the pair (step_id, user_id) is unique so a user is not listed twice on a step.
+        steps.OwnsMany<ExperimentStepResponsible>("_responsibles", ConfigureStepResponsibles);
+    }
+
+    private static void ConfigureStepResponsibles(
+        OwnedNavigationBuilder<ExperimentStep, ExperimentStepResponsible> responsibles)
+    {
+        responsibles.ToTable("experiment_step_responsibles");
+
+        responsibles.WithOwner().HasForeignKey("step_id");
+        responsibles.HasKey(responsible => responsible.Id);
+        responsibles.Property(responsible => responsible.Id).HasColumnName("id").ValueGeneratedNever();
+        responsibles.Property<Guid>("step_id");
+        responsibles.Property(responsible => responsible.UserId).HasColumnName("user_id").IsRequired();
+
+        responsibles.HasIndex("step_id", nameof(ExperimentStepResponsible.UserId))
+            .IsUnique()
+            .HasDatabaseName("ix_experiment_step_responsibles_step_id_user_id");
     }
 }
 
