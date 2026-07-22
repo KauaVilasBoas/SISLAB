@@ -19,6 +19,8 @@ public sealed class ExperimentStep : Entity<Guid>
     private const int MaxTitleLength = 200;
     private const int MaxNotesLength = 2000;
 
+    private readonly List<ExperimentStepResponsible> _responsibles = [];
+
     // Parameterless constructor for EF Core materialization.
     private ExperimentStep() : base(Guid.Empty) => Title = default!;
 
@@ -51,6 +53,18 @@ public sealed class ExperimentStep : Entity<Guid>
     /// <summary>True once the step has been performed.</summary>
     public bool IsPerformed => PerformedAtUtc.HasValue;
 
+    /// <summary>
+    /// The users designated as responsible for this step (card [E11] — step-scoped edit authority), each held
+    /// by their Lumen user id (<b>by value</b>, never a cross-module FK). A step may have one or more; the
+    /// collection is distinct. Distinct from <see cref="PerformedBy"/>: "responsible" is <i>who may edit</i>,
+    /// "performed by" is <i>who executed</i> the hand-off.
+    /// </summary>
+    public IReadOnlyCollection<Guid> ResponsibleUserIds =>
+        _responsibles.Select(responsible => responsible.UserId).ToList().AsReadOnly();
+
+    /// <summary>True when <paramref name="userId"/> is a designated responsible of this step.</summary>
+    public bool IsResponsible(Guid userId) => _responsibles.Any(responsible => responsible.UserId == userId);
+
     /// <summary>Creates a pending step at the given order/kind/title.</summary>
     public static ExperimentStep Create(int order, ExperimentStepKind kind, string title)
     {
@@ -78,4 +92,24 @@ public sealed class ExperimentStep : Entity<Guid>
         PerformedAtUtc = performedAtUtc;
         Notes = normalizedNotes;
     }
+
+    /// <summary>
+    /// Designates <paramref name="userId"/> as responsible for this step. Idempotent — assigning the same user
+    /// twice is a no-op, so the collection stays distinct. Only ever called through the owning
+    /// <see cref="Experiment"/> aggregate.
+    /// </summary>
+    internal void AssignResponsible(Guid userId)
+    {
+        Guard.AgainstEmptyGuid(userId, nameof(userId));
+
+        if (!IsResponsible(userId))
+            _responsibles.Add(ExperimentStepResponsible.For(userId));
+    }
+
+    /// <summary>
+    /// Removes <paramref name="userId"/> from this step's responsibles. Idempotent — removing a user who is not
+    /// responsible is a no-op. Only ever called through the owning <see cref="Experiment"/> aggregate.
+    /// </summary>
+    internal void RemoveResponsible(Guid userId)
+        => _responsibles.RemoveAll(responsible => responsible.UserId == userId);
 }
