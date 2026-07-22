@@ -30,15 +30,18 @@ internal sealed class ImportPlateReadingCommandHandler : ICommandHandler<ImportP
 {
     private readonly IExperimentRepository _experiments;
     private readonly IAuditActorAccessor _actorAccessor;
+    private readonly ICurrentUserContext _currentUser;
     private readonly IClock _clock;
 
     public ImportPlateReadingCommandHandler(
         IExperimentRepository experiments,
         IAuditActorAccessor actorAccessor,
+        ICurrentUserContext currentUser,
         IClock clock)
     {
         _experiments = experiments;
         _actorAccessor = actorAccessor;
+        _currentUser = currentUser;
         _clock = clock;
     }
 
@@ -49,6 +52,9 @@ internal sealed class ImportPlateReadingCommandHandler : ICommandHandler<ImportP
         PlateExperiment experiment =
             await _experiments.FindPlateExperimentWithPlateAsync(request.ExperimentId, cancellationToken)
             ?? throw new NotFoundException($"Plate experiment '{request.ExperimentId}' was not found.");
+
+        // Responsibility gate (card [E11]): the lead or the reader-import step's responsible may import.
+        experiment.EnsureCanBeEditedBy(_currentUser.RequireUserId(), ExperimentStepKind.Measurement);
 
         IReadOnlyList<PlateReading> readings = PlateReadingCsvParser.Parse(request.CsvContent);
 

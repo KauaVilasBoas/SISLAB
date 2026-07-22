@@ -43,15 +43,18 @@ internal sealed class RecordTimepointCommandHandler : ICommandHandler<RecordTime
 {
     private readonly IExperimentRepository _experiments;
     private readonly IAuditActorAccessor _actorAccessor;
+    private readonly ICurrentUserContext _currentUser;
     private readonly IClock _clock;
 
     public RecordTimepointCommandHandler(
         IExperimentRepository experiments,
         IAuditActorAccessor actorAccessor,
+        ICurrentUserContext currentUser,
         IClock clock)
     {
         _experiments = experiments;
         _actorAccessor = actorAccessor;
+        _currentUser = currentUser;
         _clock = clock;
     }
 
@@ -60,6 +63,11 @@ internal sealed class RecordTimepointCommandHandler : ICommandHandler<RecordTime
         BehavioralExperiment experiment =
             await _experiments.FindBehavioralExperimentAsync(request.ExperimentId, cancellationToken)
             ?? throw new NotFoundException($"Behavioural experiment '{request.ExperimentId}' was not found.");
+
+        // Responsibility gate (card [E11]): the lead or the responsible of this specific timepoint step may record.
+        Guid? timepointStepId = experiment
+            .FindStep(ExperimentStepKind.Timepoint, request.TimepointLabel)?.Id;
+        experiment.EnsureCanBeEditedBy(_currentUser.RequireUserId(), timepointStepId);
 
         experiment.RecordTimepoint(
             request.TimepointLabel,

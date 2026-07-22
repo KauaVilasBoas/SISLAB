@@ -42,15 +42,18 @@ internal sealed class CreateExperimentCommandHandler
 {
     private readonly IExperimentRepository _experiments;
     private readonly IAuditActorAccessor _actorAccessor;
+    private readonly ICurrentUserContext _currentUser;
     private readonly IClock _clock;
 
     public CreateExperimentCommandHandler(
         IExperimentRepository experiments,
         IAuditActorAccessor actorAccessor,
+        ICurrentUserContext currentUser,
         IClock clock)
     {
         _experiments = experiments;
         _actorAccessor = actorAccessor;
+        _currentUser = currentUser;
         _clock = clock;
     }
 
@@ -69,6 +72,11 @@ internal sealed class CreateExperimentCommandHandler
             _ => throw new ArgumentOutOfRangeException(
                 nameof(request), request.Type, "Unsupported experiment type."),
         };
+
+        // DP-2: the creator is the experiment's lead responsible by default (editable later). The creator is
+        // resolved by their Lumen id — the stable identity the responsibility model is keyed on — never the audit
+        // actor claim string.
+        experiment.AssignResponsible(_currentUser.RequireUserId());
 
         await _experiments.AddAsync(experiment, cancellationToken);
 

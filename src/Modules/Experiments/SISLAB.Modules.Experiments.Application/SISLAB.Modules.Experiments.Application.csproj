@@ -17,6 +17,13 @@
       the Identity internals. Only the Contracts assembly is referenced (module isolation, section 2).
     -->
     <ProjectReference Include="..\..\Audit\SISLAB.Modules.Audit.Contracts\SISLAB.Modules.Audit.Contracts.csproj" />
+    <!--
+      Identity.Contracts: the public ICompanyMembershipQuery port (card [E11]). The Experiments write-side
+      validates that a user assigned as a responsible actually belongs to the active company through it — the
+      tenancy link is owned by Identity, so the check crosses the boundary only via Contracts (module isolation,
+      section 2). Only the Contracts assembly is referenced, never Identity's Domain/Application/Infrastructure.
+    -->
+    <ProjectReference Include="..\..\Identity\SISLAB.Modules.Identity.Contracts\SISLAB.Modules.Identity.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

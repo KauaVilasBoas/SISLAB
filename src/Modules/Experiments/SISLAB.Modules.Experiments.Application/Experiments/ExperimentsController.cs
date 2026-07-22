@@ -38,12 +38,20 @@ public sealed class ExperimentsController : SislabControllerBase
     public async Task<IActionResult> List(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
-        [FromQuery] string? status = null,
+        [FromQuery(Name = "status")] string[]? status = null,
         [FromQuery] string? type = null,
+        [FromQuery(Name = "responsibleId")] Guid[]? responsibleId = null,
         CancellationToken ct = default)
     {
         PagedResult<ExperimentListItem> result = await _mediator.SendAsync(
-            new ListExperimentsQuery { Page = page, PageSize = pageSize, Status = status, Type = type },
+            new ListExperimentsQuery
+            {
+                Page = page,
+                PageSize = pageSize,
+                Statuses = status,
+                Type = type,
+                ResponsibleUserIds = responsibleId,
+            },
             ct);
 
         return Ok(new ApiResult<PagedResult<ExperimentListItem>>(true, "Experiments retrieved.", result));
@@ -208,6 +216,70 @@ public sealed class ExperimentsController : SislabControllerBase
     }
 
     /// <summary>
+    /// Sets (or replaces) the experiment's lead responsible (card [E11]) — full edit authority over the
+    /// experiment. The user must be an active member of the company. Coordination action, permission-gated.
+    /// </summary>
+    [HttpPut("{experimentId:guid}/responsible")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> AssignResponsible(
+        Guid experimentId,
+        [FromBody] AssignResponsibleRequest body,
+        CancellationToken ct)
+    {
+        await _mediator.SendAsync(
+            new AssignExperimentResponsibleCommand(experimentId, body.ResponsibleUserId), ct);
+
+        return Ok(new ApiResult(true, "Experiment responsible assigned."));
+    }
+
+    /// <summary>
+    /// Adds a responsible to a specific step (card [E11]) — step-scoped edit authority. The user must be an
+    /// active member of the company. Coordination action, permission-gated.
+    /// </summary>
+    [HttpPost("{experimentId:guid}/steps/{stepId:guid}/responsibles")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> AssignStepResponsible(
+        Guid experimentId,
+        Guid stepId,
+        [FromBody] AssignResponsibleRequest body,
+        CancellationToken ct)
+    {
+        await _mediator.SendAsync(
+            new AssignStepResponsibleCommand(experimentId, stepId, body.ResponsibleUserId), ct);
+
+        return Ok(new ApiResult(true, "Step responsible assigned."));
+    }
+
+    /// <summary>Removes a responsible from a specific step (card [E11]). Idempotent. Permission-gated.</summary>
+    [HttpDelete("{experimentId:guid}/steps/{stepId:guid}/responsibles/{responsibleUserId:guid}")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RemoveStepResponsible(
+        Guid experimentId,
+        Guid stepId,
+        Guid responsibleUserId,
+        CancellationToken ct)
+    {
+        await _mediator.SendAsync(
+            new RemoveStepResponsibleCommand(experimentId, stepId, responsibleUserId), ct);
+
+        return Ok(new ApiResult(true, "Step responsible removed."));
+    }
+
+    /// <summary>
     /// Exports the calculated experiment as a GraphPad Prism-compatible CSV (card [E11] #79). Any member may
     /// export — it is a read of the frozen snapshot, so it is page-level <c>[Authorize]</c>, not permission-gated.
     /// </summary>
@@ -254,6 +326,9 @@ public sealed record CreateExperimentRequest(
     string Title,
     string? Description,
     Guid? CompoundPartnerId);
+
+/// <summary>Request body to assign a responsible (experiment lead or step): the target user's Lumen id.</summary>
+public sealed record AssignResponsibleRequest(Guid ResponsibleUserId);
 
 /// <summary>Request body to design the plate: the full set of wells.</summary>
 public sealed record DesignPlateRequest(IReadOnlyList<DesignPlateWellRequest> Wells);

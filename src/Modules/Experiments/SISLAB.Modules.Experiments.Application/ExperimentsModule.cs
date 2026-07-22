@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SISLAB.Infrastructure.DependencyInjection;
 using SISLAB.Infrastructure.Modules;
+using SISLAB.Modules.Experiments.Application.Experiments;
 using SISLAB.Modules.Experiments.Application.Export;
 using SISLAB.Modules.Experiments.Application.Protocols;
 using SISLAB.Modules.Experiments.Application.PublicApi;
@@ -68,6 +69,12 @@ public sealed class ExperimentsModule : IModule
         // experiment titles by id through a tenant-scoped Dapper lookup. Lets the Agenda calendar show an
         // experiment's name without JOINing the experiments schema or touching the Experiments internals.
         services.AddScoped<IExperimentDirectory, ExperimentDirectory>();
+
+        // Current-user resolution for the responsibility model (card [E11]): resolves the caller's Lumen user id
+        // from the HTTP principal, so the write handlers can enforce responsibility-based edit authorization and
+        // default a new experiment's lead responsible to its creator. AddHttpContextAccessor is idempotent.
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserContext, HttpContextCurrentUserContext>();
 
         // Write-side composition: module DbContext (schema "experiments"), the repository, the unit of work +
         // Outbox wiring, the ExperimentCalculated translator and the schema migrations hosted service.
