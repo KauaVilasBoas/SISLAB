@@ -1,6 +1,8 @@
+import { useId } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
-import { cn } from '@/shared/lib/utils';
+import { Switch } from '@/shared/components/ui/switch';
+import { Tooltip } from '@/shared/components/ui/tooltip';
 import { ACTIVITY_TYPE_LABEL } from '@/modules/agenda/presentation';
 import { ExperimentSelect } from '@/modules/agenda/components/ExperimentSelect';
 import type { AgendaActivityType } from '@/modules/agenda/types';
@@ -34,6 +36,7 @@ export function CalendarFiltersBar({
   onExperimentChange,
   onClear,
 }: CalendarFiltersBarProps) {
+  const onlyMineId = useId();
   const hasActiveFilters =
     !!filters.activityType || !!filters.responsibleId || !!filters.experimentId || !!filters.onlyMine;
 
@@ -67,19 +70,18 @@ export function CalendarFiltersBar({
           />
         </div>
 
-        <button
-          type="button"
-          onClick={() => onChange({ onlyMine: !filters.onlyMine })}
-          aria-pressed={filters.onlyMine ?? false}
-          className={cn(
-            'h-9 rounded-md border px-3 text-sm font-medium transition-colors',
-            filters.onlyMine
-              ? 'border-primary bg-primary text-primary-foreground'
-              : 'border-input hover:bg-accent',
-          )}
-        >
-          Minha agenda
-        </button>
+        <Tooltip content="Exibe apenas as entradas que você criou ou nas quais você é o responsável.">
+          <div className="flex h-9 items-center gap-2">
+            <Switch
+              id={onlyMineId}
+              checked={filters.onlyMine ?? false}
+              onCheckedChange={(checked) => onChange({ onlyMine: checked })}
+            />
+            <label htmlFor={onlyMineId} className="cursor-pointer select-none text-sm font-medium">
+              Somente eu
+            </label>
+          </div>
+        </Tooltip>
 
         {hasActiveFilters && (
           <Button variant="ghost" size="sm" onClick={onClear} className="ml-auto">
@@ -109,7 +111,7 @@ export function CalendarFiltersBar({
             />
           )}
           {filters.onlyMine && (
-            <FilterChip label="Minha agenda" onRemove={() => onChange({ onlyMine: false })} />
+            <FilterChip label="Somente eu" onRemove={() => onChange({ onlyMine: false })} />
           )}
         </div>
       )}
