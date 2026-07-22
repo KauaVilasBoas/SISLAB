@@ -11,12 +11,14 @@ public sealed class ExperimentCommandHandlerTests
 {
     private static readonly FixedClock Clock = new(new DateTime(2026, 7, 17, 12, 0, 0, DateTimeKind.Utc));
     private static readonly FakeActorAccessor Actor = new("alice@lab");
+    private static readonly Guid CurrentUserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private static readonly FakeCurrentUserContext CurrentUser = new(CurrentUserId);
 
     [Fact]
     public async Task Create_persists_a_draft_viability_experiment_with_the_actor_as_creator()
     {
         var experiments = new FakeExperimentRepository();
-        var handler = new CreateExperimentCommandHandler(experiments, Actor, Clock);
+        var handler = new CreateExperimentCommandHandler(experiments, Actor, CurrentUser, Clock);
 
         Guid id = await handler.HandleAsync(
             new CreateExperimentCommand(ExperimentType.ViabilidadeCelular, "MTT run", "desc", CompoundPartnerId: null));
@@ -26,13 +28,15 @@ public sealed class ExperimentCommandHandlerTests
         Assert.Equal("MTT run", created.Title);
         Assert.Equal("alice@lab", created.CreatedBy);
         Assert.Equal(ExperimentStatus.Draft, created.Status);
+        // DP-2: the creator becomes the lead responsible by default.
+        Assert.Equal(CurrentUserId, created.ResponsibleUserId);
     }
 
     [Fact]
     public async Task Create_persists_a_draft_nitric_oxide_experiment_for_the_requested_type()
     {
         var experiments = new FakeExperimentRepository();
-        var handler = new CreateExperimentCommandHandler(experiments, Actor, Clock);
+        var handler = new CreateExperimentCommandHandler(experiments, Actor, CurrentUser, Clock);
 
         await handler.HandleAsync(
             new CreateExperimentCommand(ExperimentType.NitricOxide, "Griess run", null, CompoundPartnerId: null));
@@ -47,7 +51,7 @@ public sealed class ExperimentCommandHandlerTests
     {
         ViabilidadeCelularExperiment experiment = ExperimentTestData.NewExperiment();
         var experiments = new FakeExperimentRepository().Seed(experiment);
-        var handler = new DesignPlateCommandHandler(experiments, Actor, Clock);
+        var handler = new DesignPlateCommandHandler(experiments, Actor, CurrentUser, Clock);
 
         await handler.HandleAsync(new DesignPlateCommand(experiment.Id,
         [
@@ -62,7 +66,7 @@ public sealed class ExperimentCommandHandlerTests
     [Fact]
     public async Task DesignPlate_fails_when_the_experiment_does_not_exist()
     {
-        var handler = new DesignPlateCommandHandler(new FakeExperimentRepository(), Actor, Clock);
+        var handler = new DesignPlateCommandHandler(new FakeExperimentRepository(), Actor, CurrentUser, Clock);
 
         await Assert.ThrowsAsync<NotFoundException>(() => handler.HandleAsync(
             new DesignPlateCommand(Guid.NewGuid(), [new PlateWellDefinition('A', 1, WellRole.Blank, null, null)])));
@@ -78,7 +82,7 @@ public sealed class ExperimentCommandHandlerTests
             ExperimentTestData.MakeWell('B', 1, WellRole.Control),
         ], "alice", Clock.UtcNow);
         var experiments = new FakeExperimentRepository().Seed(experiment);
-        var handler = new ImportPlateReadingCommandHandler(experiments, Actor, Clock);
+        var handler = new ImportPlateReadingCommandHandler(experiments, Actor, CurrentUser, Clock);
 
         await handler.HandleAsync(new ImportPlateReadingCommand(experiment.Id, "A1,0.05\nB1,1.00"));
 
@@ -92,7 +96,7 @@ public sealed class ExperimentCommandHandlerTests
         ViabilidadeCelularExperiment experiment = ExperimentTestData.NewExperiment();
         experiment.DesignPlate(ExperimentTestData.FullyReadPlate(), "alice", Clock.UtcNow);
         var experiments = new FakeExperimentRepository().Seed(experiment);
-        var handler = new CalculateExperimentCommandHandler(experiments, TestProtocols.Viability(), Actor);
+        var handler = new CalculateExperimentCommandHandler(experiments, TestProtocols.Viability(), Actor, CurrentUser);
 
         await handler.HandleAsync(new CalculateExperimentCommand(experiment.Id));
 
