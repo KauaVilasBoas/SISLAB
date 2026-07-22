@@ -248,6 +248,12 @@ public static class IdentityModuleServiceExtensions
         services.AddScoped<Contracts.Administration.ILumenUserGateway,
             Administration.LumenUserGateway>();
 
+        // 9.3 Membership query port (card [E11]): the public ICompanyMembershipQuery other modules use to
+        //      validate a user against the active company (Experiments guarding responsible assignment). Delegates
+        //      to ICompanyRepository — the tenancy link stays owned by Identity; consumers only see the Contract.
+        services.AddScoped<Contracts.Administration.ICompanyMembershipQuery,
+            Administration.CompanyMembershipQuery>();
+
         // 10. Lumen.Modularity in-process event bus.
         //     Lumen Identity's CQRS handlers publish integration events via IEventBus;
         //     without this registration the container cannot build those handlers.
