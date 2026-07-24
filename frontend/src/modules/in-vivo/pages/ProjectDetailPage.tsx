@@ -17,6 +17,7 @@ import {
 import { LaunchBehavioralModal } from '@/modules/in-vivo/components/LaunchBehavioralModal';
 import { PrepareSolutionModal } from '@/modules/in-vivo/components/PrepareSolutionModal';
 import { SolutionPreparationsPanel } from '@/modules/in-vivo/components/SolutionPreparationsPanel';
+import { BatchModelPanel } from '@/modules/in-vivo/components/BatchModelPanel';
 import {
   animalSexLabel,
   batchStatusPresentation,
@@ -183,6 +184,8 @@ export function ProjectDetailPage() {
                     )}
                   </div>
                 </div>
+
+                <BatchModelPanel projectId={project.id} batch={batch} />
 
                 {batch.groups.length === 0 ? (
                   <p className="p-6 text-center text-sm text-muted-foreground">
