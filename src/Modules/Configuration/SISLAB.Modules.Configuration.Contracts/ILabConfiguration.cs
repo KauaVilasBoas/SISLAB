@@ -47,4 +47,24 @@ public interface ILabConfiguration
     /// <param name="categoryId">Identifier of the category to probe.</param>
     /// <param name="ct">Cancellation token.</param>
     Task<bool> ItemCategoryExistsAsync(Guid categoryId, CancellationToken ct);
+
+    /// <summary>
+    /// Returns the active company's experimental model with <paramref name="modelId"/> (SISLAB-04), or
+    /// <see langword="null"/> when no such model exists for that company. Used by the Experiments write-side to
+    /// resolve a model when binding a batch ("leva") to it, and by the read-side to surface the bound model's
+    /// name/timepoints/parameters on the project detail.
+    /// </summary>
+    /// <param name="modelId">Identifier of the experimental model to load.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<ExperimentalModelDto?> GetExperimentalModelAsync(Guid modelId, CancellationToken ct);
+
+    /// <summary>
+    /// Returns <see langword="true"/> when an experimental model with <paramref name="modelId"/> exists for the
+    /// active company; otherwise <see langword="false"/>. This is the write-side validation guard the Experiments
+    /// module uses to reject binding a batch to an unknown/other-tenant model — cheaper than
+    /// <see cref="GetExperimentalModelAsync"/> when only existence matters.
+    /// </summary>
+    /// <param name="modelId">Identifier of the experimental model to probe.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<bool> ExperimentalModelExistsAsync(Guid modelId, CancellationToken ct);
 }

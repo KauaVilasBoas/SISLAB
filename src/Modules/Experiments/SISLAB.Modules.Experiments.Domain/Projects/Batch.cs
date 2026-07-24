@@ -48,6 +48,15 @@ public sealed class Batch : Entity<Guid>
     /// <summary>Lifecycle state of the batch.</summary>
     public BatchStatus Status { get; private set; }
 
+    /// <summary>
+    /// The experimental model / induction protocol (SISLAB-04) this batch runs, referenced <b>by value</b> — the
+    /// id of a <c>Configuration.ExperimentalModel</c> owned by the Configuration bounded context (no cross-module
+    /// FK/navigation, honouring the ids-by-value rule). <see langword="null"/> while the batch has no model bound.
+    /// The model parameterizes which timepoints/parameters/groups apply; it can only be set or changed while the
+    /// design is open (planned), so a started batch is a stable, reproducible cohort of exactly one model version.
+    /// </summary>
+    public Guid? ExperimentalModelId { get; private set; }
+
     /// <summary>The treatment arms (dose groups) of this batch.</summary>
     public IReadOnlyList<Group> Groups => _groups.AsReadOnly();
 
@@ -72,6 +81,32 @@ public sealed class Batch : Entity<Guid>
         Group group = Group.Create(name, dose);
         _groups.Add(group);
         return group;
+    }
+
+    /// <summary>
+    /// Binds this batch to an experimental model (SISLAB-04), referenced by value. Allowed only while the design is
+    /// open (planned) — the model choice is part of the delineation, so it freezes when the batch starts, keeping
+    /// the cohort reproducible. Re-binding to a different model while planned is allowed (correcting the design);
+    /// pass <see cref="Guid.Empty"/> to reject an unset id at the boundary.
+    /// </summary>
+    public void BindExperimentalModel(Guid experimentalModelId)
+    {
+        EnsureDesignOpen();
+
+        if (experimentalModelId == Guid.Empty)
+            throw new DomainException("An experimental model id is required to bind a batch to a model.");
+
+        ExperimentalModelId = experimentalModelId;
+    }
+
+    /// <summary>
+    /// Clears the batch's experimental-model binding. Allowed only while the design is open (planned), for the same
+    /// reproducibility reason as <see cref="BindExperimentalModel"/>.
+    /// </summary>
+    public void ClearExperimentalModel()
+    {
+        EnsureDesignOpen();
+        ExperimentalModelId = null;
     }
 
     /// <summary>Enrols an animal into one of the batch's groups. Allowed only while the design is open.</summary>

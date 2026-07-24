@@ -29,12 +29,13 @@ public sealed record ProjectDetail(
     int CurrentDesignVersion,
     IReadOnlyList<BatchDetail> Batches);
 
-/// <summary>A batch on the project detail page, with its groups.</summary>
+/// <summary>A batch on the project detail page, with its groups and its bound experimental model (SISLAB-04).</summary>
 public sealed record BatchDetail(
     Guid Id,
     string Name,
     int DesignVersion,
     string Status,
+    Guid? ExperimentalModelId,
     IReadOnlyList<GroupDetail> Groups);
 
 /// <summary>A dose group on the project detail page, with its animals.</summary>
@@ -75,7 +76,8 @@ internal sealed class GetProjectQueryHandler
             b.id,
             b.name,
             b.design_version AS designversion,
-            b.status
+            b.status,
+            b.experimental_model_id AS experimentalmodelid
         FROM experiments.project_batches AS b
         INNER JOIN experiments.projects AS p ON p.id = b.project_id
         WHERE p.company_id = @CompanyId
@@ -173,6 +175,7 @@ internal sealed class GetProjectQueryHandler
                 b.Name,
                 b.DesignVersion,
                 b.Status,
+                b.ExperimentalModelId,
                 groupsByBatch[b.Id].ToList()))
             .ToList();
 
@@ -194,7 +197,7 @@ internal sealed class GetProjectQueryHandler
         string Status,
         int CurrentDesignVersion);
 
-    internal sealed record BatchRow(Guid Id, string Name, int DesignVersion, string Status);
+    internal sealed record BatchRow(Guid Id, string Name, int DesignVersion, string Status, Guid? ExperimentalModelId);
 
     internal sealed record GroupRow(Guid Id, Guid BatchId, string Name, decimal DoseAmount, string DoseUnit);
 

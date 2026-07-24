@@ -118,6 +118,25 @@ public sealed class Project : AggregateRoot<Guid>, ITenantEntity
     }
 
     /// <summary>
+    /// Binds one of the project's batches to an experimental model (SISLAB-04), referenced by value. Only valid on a
+    /// non-closed project and while that batch's design is open (enforced by the batch). The model's existence and
+    /// tenant ownership are validated in the application layer through the Configuration Contracts port before this
+    /// call — the aggregate only guards the design-open invariant and a non-empty id.
+    /// </summary>
+    public void BindBatchToModel(Guid batchId, Guid experimentalModelId)
+    {
+        EnsureNotClosed();
+        FindBatch(batchId).BindExperimentalModel(experimentalModelId);
+    }
+
+    /// <summary>Clears a batch's experimental-model binding. Only valid while the batch's design is open.</summary>
+    public void ClearBatchModel(Guid batchId)
+    {
+        EnsureNotClosed();
+        FindBatch(batchId).ClearExperimentalModel();
+    }
+
+    /// <summary>
     /// Starts a batch (freezes its design) and activates the project. Only valid on a non-closed project.
     /// </summary>
     public void StartBatch(Guid batchId)

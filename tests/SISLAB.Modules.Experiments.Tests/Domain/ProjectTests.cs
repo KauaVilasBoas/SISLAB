@@ -116,6 +116,66 @@ public sealed class ProjectTests
     }
 
     [Fact]
+    public void BindBatchToModel_stores_the_model_id_by_value_while_the_design_is_open()
+    {
+        Project project = NewProject();
+        Batch batch = project.AddBatch("Leva 1");
+        var modelId = Guid.NewGuid();
+
+        project.BindBatchToModel(batch.Id, modelId);
+
+        Assert.Equal(modelId, project.FindBatch(batch.Id).ExperimentalModelId);
+    }
+
+    [Fact]
+    public void BindBatchToModel_can_rebind_to_another_model_while_planned()
+    {
+        Project project = NewProject();
+        Batch batch = project.AddBatch("Leva 1");
+        project.BindBatchToModel(batch.Id, Guid.NewGuid());
+        var newModelId = Guid.NewGuid();
+
+        project.BindBatchToModel(batch.Id, newModelId);
+
+        Assert.Equal(newModelId, project.FindBatch(batch.Id).ExperimentalModelId);
+    }
+
+    [Fact]
+    public void BindBatchToModel_rejects_an_empty_model_id()
+    {
+        Project project = NewProject();
+        Batch batch = project.AddBatch("Leva 1");
+
+        Assert.Throws<DomainException>(() => project.BindBatchToModel(batch.Id, Guid.Empty));
+    }
+
+    [Fact]
+    public void ClearBatchModel_unbinds_the_model_while_planned()
+    {
+        Project project = NewProject();
+        Batch batch = project.AddBatch("Leva 1");
+        project.BindBatchToModel(batch.Id, Guid.NewGuid());
+
+        project.ClearBatchModel(batch.Id);
+
+        Assert.Null(project.FindBatch(batch.Id).ExperimentalModelId);
+    }
+
+    [Fact]
+    public void Binding_the_model_is_frozen_once_the_batch_starts()
+    {
+        Project project = NewProject();
+        Batch batch = project.AddBatch("Leva 1");
+        project.BindBatchToModel(batch.Id, Guid.NewGuid());
+        Group control = project.AddGroup(batch.Id, "Controle", Dose.Of(0m, "mg/kg"));
+        project.AddAnimal(batch.Id, control.Id, "M1-01", AnimalSex.Male);
+        project.StartBatch(batch.Id);
+
+        Assert.Throws<DomainException>(() => project.BindBatchToModel(batch.Id, Guid.NewGuid()));
+        Assert.Throws<DomainException>(() => project.ClearBatchModel(batch.Id));
+    }
+
+    [Fact]
     public void Dose_is_compared_by_value_and_guards_a_non_negative_amount()
     {
         Assert.Equal(Dose.Of(10m, "mg/kg"), Dose.Of(10m, "mg/kg"));

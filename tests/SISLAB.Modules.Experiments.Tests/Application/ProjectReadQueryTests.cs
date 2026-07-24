@@ -44,8 +44,9 @@ public sealed class ProjectReadQueryTests
         Guid batchId = Guid.NewGuid();
         Guid controlId = Guid.NewGuid();
         Guid doseId = Guid.NewGuid();
+        Guid modelId = Guid.NewGuid();
 
-        var batches = new[] { new GetProjectQueryHandler.BatchRow(batchId, "Leva 1", 1, "Running") };
+        var batches = new[] { new GetProjectQueryHandler.BatchRow(batchId, "Leva 1", 1, "Running", modelId) };
         var groups = new[]
         {
             new GetProjectQueryHandler.GroupRow(controlId, batchId, "Controle", 0m, "mg/kg"),
@@ -60,6 +61,7 @@ public sealed class ProjectReadQueryTests
         ProjectDetail detail = GetProjectQueryHandler.Assemble(header, batches, groups, animals);
 
         BatchDetail batch = Assert.Single(detail.Batches);
+        Assert.Equal(modelId, batch.ExperimentalModelId);
         Assert.Equal(2, batch.Groups.Count);
         Assert.Equal("M1-01", Assert.Single(batch.Groups.Single(g => g.Id == controlId).Animals).Identifier);
         Assert.Equal("M1-02", Assert.Single(batch.Groups.Single(g => g.Id == doseId).Animals).Identifier);

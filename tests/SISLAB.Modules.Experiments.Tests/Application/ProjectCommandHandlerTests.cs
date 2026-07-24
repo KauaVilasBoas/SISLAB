@@ -45,6 +45,45 @@ public sealed class ProjectCommandHandlerTests
     }
 
     [Fact]
+    public async Task BindBatchToModel_validates_the_model_via_configuration_and_persists()
+    {
+        Project project = Project.Create("P", "Rat");
+        Batch batch = project.AddBatch("Leva 1");
+        var modelId = Guid.NewGuid();
+        var projects = new FakeProjectRepository().Seed(project);
+        var handler = new BindBatchToModelCommandHandler(projects, new FakeLabConfiguration(modelId));
+
+        await handler.HandleAsync(new BindBatchToModelCommand(project.Id, batch.Id, modelId));
+
+        Assert.Equal(modelId, projects.LastUpdated!.FindBatch(batch.Id).ExperimentalModelId);
+    }
+
+    [Fact]
+    public async Task BindBatchToModel_rejects_a_model_that_does_not_exist_for_the_company()
+    {
+        Project project = Project.Create("P", "Rat");
+        Batch batch = project.AddBatch("Leva 1");
+        var projects = new FakeProjectRepository().Seed(project);
+        // The fake knows a different model id, so the requested one is unknown for the tenant.
+        var handler = new BindBatchToModelCommandHandler(projects, new FakeLabConfiguration(Guid.NewGuid()));
+
+        await Assert.ThrowsAsync<BusinessException>(() =>
+            handler.HandleAsync(new BindBatchToModelCommand(project.Id, batch.Id, Guid.NewGuid())));
+
+        Assert.Null(projects.LastUpdated);
+    }
+
+    [Fact]
+    public async Task BindBatchToModel_on_a_missing_project_throws_not_found()
+    {
+        var handler = new BindBatchToModelCommandHandler(
+            new FakeProjectRepository(), new FakeLabConfiguration());
+
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            handler.HandleAsync(new BindBatchToModelCommand(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid())));
+    }
+
+    [Fact]
     public async Task StartBatch_freezes_the_batch_and_activates_the_project()
     {
         Project project = Project.Create("P", "Rat");

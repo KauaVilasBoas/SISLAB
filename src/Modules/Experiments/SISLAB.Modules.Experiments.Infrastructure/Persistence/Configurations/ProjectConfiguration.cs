@@ -61,6 +61,11 @@ internal sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
             .HasMaxLength(20)
             .IsRequired();
 
+        // The experimental model (SISLAB-04) the batch runs, held by value — the id of a Configuration
+        // ExperimentalModel. Nullable: a batch may be planned before its model is chosen. No cross-module FK
+        // (the referenced aggregate lives in another bounded context); it is a plain uuid column.
+        batches.Property(batch => batch.ExperimentalModelId).HasColumnName("experimental_model_id");
+
         batches.OwnsMany(batch => batch.Groups, ConfigureGroups);
         batches.Navigation(batch => batch.Groups).AutoInclude();
 

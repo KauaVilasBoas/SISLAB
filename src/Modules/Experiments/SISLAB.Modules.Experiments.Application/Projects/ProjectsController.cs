@@ -134,6 +134,29 @@ public sealed class ProjectsController : SislabControllerBase
         return Ok(new ApiResult<Guid>(true, "Animal enrolled.", id));
     }
 
+    /// <summary>
+    /// Binds a batch (leva) to an experimental model (SISLAB-04). The model is validated to exist for the active
+    /// company through the Configuration Contracts port; the batch keeps only the model id, by value.
+    /// </summary>
+    [HttpPut("{projectId:guid}/batches/{batchId:guid}/model")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> BindBatchModel(
+        Guid projectId,
+        Guid batchId,
+        [FromBody] BindBatchModelRequest body,
+        CancellationToken ct)
+    {
+        await _mediator.SendAsync(
+            new BindBatchToModelCommand(projectId, batchId, body.ExperimentalModelId), ct);
+
+        return Ok(new ApiResult(true, "Batch bound to experimental model."));
+    }
+
     /// <summary>Starts a batch: freezes its design (reproducible cohort) and activates the project.</summary>
     [HttpPost("{projectId:guid}/batches/{batchId:guid}/start")]
     [RequirePermission]
@@ -154,6 +177,9 @@ public sealed record CreateProjectRequest(string Name, string Species, string? D
 
 /// <summary>Request body to add a batch (leva) to a project.</summary>
 public sealed record AddBatchRequest(string Name);
+
+/// <summary>Request body to bind a batch to an experimental model (SISLAB-04); the model id is referenced by value.</summary>
+public sealed record BindBatchModelRequest(Guid ExperimentalModelId);
 
 /// <summary>Request body to add a dose group to a batch.</summary>
 public sealed record AddGroupRequest(string Name, decimal DoseAmount, string DoseUnit);

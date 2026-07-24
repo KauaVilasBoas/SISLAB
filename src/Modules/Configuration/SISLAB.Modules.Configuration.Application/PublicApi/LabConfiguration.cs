@@ -1,3 +1,4 @@
+using SISLAB.Modules.Configuration.Application.ExperimentalModels;
 using SISLAB.Modules.Configuration.Application.ExpiryPolicies;
 using SISLAB.Modules.Configuration.Application.ItemCategories;
 using SISLAB.Modules.Configuration.Contracts;
@@ -47,4 +48,47 @@ internal sealed class LabConfiguration : ILabConfiguration
 
         return view is not null;
     }
+
+    /// <inheritdoc />
+    public async Task<ExperimentalModelDto?> GetExperimentalModelAsync(Guid modelId, CancellationToken ct)
+    {
+        ExperimentalModelView? view = await _mediator.SendAsync(new GetExperimentalModelQuery(modelId), ct);
+
+        return view is null ? null : MapToDto(view);
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> ExperimentalModelExistsAsync(Guid modelId, CancellationToken ct)
+    {
+        ExperimentalModelView? view = await _mediator.SendAsync(new GetExperimentalModelQuery(modelId), ct);
+
+        return view is not null;
+    }
+
+    /// <summary>
+    /// Translates the module's internal read view into the primitives-only Contracts DTO, so nothing of the
+    /// Configuration Domain (the <c>StandardGroupKind</c> enum, the value objects) crosses the boundary — the kind
+    /// is flattened to its stable string code.
+    /// </summary>
+    private static ExperimentalModelDto MapToDto(ExperimentalModelView view)
+        => new(
+            view.Id,
+            view.Name,
+            view.Description,
+            new InductionProtocolDto(
+                view.Induction.Administrations,
+                view.Induction.IntervalDays,
+                view.Induction.ReferenceDayAfterInduction),
+            view.Timepoints,
+            view.Parameters,
+            view.Groups
+                .Select(group => new StandardGroupDto(
+                    group.Name,
+                    group.Kind.ToString(),
+                    group.DoseAmount,
+                    group.DoseUnit))
+                .ToList(),
+            new DilutionDefaultsDto(
+                view.DilutionDefaults.MicrolitresPerGram,
+                view.DilutionDefaults.DefaultDiluent));
 }
