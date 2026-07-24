@@ -1,4 +1,5 @@
 using SISLAB.Modules.Audit.Contracts;
+using SISLAB.Modules.Configuration.Contracts;
 using SISLAB.Modules.Experiments.Application.Experiments;
 using SISLAB.Modules.Experiments.Application.Protocols;
 using SISLAB.Modules.Experiments.Domain.Experiments;
@@ -48,6 +49,35 @@ internal sealed class FakeCompanyMembershipQuery : ICompanyMembershipQuery
         Guid userId,
         CancellationToken cancellationToken = default)
         => Task.FromResult(_members is null || _members.Contains(userId));
+}
+
+/// <summary>
+/// Fake of the Configuration <see cref="ILabConfiguration"/> port (SISLAB-04). Treats a fixed allow-list of
+/// experimental-model ids as existing for the active company; defaults to allowing every id when constructed empty,
+/// so tests that do not care about the model-existence guard stay terse. Only the members the Experiments write-side
+/// consumes are meaningful; the rest throw to make an unexpected dependency obvious.
+/// </summary>
+internal sealed class FakeLabConfiguration : ILabConfiguration
+{
+    private readonly HashSet<Guid>? _knownModels;
+
+    public FakeLabConfiguration(params Guid[] knownModels)
+        => _knownModels = knownModels.Length == 0 ? null : knownModels.ToHashSet();
+
+    public Task<bool> ExperimentalModelExistsAsync(Guid modelId, CancellationToken ct)
+        => Task.FromResult(_knownModels is null || _knownModels.Contains(modelId));
+
+    public Task<ExperimentalModelDto?> GetExperimentalModelAsync(Guid modelId, CancellationToken ct)
+        => throw new NotSupportedException("GetExperimentalModelAsync is not exercised by these tests.");
+
+    public Task<int> GetExpiryWarningWindowDaysAsync(CancellationToken ct)
+        => throw new NotSupportedException("GetExpiryWarningWindowDaysAsync is not exercised by these tests.");
+
+    public Task<ItemCategoryDto?> GetItemCategoryAsync(Guid categoryId, CancellationToken ct)
+        => throw new NotSupportedException("GetItemCategoryAsync is not exercised by these tests.");
+
+    public Task<bool> ItemCategoryExistsAsync(Guid categoryId, CancellationToken ct)
+        => throw new NotSupportedException("ItemCategoryExistsAsync is not exercised by these tests.");
 }
 
 /// <summary>An <see cref="ITenantContext"/> pinned to a fixed company, matching how the read side resolves it.</summary>

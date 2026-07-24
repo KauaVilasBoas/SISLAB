@@ -24,6 +24,14 @@
       section 2). Only the Contracts assembly is referenced, never Identity's Domain/Application/Infrastructure.
     -->
     <ProjectReference Include="..\..\Identity\SISLAB.Modules.Identity.Contracts\SISLAB.Modules.Identity.Contracts.csproj" />
+    <!--
+      Configuration.Contracts: the public ILabConfiguration port (card [E12] #76, SISLAB-04). The Experiments
+      write-side validates that an experimental model a batch is bound to exists for the active company through it —
+      the model is owned by the Configuration bounded context, so the check crosses the boundary only via Contracts
+      (module isolation, section 2). Only the Contracts assembly is referenced, never Configuration's
+      Domain/Application/Infrastructure; the Batch keeps the model id by value.
+    -->
+    <ProjectReference Include="..\..\Configuration\SISLAB.Modules.Configuration.Contracts\SISLAB.Modules.Configuration.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

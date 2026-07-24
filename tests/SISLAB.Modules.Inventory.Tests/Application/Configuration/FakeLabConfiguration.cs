@@ -35,4 +35,12 @@ internal sealed class FakeLabConfiguration : ILabConfiguration
 
     public Task<bool> ItemCategoryExistsAsync(Guid categoryId, CancellationToken ct)
         => Task.FromResult(_categories.ContainsKey(categoryId));
+
+    // Experimental models (SISLAB-04) are consumed by the Experiments module, not Inventory; these are not
+    // exercised here, so they fail fast if an Inventory handler ever reaches for them unexpectedly.
+    public Task<ExperimentalModelDto?> GetExperimentalModelAsync(Guid modelId, CancellationToken ct)
+        => throw new NotSupportedException("GetExperimentalModelAsync is not used by the Inventory tests.");
+
+    public Task<bool> ExperimentalModelExistsAsync(Guid modelId, CancellationToken ct)
+        => throw new NotSupportedException("ExperimentalModelExistsAsync is not used by the Inventory tests.");
 }

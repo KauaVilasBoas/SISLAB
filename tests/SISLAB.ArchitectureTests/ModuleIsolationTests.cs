@@ -725,6 +725,53 @@ public sealed class ModuleIsolationTests
     }
 
     // ---------------------------------------------------------------------------------------------
+    // (a) Experiments consumes Configuration only via Contracts (SISLAB-04). The Experiments write-side binds a
+    //     batch to an experimental model owned by the Configuration bounded context, validating it through the
+    //     public ILabConfiguration port and keeping the model id by value. It must therefore NEVER reach into
+    //     Configuration's internal Domain/Application/Infrastructure — the boundary is the Contracts assembly
+    //     only (module isolation, section 2), symmetric to the Inventory → Configuration rules above.
+    // ---------------------------------------------------------------------------------------------
+
+    /// <summary>(a) O Experiments (Application) só consome a Configuration via Contracts, nunca seu Domain interno.</summary>
+    [Fact]
+    public void ExperimentsApplication_ShouldNotDependOn_ConfigurationDomain()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ExperimentsApplicationAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(ConfigurationDomainAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(a) O Experiments (Application) não deve depender da Application interna da Configuration.</summary>
+    [Fact]
+    public void ExperimentsApplication_ShouldNotDependOn_ConfigurationApplication()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ExperimentsApplicationAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(ConfigurationApplicationAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(a) O Experiments (Application) não deve depender da Infrastructure interna da Configuration.</summary>
+    [Fact]
+    public void ExperimentsApplication_ShouldNotDependOn_ConfigurationInfrastructure()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ExperimentsApplicationAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(ConfigurationInfrastructureAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    // ---------------------------------------------------------------------------------------------
     // Experiments module (card [E11] #68). New bounded context (the in vitro viability slice). Same isolation
     // rules as the other modules:
     // (c) its Domain never touches EF Core, Dapper or ASP.NET;
