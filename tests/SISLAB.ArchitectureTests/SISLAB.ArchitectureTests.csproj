@@ -48,9 +48,13 @@
     <ProjectReference Include="..\..\src\Modules\Experiments\SISLAB.Modules.Experiments.Application\SISLAB.Modules.Experiments.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Experiments\SISLAB.Modules.Experiments.Contracts\SISLAB.Modules.Experiments.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Experiments\SISLAB.Modules.Experiments.Infrastructure\SISLAB.Modules.Experiments.Infrastructure.csproj" />
-    <!-- Agenda module (card [E10]): loaded so the write-endpoint authorization rule can evaluate the improved
-         calendar controller's actions and the isolation rules can see the module's real types. -->
+    <!-- Agenda module (card [E10]): all four projects loaded so the write-endpoint authorization rule can evaluate
+         the improved calendar controller's actions and the SISLAB-10 isolation rules can see the module's real
+         types — the public IAgendaScheduler boundary Experiments consumes and the Domain internals it must not. -->
+    <ProjectReference Include="..\..\src\Modules\Agenda\SISLAB.Modules.Agenda.Domain\SISLAB.Modules.Agenda.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Agenda\SISLAB.Modules.Agenda.Application\SISLAB.Modules.Agenda.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Agenda\SISLAB.Modules.Agenda.Contracts\SISLAB.Modules.Agenda.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Agenda\SISLAB.Modules.Agenda.Infrastructure\SISLAB.Modules.Agenda.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

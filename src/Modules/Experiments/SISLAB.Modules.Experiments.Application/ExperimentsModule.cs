@@ -10,6 +10,7 @@ using SISLAB.Modules.Experiments.Application.Export;
 using SISLAB.Modules.Experiments.Application.Protocols;
 using SISLAB.Modules.Experiments.Application.PublicApi;
 using SISLAB.Modules.Experiments.Contracts;
+using SISLAB.Modules.Experiments.Domain.Scheduling;
 using SISLAB.Modules.Experiments.Infrastructure.DependencyInjection;
 
 namespace SISLAB.Modules.Experiments.Application;
@@ -69,6 +70,10 @@ public sealed class ExperimentsModule : IModule
         // experiment titles by id through a tenant-scoped Dapper lookup. Lets the Agenda calendar show an
         // experiment's name without JOINing the experiments schema or touching the Experiments internals.
         services.AddScoped<IExperimentDirectory, ExperimentDirectory>();
+
+        // Pure schedule-generation domain service (SISLAB-10): derives the ordered induction/treatment/timepoint
+        // days from the model's cadence and rotates the roster over them. Stateless — a singleton is enough.
+        services.AddSingleton<ExperimentScheduleGenerator>();
 
         // Current-user resolution for the responsibility model (card [E11]): resolves the caller's Lumen user id
         // from the HTTP principal, so the write handlers can enforce responsibility-based edit authorization and
