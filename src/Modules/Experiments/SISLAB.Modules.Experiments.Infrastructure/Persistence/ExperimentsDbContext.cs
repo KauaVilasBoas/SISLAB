@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SISLAB.Infrastructure.Multitenancy;
 using SISLAB.Infrastructure.Outbox;
 using SISLAB.Infrastructure.Persistence;
+using SISLAB.Modules.Experiments.Domain.Attachments;
 using SISLAB.Modules.Experiments.Domain.Biobank;
 using SISLAB.Modules.Experiments.Domain.Collection;
 using SISLAB.Modules.Experiments.Domain.Experiments;
@@ -49,6 +50,9 @@ public sealed class ExperimentsDbContext : SislabDbContextBase, IOutboxDbContext
     /// <summary>Collection plans (SISLAB-08): CollectionPlan → SampleRouting → PlannedAnalysis, + role assignments.</summary>
     public DbSet<CollectionPlan> CollectionPlans => Set<CollectionPlan>();
 
+    /// <summary>Evidence attachments (SISLAB-09): a file's storage key + metadata, linked to an animal's reading/analysis.</summary>
+    public DbSet<Attachment> Attachments => Set<Attachment>();
+
     /// <inheritdoc />
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
@@ -63,6 +67,7 @@ public sealed class ExperimentsDbContext : SislabDbContextBase, IOutboxDbContext
         modelBuilder.ApplyConfiguration(new ProjectConfiguration());
         modelBuilder.ApplyConfiguration(new SampleConfiguration());
         modelBuilder.ApplyConfiguration(new CollectionPlanConfiguration());
+        modelBuilder.ApplyConfiguration(new AttachmentConfiguration());
 
         // Outbox table lives in the module schema so the aggregate write and the outbox write share one
         // transaction/one connection (local transactional consistency).

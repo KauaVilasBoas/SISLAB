@@ -5,6 +5,7 @@ using SISLAB.Infrastructure.Messaging;
 using SISLAB.Infrastructure.Messaging.Behaviors;
 using SISLAB.Infrastructure.Outbox;
 using SISLAB.Infrastructure.Persistence;
+using SISLAB.Modules.Experiments.Domain.Attachments;
 using SISLAB.Modules.Experiments.Domain.Biobank;
 using SISLAB.Modules.Experiments.Domain.Collection;
 using SISLAB.Modules.Experiments.Domain.Experiments;
@@ -54,6 +55,7 @@ public static class ExperimentsModuleServiceExtensions
         services.AddScoped<IProjectRepository, ProjectRepository>();
         services.AddScoped<ISampleRepository, SampleRepository>();
         services.AddScoped<ICollectionPlanRepository, CollectionPlanRepository>();
+        services.AddScoped<IAttachmentRepository, AttachmentRepository>();
 
         // 3. Write-side unit of work (hybrid consistency strategy — E2).
         //    - IOutboxDbContext points at THIS module's DbContext so the Outbox write shares the aggregate's
