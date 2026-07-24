@@ -2,10 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/shared/api/http';
 import { Endpoints } from '@/shared/api/endpoints';
 import type {
+  CreateExperimentalModelRequest,
   CreateItemCategoryRequest,
   CreateReferenceRangeRequest,
   CreateRoomRequest,
   CreateUnitRequest,
+  ExperimentalModelListItem,
+  ExperimentalModelView,
   ItemCategoryListItem,
   ReferenceRangeListItem,
   RoomListItem,
@@ -24,6 +27,9 @@ export const configurationKeys = {
   itemCategories: () => [...configurationKeys.all, 'item-categories'] as const,
   referenceRanges: () => [...configurationKeys.all, 'reference-ranges'] as const,
   expiryPolicy: () => [...configurationKeys.all, 'expiry-policy'] as const,
+  experimentalModels: () => [...configurationKeys.all, 'experimental-models'] as const,
+  experimentalModel: (id: string) =>
+    [...configurationKeys.experimentalModels(), id] as const,
 };
 
 // The catalogues change rarely; keep them fresh for a couple of minutes to avoid refetch churn.
@@ -65,6 +71,30 @@ export function useReferenceRanges() {
   return useQuery({
     queryKey: configurationKeys.referenceRanges(),
     queryFn: () => api.get<ReferenceRangeListItem[]>(Endpoints.configuration.referenceRanges),
+    staleTime: CATALOGUE_STALE_TIME,
+  });
+}
+
+/**
+ * The active company's experimental models / induction protocols (SISLAB-04), ordered by name.
+ * Shared surface: the in vivo batch-binding dropdown consumes this same hook (Configuration owns the endpoint).
+ */
+export function useExperimentalModels() {
+  return useQuery({
+    queryKey: configurationKeys.experimentalModels(),
+    queryFn: () =>
+      api.get<ExperimentalModelListItem[]>(Endpoints.configuration.experimentalModels.root),
+    staleTime: CATALOGUE_STALE_TIME,
+  });
+}
+
+/** One experimental model's full payload (induction, timepoints, parameters, groups, dilution). */
+export function useExperimentalModel(id: string | null) {
+  return useQuery({
+    queryKey: configurationKeys.experimentalModel(id ?? ''),
+    queryFn: () =>
+      api.get<ExperimentalModelView>(Endpoints.configuration.experimentalModels.byId(id!)),
+    enabled: Boolean(id),
     staleTime: CATALOGUE_STALE_TIME,
   });
 }
@@ -121,6 +151,17 @@ export function useCreateReferenceRange() {
       api.post<string>(Endpoints.configuration.referenceRanges, body),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: configurationKeys.referenceRanges() }),
+  });
+}
+
+/** Creates an experimental model (SISLAB-04); returns the new id. Refreshes the models list. */
+export function useCreateExperimentalModel() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateExperimentalModelRequest) =>
+      api.post<string>(Endpoints.configuration.experimentalModels.root, body),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: configurationKeys.experimentalModels() }),
   });
 }
 
