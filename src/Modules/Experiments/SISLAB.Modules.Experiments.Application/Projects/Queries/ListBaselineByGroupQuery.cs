@@ -65,7 +65,7 @@ internal sealed class ListBaselineByGroupQueryHandler
             g.name                     AS groupname,
             g.dose_amount              AS doseamount,
             g.dose_unit                AS doseunit,
-            count(l.animal_id)         AS animalswithreading,
+            count(l.animal_id)::int    AS animalswithreading,
             avg(l.value)               AS meanvalue,
             min(l.value)               AS minvalue,
             max(l.value)               AS maxvalue,
