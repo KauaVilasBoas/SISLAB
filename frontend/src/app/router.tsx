@@ -13,6 +13,7 @@ import { ProfileEditPage } from '@/modules/identity/pages/ProfileEditPage';
 import { ConfigurationPage } from '@/modules/configuration/pages/ConfigurationPage';
 import { ExperimentsPage } from '@/modules/experiments/pages/ExperimentsPage';
 import { ExperimentDetailPage } from '@/modules/experiments/pages/ExperimentDetailPage';
+import { DilutionCalculatorPage } from '@/modules/experiments/pages/DilutionCalculatorPage';
 import { ProjectsPage } from '@/modules/in-vivo/pages/ProjectsPage';
 import { ProjectDetailPage } from '@/modules/in-vivo/pages/ProjectDetailPage';
 import { BiobankPage } from '@/modules/in-vivo/pages/BiobankPage';
@@ -93,6 +94,9 @@ export const router = createBrowserRouter([
       // Experiments (card [E11] #68) — visible to every member for now (list/detail reads are only
       // [Authorize]-gated; the write actions are permission-gated on the backend).
       { path: 'experiments', element: <ExperimentsPage /> },
+      // Serial-dilution calculator (SISLAB-05) — stateless compute, visible to every member (the GET is only
+      // [Authorize]-gated). Static path registered before the :id route so it never matches as an experiment id.
+      { path: 'experiments/dilution', element: <DilutionCalculatorPage /> },
       { path: 'experiments/:id', element: <ExperimentDetailPage /> },
       // In vivo (cards [E11] #73/#89/#90) — experimental design, biobank and pendencies. Reads are only
       // [Authorize]-gated; the write actions are permission-gated on the backend and in the UI.

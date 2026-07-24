@@ -86,12 +86,16 @@ export const Permissions = {
     addGroup: 'Projects.AddGroup',
     addAnimal: 'Projects.AddAnimal',
     startBatch: 'Projects.StartBatch',
+    /** Confirm an in vivo solution preparation for a dose group (SISLAB-01). */
+    prepareGroupSolution: 'Projects.PrepareGroupSolution',
   },
   /** Experimentos — testes comportamentais in vivo (ExperimentsController behavioural write endpoints). */
   experiments: {
     createBehavioral: 'Experiments.CreateBehavioral',
     recordTimepoint: 'Experiments.RecordTimepoint',
     calculateBehavioral: 'Experiments.CalculateBehavioral',
+    /** Populate a plate column's concentrations from a serial-dilution scheme (SISLAB-05). */
+    applyDilutionScheme: 'Experiments.ApplyDilutionScheme',
   },
   /** Experimentos — responsabilidade (ExperimentsController responsible-assignment endpoints, card [E11]). */
   experimentResponsibility: {

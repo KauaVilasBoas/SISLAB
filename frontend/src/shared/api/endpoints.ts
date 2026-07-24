@@ -139,6 +139,10 @@ export const Endpoints = {
     plateResult: (id: string) => `/api/experiments/${id}/plate-result`,
     /** Lay out the plate wells. */
     designPlate: (id: string) => `/api/experiments/${id}/design-plate`,
+    /** Compute a serial-dilution scheme (stateless; series + C1V1=C2V2 volumes + stock + DMSO) — SISLAB-05. */
+    dilutionScheme: '/api/experiments/dilution-scheme',
+    /** Populate a plate column's concentrations from a serial-dilution scheme — SISLAB-05. */
+    applyDilutionScheme: (id: string) => `/api/experiments/${id}/apply-dilution-scheme`,
     /** Import the reader's absorbance (canonical well,absorbance CSV). */
     importReading: (id: string) => `/api/experiments/${id}/import-reading`,
     /** Run the versioned calculation (viability or nitric oxide). */
@@ -182,6 +186,11 @@ export const Endpoints = {
     /** Start a batch (freezes its design). */
     startBatch: (id: string, batchId: string) =>
       `/api/projects/${id}/batches/${batchId}/start`,
+    /** Confirm an in vivo solution preparation for a dose group (SISLAB-01). */
+    preparations: (id: string, batchId: string, groupId: string) =>
+      `/api/projects/${id}/batches/${batchId}/groups/${groupId}/preparations`,
+    /** List a project's confirmed solution preparations, optionally filtered by batch/group (SISLAB-01). */
+    listPreparations: (id: string) => `/api/projects/${id}/preparations`,
   },
 
   /** Experiments module — biobank: Sample → Analysis with a derived balance (card [E11] #89). */

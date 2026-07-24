@@ -4,6 +4,7 @@ import type {
   AnimalSex,
   BatchStatus,
   BehavioralType,
+  CompoundState,
   PendencyKind,
   ProjectStatus,
   SampleType,
@@ -109,4 +110,29 @@ export function formatDate(iso: string | null): string {
 /** Formats a decimal amount with its unit (e.g. "1.5 mL"), trimming trailing zeros. */
 export function formatAmount(value: number, unit: string): string {
   return `${Number(value.toFixed(4))} ${unit}`;
+}
+
+/** Human label for the compound's physical state (SISLAB-01). */
+export const compoundStateLabel: Record<CompoundState, string> = {
+  Powder: 'Pó',
+  Liquid: 'Líquido',
+};
+
+/** Resolves a compound-state label from the raw backend enum name, falling back to the name itself. */
+export function compoundStateName(state: string): string {
+  return compoundStateLabel[state as CompoundState] ?? state;
+}
+
+/**
+ * Formats a volume in microlitres for the operator (SISLAB-01) — pt-BR grouping, up to 2 decimals,
+ * suffixed "µL". The operator confirms these exact numbers against the bench, so keep the precision.
+ */
+const microlitreFormatter = new Intl.NumberFormat('pt-BR', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
+export function formatMicrolitres(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '—';
+  return `${microlitreFormatter.format(value)} µL`;
 }

@@ -8,6 +8,7 @@ import {
   Grid3x3,
   CheckCircle2,
   Download,
+  Beaker,
 } from 'lucide-react';
 import { PageHeader } from '@/shared/components/PageHeader';
 import { Button } from '@/shared/components/ui/button';
@@ -28,7 +29,10 @@ import {
 import { PlateGrid } from '@/modules/experiments/components/PlateGrid';
 import { DesignPlateModal } from '@/modules/experiments/components/DesignPlateModal';
 import { ImportReadingModal } from '@/modules/experiments/components/ImportReadingModal';
+import { ApplyDilutionModal } from '@/modules/experiments/components/ApplyDilutionModal';
 import { ResponsibilityPanel } from '@/modules/experiments/components/ResponsibilityPanel';
+import { RequirePermission } from '@/modules/auth/PermissionsProvider';
+import { Permissions } from '@/modules/auth/permissions';
 import { BehavioralExperimentDetail } from '@/modules/in-vivo/components/BehavioralExperimentDetail';
 import { isBehavioralType, type ExperimentStatus } from '@/modules/experiments/types';
 
@@ -50,6 +54,7 @@ export function ExperimentDetailPage() {
 
   const [designing, setDesigning] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [applyingDilution, setApplyingDilution] = useState(false);
 
   async function handleCalculate() {
     try {
@@ -144,6 +149,17 @@ export function ExperimentDetailPage() {
                 <Grid3x3 className="size-4" />
                 Desenhar placa
               </Button>
+              <RequirePermission code={Permissions.experiments.applyDilutionScheme}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setApplyingDilution(true)}
+                  disabled={!hasPlate || isCalculated}
+                >
+                  <Beaker className="size-4" />
+                  Aplicar diluição
+                </Button>
+              </RequirePermission>
               <Button
                 variant="outline"
                 size="sm"
@@ -272,6 +288,9 @@ export function ExperimentDetailPage() {
       )}
       {importing && (
         <ImportReadingModal experimentId={id} onClose={() => setImporting(false)} />
+      )}
+      {applyingDilution && (
+        <ApplyDilutionModal experimentId={id} onClose={() => setApplyingDilution(false)} />
       )}
     </div>
   );

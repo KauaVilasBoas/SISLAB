@@ -10,6 +10,7 @@ import {
   CalendarRange,
   FlaskConical,
   FlaskRound,
+  Beaker,
   QrCode,
   Wallet,
   Snowflake,
@@ -102,6 +103,14 @@ export const navGroups: NavGroup[] = [
         label: 'Pendências',
         description: 'Trabalho em aberto',
         icon: ListChecks,
+      },
+      {
+        // Serial-dilution calculator (SISLAB-05). Stateless compute — visible to every member (the GET is only
+        // [Authorize]-gated), so no permissionAny here.
+        path: '/experiments/dilution',
+        label: 'Diluição seriada',
+        description: 'Calculadora de placa-mãe',
+        icon: Beaker,
       },
     ],
   },

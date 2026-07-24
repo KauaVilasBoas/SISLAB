@@ -76,6 +76,50 @@ export interface AddAnimalRequest {
 }
 
 // ---------------------------------------------------------------------------
+// Solution preparation (SISLAB-01 — dose × weight, density, g:µL relation)
+// ---------------------------------------------------------------------------
+
+/** Physical state of the compound as the backend serializes the enum. Drives whether density is required. */
+export type CompoundState = 'Powder' | 'Liquid';
+
+/**
+ * Request body to confirm a dose group's in vivo solution preparation (SISLAB-01).
+ * Controle (só veículo): `isVehicleOnly = true` + the relation + the weight basis, no compound fields.
+ * Treatment arm: dose + group weight + state (+ density when Liquid).
+ */
+export interface PrepareGroupSolutionRequest {
+  isVehicleOnly: boolean;
+  relationMicrolitresPerGram: number;
+  relationWeightGrams: number;
+  doseAmountGramsPerKilogram?: number;
+  groupWeightGrams?: number;
+  state?: CompoundState;
+  densityGramsPerMillilitre?: number;
+}
+
+/** A confirmed, frozen solution preparation snapshot with its inputs and computed volumes (SISLAB-01). */
+export interface SolutionPreparationListItem {
+  id: string;
+  batchId: string;
+  groupId: string;
+  groupName: string;
+  isVehicleOnly: boolean;
+  doseAmountGramsPerKilogram: number;
+  groupWeightGrams: number;
+  relationWeightGrams: number;
+  relationMicrolitresPerGram: number;
+  compoundState: string;
+  densityGramsPerMillilitre: number | null;
+  compoundMassGrams: number;
+  compoundVolumeMicrolitres: number | null;
+  finalVolumeMicrolitres: number;
+  diluentVolumeMicrolitres: number;
+  formulaCode: string;
+  preparedBy: string;
+  preparedAtUtc: string;
+}
+
+// ---------------------------------------------------------------------------
 // Behavioural experiments (timepoint launch)
 // ---------------------------------------------------------------------------
 

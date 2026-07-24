@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, Plus, Play, FlaskConical } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Play, FlaskConical, FlaskRound } from 'lucide-react';
 import { PageHeader } from '@/shared/components/PageHeader';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
@@ -15,13 +15,15 @@ import {
   AddGroupModal,
 } from '@/modules/in-vivo/components/ProjectDesignModals';
 import { LaunchBehavioralModal } from '@/modules/in-vivo/components/LaunchBehavioralModal';
+import { PrepareSolutionModal } from '@/modules/in-vivo/components/PrepareSolutionModal';
+import { SolutionPreparationsPanel } from '@/modules/in-vivo/components/SolutionPreparationsPanel';
 import {
   animalSexLabel,
   batchStatusPresentation,
   formatAmount,
   projectStatusPresentation,
 } from '@/modules/in-vivo/presentation';
-import type { BatchStatus, ProjectStatus } from '@/modules/in-vivo/types';
+import type { BatchStatus, GroupDetail, ProjectStatus } from '@/modules/in-vivo/types';
 
 /**
  * Project delineation detail (card [E11] #73): the Project → Batch → Group → Animal tree with permission-gated
@@ -43,6 +45,10 @@ export function ProjectDetailPage() {
     groupId: string;
   } | null>(null);
   const [launchingBatch, setLaunchingBatch] = useState<string | null>(null);
+  const [preparingSolution, setPreparingSolution] = useState<{
+    batchId: string;
+    group: GroupDetail;
+  } | null>(null);
 
   async function handleStartBatch(batchId: string) {
     try {
@@ -196,23 +202,37 @@ export function ProjectDetailPage() {
                               {group.animals.length} animal(is)
                             </span>
                           </div>
-                          {isPlanned && (
-                            <RequirePermission code={Permissions.projects.addAnimal}>
+                          <div className="flex items-center gap-1">
+                            {isPlanned && (
+                              <RequirePermission code={Permissions.projects.addAnimal}>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    setAddingAnimalTo({
+                                      batchId: batch.id,
+                                      groupId: group.id,
+                                    })
+                                  }
+                                >
+                                  <Plus className="size-4" />
+                                  Animal
+                                </Button>
+                              </RequirePermission>
+                            )}
+                            <RequirePermission code={Permissions.projects.prepareGroupSolution}>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() =>
-                                  setAddingAnimalTo({
-                                    batchId: batch.id,
-                                    groupId: group.id,
-                                  })
+                                  setPreparingSolution({ batchId: batch.id, group })
                                 }
                               >
-                                <Plus className="size-4" />
-                                Animal
+                                <FlaskRound className="size-4" />
+                                Preparar solução
                               </Button>
                             </RequirePermission>
-                          )}
+                          </div>
                         </div>
                         {group.animals.length > 0 && (
                           <div className="flex flex-wrap gap-2">
@@ -242,6 +262,8 @@ export function ProjectDetailPage() {
         </div>
       )}
 
+      <SolutionPreparationsPanel projectId={project.id} />
+
       {addingBatch && (
         <AddBatchModal projectId={project.id} onClose={() => setAddingBatch(false)} />
       )}
@@ -269,6 +291,14 @@ export function ProjectDetailPage() {
             setLaunchingBatch(null);
             navigate(`/experiments/${experimentId}`);
           }}
+        />
+      )}
+      {preparingSolution && (
+        <PrepareSolutionModal
+          projectId={project.id}
+          batchId={preparingSolution.batchId}
+          group={preparingSolution.group}
+          onClose={() => setPreparingSolution(null)}
         />
       )}
     </div>

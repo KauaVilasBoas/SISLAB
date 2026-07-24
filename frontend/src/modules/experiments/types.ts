@@ -115,6 +115,83 @@ export interface DesignPlateWellRequest {
   sampleId: string | null;
 }
 
+// ---------------------------------------------------------------------------
+// Serial dilution scheme (SISLAB-05 — mother-plate calculator)
+// ---------------------------------------------------------------------------
+
+/**
+ * Query parameters for the stateless serial-dilution compute (GET /experiments/dilution-scheme).
+ * The series inputs (top concentration, factor, points, final volume, half-in-well) are always sent; the
+ * stock and DMSO groups are optional (present only when the operator wants those controls computed too).
+ */
+export interface DilutionSchemeParams {
+  topConcentrationMicromolar: number;
+  factor: number;
+  numberOfPoints: number;
+  finalVolumeMicrolitres: number;
+  doubleForHalfInWell?: boolean;
+  /** Stock via V = m × M / MM — molar-mass route (the three go together). */
+  stockMolarMassGramsPerMole?: number;
+  stockMassMilligrams?: number;
+  stockTargetMolarityMicromolar?: number;
+  /** Stock via a plain mg/mL pesagem — no molar mass (the two go together). */
+  stockConcentrationMilligramsPerMillilitre?: number;
+  stockVolumeMillilitres?: number;
+  /** DMSO control (both go together). */
+  dmsoMicrolitres?: number;
+  dmsoSolutionMicrolitres?: number;
+  /** In-well further dilution of the mother solution (1 = neat). */
+  dmsoInWellDilutionRatio?: number;
+}
+
+/** One point of the computed series: concentration + how to reach it (C1V1=C2V2). */
+export interface DilutionSchemeStep {
+  index: number;
+  concentrationMicromolar: number;
+  transferMicrolitres: number | null;
+  diluentMicrolitres: number | null;
+  finalVolumeMicrolitres: number;
+}
+
+/** The stock solution the series steps down from, when a compound was supplied. */
+export interface DilutionStock {
+  massMilligrams: number;
+  molarMassGramsPerMole: number | null;
+  concentrationMicromolar: number | null;
+  concentrationMilligramsPerMillilitre: number;
+  volumeMillilitres: number;
+}
+
+/** The DMSO control: the solvent fraction in the mother solution and once in the well. */
+export interface DilutionDmso {
+  dmsoMicrolitres: number;
+  solutionMicrolitres: number;
+  solutionFraction: number;
+  wellFraction: number;
+}
+
+/** The computed serial-dilution scheme (SISLAB-05). Mirror of the backend SerialDilutionSchemeResult. */
+export interface DilutionScheme {
+  factor: number;
+  finalVolumeMicrolitres: number;
+  steps: DilutionSchemeStep[];
+  stock: DilutionStock | null;
+  dmso: DilutionDmso | null;
+}
+
+/**
+ * Request body to populate a plate column's concentrations from a serial-dilution scheme
+ * (POST /experiments/{id}/apply-dilution-scheme). The series inputs are recomputed server-side.
+ */
+export interface ApplyDilutionSchemeRequest {
+  column: number;
+  topConcentrationMicromolar: number;
+  factor: number;
+  numberOfPoints: number;
+  finalVolumeMicrolitres: number;
+  doubleForHalfInWell?: boolean;
+}
+
 /**
  * Request body to assign a responsible (card [E11]) — the lead of an experiment
  * (PUT /experiments/{id}/responsible) or a responsible on a step
