@@ -77,16 +77,20 @@ internal sealed class ViabilityCalculationStrategy : IExperimentProtocol
             .Select(well => new WellViabilityResult(
                 well.Coordinate,
                 well.Role.ToString(),
+                well.SampleId,
                 well.ConcentrationUm,
                 well.RawAbsorbance!.Value,
                 ViabilityPercent(well.RawAbsorbance!.Value, blankMean, denominator)))
             .ToList();
 
+        IReadOnlyList<ConditionAggregate> conditions = AggregateByCondition(results);
+
         var payload = new ViabilityResultPayload(
             FormulaCode,
             Math.Round(blankMean, 4),
             Math.Round(controlMean, 4),
-            results);
+            results,
+            conditions);
 
         string resultJson = JsonSerializer.Serialize(payload, ResultSerializerOptions);
 
@@ -106,18 +110,59 @@ internal sealed class ViabilityCalculationStrategy : IExperimentProtocol
     private static decimal ViabilityPercent(decimal absorbance, decimal blankMean, decimal denominator)
         => Math.Round((absorbance - blankMean) / denominator * 100m, 2);
 
+    /// <summary>
+    /// Groups the per-well results into conditions (SISLAB-07 — same compound × concentration = replicates) and
+    /// computes the replicate count, mean and sample SD of the % viability per condition. Only wells that count
+    /// toward the calculation reached <paramref name="results"/>, so excluded outliers are already out of the mean.
+    /// </summary>
+    private static IReadOnlyList<ConditionAggregate> AggregateByCondition(IReadOnlyList<WellViabilityResult> results)
+        => results
+            .GroupBy(result => new ConditionKey(result.SampleId, result.ConcentrationUm))
+            .OrderBy(group => group.Key.ConcentrationUm ?? decimal.MaxValue)
+            .ThenBy(group => group.Key.SampleId)
+            .Select(group =>
+            {
+                (int count, decimal mean, decimal? standardDeviation) =
+                    ReplicateStatistics.Compute(group.Select(result => result.ViabilityPct).ToList());
+
+                return new ConditionAggregate(
+                    group.Key.SampleId,
+                    group.Key.ConcentrationUm,
+                    count,
+                    Math.Round(mean, 2),
+                    standardDeviation is { } sd ? Math.Round(sd, 2) : null,
+                    group.Select(result => result.Well).ToList());
+            })
+            .ToList();
+
+    private readonly record struct ConditionKey(string? SampleId, decimal? ConcentrationUm);
+
     /// <summary>Serialized result payload (the snapshot's frozen JSON). Web-cased to match the API shape.</summary>
     private sealed record ViabilityResultPayload(
         string Formula,
         decimal BlankMean,
         decimal ControlMean,
-        IReadOnlyList<WellViabilityResult> Wells);
+        IReadOnlyList<WellViabilityResult> Wells,
+        IReadOnlyList<ConditionAggregate> Conditions);
 
     /// <summary>Per-well viability line inside the result payload.</summary>
     private sealed record WellViabilityResult(
         string Well,
         string Role,
+        string? SampleId,
         decimal? ConcentrationUm,
         decimal RawAbsorbance,
         decimal ViabilityPct);
+
+    /// <summary>
+    /// Per-condition aggregate (SISLAB-07): the replicate count, mean and sample SD of % viability for one
+    /// compound × concentration, plus the coordinates of the replicates that fed it.
+    /// </summary>
+    private sealed record ConditionAggregate(
+        string? SampleId,
+        decimal? ConcentrationUm,
+        int ReplicateCount,
+        decimal MeanViabilityPct,
+        decimal? StdDevViabilityPct,
+        IReadOnlyList<string> Wells);
 }

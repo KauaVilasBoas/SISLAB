@@ -12,9 +12,15 @@ internal static class ExperimentTestData
     public static NitricOxideExperiment NewNitricOxideExperiment(string title = "Griess run")
         => NitricOxideExperiment.Create(title, description: null, createdBy: "tester@lab", createdAtUtc: DateTime.UtcNow);
 
-    public static Well MakeWell(char row, int column, WellRole role, decimal? absorbance = null, decimal? concentrationUm = null)
+    public static Well MakeWell(
+        char row,
+        int column,
+        WellRole role,
+        decimal? absorbance = null,
+        decimal? concentrationUm = null,
+        string? sampleId = null)
     {
-        Well well = Well.Create(row, column, role, concentrationUm, sampleId: null);
+        Well well = Well.Create(row, column, role, concentrationUm, sampleId);
         if (absorbance.HasValue)
             well.RecordAbsorbance(absorbance.Value);
         return well;

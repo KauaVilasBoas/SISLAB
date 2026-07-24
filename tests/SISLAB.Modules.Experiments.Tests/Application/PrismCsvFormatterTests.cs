@@ -68,6 +68,54 @@ public sealed class PrismCsvFormatterTests
     }
 
     [Fact]
+    public void Viability_formatter_appends_a_per_condition_mean_and_sd_summary_block()
+    {
+        const string json =
+            """
+            {
+              "formula": "viability@v1",
+              "blankMean": 0.05,
+              "controlMean": 1.05,
+              "wells": [
+                { "well": "A1", "role": "Sample", "sampleId": "GDA-43", "concentrationUm": 10, "rawAbsorbance": 0.9, "viabilityPct": 85 },
+                { "well": "B1", "role": "Sample", "sampleId": "GDA-43", "concentrationUm": 10, "rawAbsorbance": 0.89, "viabilityPct": 84 },
+                { "well": "C1", "role": "Sample", "sampleId": "GDA-43", "concentrationUm": 10, "rawAbsorbance": 0.91, "viabilityPct": 86 }
+              ],
+              "conditions": [
+                { "sampleId": "GDA-43", "concentrationUm": 10, "replicateCount": 3, "meanViabilityPct": 85, "stdDevViabilityPct": 1, "wells": ["A1","B1","C1"] }
+              ]
+            }
+            """;
+
+        string csv = new ViabilityPrismFormatter().Format(json);
+
+        Assert.Contains("Resumo por condição,Composto,Concentração (µM),N,Média (%),Desvio (%)", csv);
+        Assert.Contains(",GDA-43,10,3,85,1", csv);
+    }
+
+    [Fact]
+    public void NitricOxide_formatter_appends_a_per_condition_mean_and_sd_summary_block()
+    {
+        const string json =
+            """
+            {
+              "formula": "nitric-oxide@v1",
+              "slope": 0.02, "intercept": 0, "rSquared": 1, "lowConfidence": false, "blankBaseline": 0.05,
+              "curve": [ { "concentrationUm": 0, "absorbance": 0 } ],
+              "wells": [ { "well": "A3", "role": "Sample", "sampleId": "CTRL+", "rawAbsorbance": 0.45, "concentrationUm": 20 } ],
+              "conditions": [
+                { "sampleId": "CTRL+", "concentrationUm": null, "replicateCount": 2, "meanConcentrationUm": 20.5, "stdDevConcentrationUm": 0.7071, "wells": ["A3","B3"] }
+              ]
+            }
+            """;
+
+        string csv = new NitricOxidePrismFormatter().Format(json);
+
+        Assert.Contains("Resumo por condição,N,Média NO (µM),Desvio NO (µM)", csv);
+        Assert.Contains("CTRL+,2,20.5,0.7071", csv);
+    }
+
+    [Fact]
     public void Resolver_routes_each_formula_code_to_its_formatter_and_rejects_the_unknown()
     {
         var resolver = new PrismCsvFormatterResolver(new IPrismCsvFormatter[]
