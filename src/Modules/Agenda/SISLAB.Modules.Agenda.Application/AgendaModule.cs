@@ -5,7 +5,9 @@ using SISLAB.Infrastructure.DependencyInjection;
 using SISLAB.Infrastructure.Modules;
 using SISLAB.Modules.Agenda.Application.Entries.Conflicts;
 using SISLAB.Modules.Agenda.Application.Entries.Recurrence;
+using SISLAB.Modules.Agenda.Application.PublicApi;
 using SISLAB.Modules.Agenda.Application.Subscriptions.Queries;
+using SISLAB.Modules.Agenda.Contracts;
 using SISLAB.Modules.Agenda.Infrastructure.DependencyInjection;
 
 namespace SISLAB.Modules.Agenda.Application;
@@ -38,6 +40,10 @@ public sealed class AgendaModule : IModule
 
         // Stateless RFC 5545 .ics writer (Ical.Net) for the public feed (card [E10.10]). Singleton — no state.
         services.AddSingleton<IcalFeedBuilder>();
+
+        // Public inbound port (SISLAB-10): lets another module (Experiments) create calendar entries through the
+        // module's standard write path. Scoped — it dispatches through the request-scoped mediator.
+        services.AddScoped<IAgendaScheduler, AgendaScheduler>();
 
         services.AddAgendaModule(configuration);
     }

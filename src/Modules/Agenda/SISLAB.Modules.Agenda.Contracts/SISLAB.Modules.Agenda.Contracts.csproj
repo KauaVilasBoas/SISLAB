@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Contracts: the Agenda module's public boundary (SISLAB-10). The IAgendaScheduler port + its request DTO
+       let another bounded context (Experiments) create calendar entries without reaching into the Agenda
+       Domain/Application/Infrastructure (module isolation, section 2). -->
+
+  <!-- Deliberately no ProjectReference: the port and its DTOs use only BCL primitives, so not even the
+       SharedKernel is needed. This keeps the public boundary as light and shielded as possible, symmetric to
+       Notifications.Contracts. -->
+
+</Project>
