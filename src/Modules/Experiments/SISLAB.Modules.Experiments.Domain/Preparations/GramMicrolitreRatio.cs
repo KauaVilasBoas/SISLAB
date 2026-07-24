@@ -16,6 +16,9 @@ namespace SISLAB.Modules.Experiments.Domain.Preparations;
 /// </remarks>
 public sealed class GramMicrolitreRatio : ValueObject
 {
+    // Parameterless constructor for EF Core materialization of the owned value object.
+    private GramMicrolitreRatio() { }
+
     private GramMicrolitreRatio(decimal microlitresPerGram) => MicrolitresPerGram = microlitresPerGram;
 
     /// <summary>Microlitres of final solution per gram of animal body weight (e.g. 5 for a 1 g : 5 µL relation).</summary>

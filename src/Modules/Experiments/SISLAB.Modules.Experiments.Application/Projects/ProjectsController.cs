@@ -319,6 +319,63 @@ public sealed class ProjectsController : SislabControllerBase
         return Ok(new ApiResult(true, "Batch bound to experimental model."));
     }
 
+    /// <summary>
+    /// Calculates and persists an in vivo solution preparation (SISLAB-01) for a dose group of a batch — the frozen,
+    /// traceable snapshot of dose × weight × relation the operator confirms. The author/instant come from the
+    /// session/clock; every laboratory-specific value (relation, density, diluent basis) is a request input. Returns
+    /// the new preparation id.
+    /// </summary>
+    [HttpPost("{projectId:guid}/batches/{batchId:guid}/groups/{groupId:guid}/preparations")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult<Guid>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> PrepareGroupSolution(
+        Guid projectId,
+        Guid batchId,
+        Guid groupId,
+        [FromBody] PrepareGroupSolutionRequest body,
+        CancellationToken ct)
+    {
+        Guid id = await _mediator.SendAsync(
+            new PrepareGroupSolutionCommand(
+                projectId,
+                batchId,
+                groupId,
+                body.IsVehicleOnly,
+                body.RelationMicrolitresPerGram,
+                body.RelationWeightGrams,
+                body.DoseAmountGramsPerKilogram,
+                body.GroupWeightGrams,
+                body.State,
+                body.DensityGramsPerMillilitre),
+            ct);
+
+        return Ok(new ApiResult<Guid>(true, "Solution preparation confirmed.", id));
+    }
+
+    /// <summary>
+    /// Lists a project's confirmed solution preparations (SISLAB-01), optionally filtered by batch and/or group — the
+    /// frozen snapshots with their inputs and computed volumes.
+    /// </summary>
+    [HttpGet("{projectId:guid}/preparations")]
+    [ProducesResponseType(typeof(ApiResult<IReadOnlyList<SolutionPreparationListItem>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ListPreparations(
+        Guid projectId,
+        [FromQuery] Guid? batchId = null,
+        [FromQuery] Guid? groupId = null,
+        CancellationToken ct = default)
+    {
+        IReadOnlyList<SolutionPreparationListItem> preparations = await _mediator.SendAsync(
+            new ListSolutionPreparationsQuery(projectId) { BatchId = batchId, GroupId = groupId }, ct);
+
+        return Ok(new ApiResult<IReadOnlyList<SolutionPreparationListItem>>(
+            true, "Solution preparations retrieved.", preparations));
+    }
+
     /// <summary>Starts a batch: freezes its design (reproducible cohort) and activates the project.</summary>
     [HttpPost("{projectId:guid}/batches/{batchId:guid}/start")]
     [RequirePermission]
@@ -360,3 +417,18 @@ public sealed record AssignAnimalToGroupRequest(Guid GroupId);
 
 /// <summary>Request body to record a physiological reading (SISLAB-02); author/instant come from the session/clock.</summary>
 public sealed record RecordReadingRequest(string ParameterCode, decimal Value, string Unit, string TimepointLabel);
+
+/// <summary>
+/// Request body to prepare a dose group's in vivo solution (SISLAB-01). The relation (µL per g of animal) and the
+/// animal-weight basis it is applied to are always required. For a treatment arm supply the dose, group weight,
+/// compound state and — for a liquid — its density. For the Controle arm set <see cref="IsVehicleOnly"/> to true: no
+/// compound, the whole solution is diluent, so only the relation and the weight basis are used.
+/// </summary>
+public sealed record PrepareGroupSolutionRequest(
+    bool IsVehicleOnly,
+    decimal RelationMicrolitresPerGram,
+    decimal RelationWeightGrams,
+    decimal? DoseAmountGramsPerKilogram,
+    decimal? GroupWeightGrams,
+    SISLAB.Modules.Experiments.Domain.Preparations.CompoundState? State,
+    decimal? DensityGramsPerMillilitre);

@@ -25,6 +25,10 @@ namespace SISLAB.Modules.Experiments.Domain.Preparations;
 /// </remarks>
 public sealed class InVivoPreparationInput : ValueObject
 {
+    // Parameterless constructor for EF Core materialization of the owned value object (the ratio is a nested owned
+    // navigation EF rehydrates separately, so it cannot be a constructor parameter at materialization time).
+    private InVivoPreparationInput() => Ratio = default!;
+
     private InVivoPreparationInput(
         decimal doseAmountGramsPerKilogram,
         decimal groupWeightGrams,

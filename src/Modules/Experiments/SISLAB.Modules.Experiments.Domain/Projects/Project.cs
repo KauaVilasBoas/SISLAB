@@ -1,3 +1,4 @@
+using SISLAB.Modules.Experiments.Domain.Preparations;
 using SISLAB.Modules.Experiments.Domain.Projects.Events;
 using SISLAB.SharedKernel.Domain;
 using SISLAB.SharedKernel.Exceptions;
@@ -37,6 +38,7 @@ public sealed class Project : AggregateRoot<Guid>, ITenantEntity
 
     private readonly List<Batch> _batches = [];
     private readonly List<PhysiologicalReading> _physiologicalReadings = [];
+    private readonly List<SolutionPreparation> _solutionPreparations = [];
 
     // Parameterless constructor for EF Core materialization.
     private Project() : base(Guid.Empty)
@@ -82,6 +84,13 @@ public sealed class Project : AggregateRoot<Guid>, ITenantEntity
     /// they belong to, within a single aggregate.
     /// </summary>
     public IReadOnlyList<PhysiologicalReading> PhysiologicalReadings => _physiologicalReadings.AsReadOnly();
+
+    /// <summary>
+    /// The confirmed in vivo solution preparations (SISLAB-01) of the project's dose groups — the traceable,
+    /// immutable snapshots of dose × weight × relation that the operator prepares per group/leva. Held on the root so
+    /// the "group/batch exists in this project" invariant stays a single-aggregate concern.
+    /// </summary>
+    public IReadOnlyList<SolutionPreparation> SolutionPreparations => _solutionPreparations.AsReadOnly();
 
     /// <summary>
     /// Creates a project in <see cref="ProjectStatus.Draft"/> at design version 1 and raises the creation event.
@@ -186,6 +195,36 @@ public sealed class Project : AggregateRoot<Guid>, ITenantEntity
 
         _physiologicalReadings.Add(reading);
         return reading;
+    }
+
+    /// <summary>
+    /// Confirms an in vivo solution preparation (SISLAB-01) for a dose group of one of the project's batches: runs the
+    /// versioned <see cref="InVivoPreparationCalculator"/> over the supplied <paramref name="input"/> and freezes an
+    /// immutable <see cref="SolutionPreparation"/> snapshot (inputs + result + author + instant), linked to the
+    /// batch/group by value. The batch and group are guarded to belong to this project (single-aggregate invariant);
+    /// the formula and every laboratory-specific value (dose, relation, density, diluent) live in the input, never in
+    /// the aggregate. Allowed on any non-closed project. Returns the new snapshot.
+    /// </summary>
+    public SolutionPreparation PrepareGroupSolution(
+        Guid batchId,
+        Guid groupId,
+        InVivoPreparationInput input,
+        string preparedBy,
+        DateTime preparedAtUtc)
+    {
+        Guard.AgainstNull(input, nameof(input));
+        EnsureNotClosed();
+
+        // Guards that the group belongs to the referenced batch of this project (throws NotFound otherwise).
+        FindBatch(batchId).FindGroup(groupId);
+
+        InVivoPreparationResult result = InVivoPreparationCalculator.Calculate(input);
+
+        SolutionPreparation preparation = SolutionPreparation.Create(
+            batchId, groupId, input, result, preparedBy, preparedAtUtc);
+
+        _solutionPreparations.Add(preparation);
+        return preparation;
     }
 
     /// <summary>
