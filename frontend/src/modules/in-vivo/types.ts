@@ -235,6 +235,38 @@ export interface AnimalSelectionListItem {
 }
 
 // ---------------------------------------------------------------------------
+// Experiment schedule generation (SISLAB-10 — cronograma from the model + roster rotation)
+// ---------------------------------------------------------------------------
+
+/**
+ * Request body to generate an experiment's schedule from its bound experimental model (SISLAB-10) — mirror of
+ * the backend `GenerateScheduleRequest`. The experiment id (here the batch/leva) rides in the route and the
+ * company in the session; everything below parameterizes the derivation from the model, so nothing lab-specific
+ * is fixed by the caller.
+ */
+export interface GenerateScheduleRequest {
+  /** The model whose induction protocol drives the cadence (validated + read on the backend via Configuration). */
+  experimentalModelId: string;
+  /** Day 0 of the schedule (the first induction day), as an ISO `YYYY-MM-DD` date string. */
+  startDate: string;
+  /** Day offsets (from the start) of the treatment days, derived from the model. */
+  treatmentDayOffsets: number[];
+  /** One day offset per model timepoint, in the model's timepoint order (length must equal `model.timepoints`). */
+  timepointDayOffsets: number[];
+  /** The ordered rotation list of responsible member ids (Lumen user ids). */
+  responsibles: string[];
+  /** How many consecutive days one responsible covers before rotation (≥ 1). */
+  daysPerShift: number;
+  /** Optional véspera-reminder lead time in minutes; omit for no reminder. */
+  reminderMinutesBefore?: number;
+}
+
+/** Result of a schedule generation: the ids of the Agenda entries created, in chronological order (SISLAB-10). */
+export interface GenerateScheduleResult {
+  createdEntryIds: string[];
+}
+
+// ---------------------------------------------------------------------------
 // Behavioural experiments (timepoint launch)
 // ---------------------------------------------------------------------------
 
