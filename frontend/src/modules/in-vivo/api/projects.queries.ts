@@ -4,9 +4,13 @@ import { Endpoints } from '@/shared/api/endpoints';
 import type { PagedResult } from '@/shared/types/api';
 import type {
   AddAnimalRequest,
+  AddCageRequest,
   AddGroupRequest,
+  AssignAnimalToGroupRequest,
   BindBatchModelRequest,
+  CageBaselineItem,
   CreateProjectRequest,
+  GroupBaselineItem,
   PrepareGroupSolutionRequest,
   ProjectDetail,
   ProjectListItem,
@@ -19,6 +23,10 @@ export const projectKeys = {
   list: (params: ListProjectsParams) => [...projectKeys.all, 'list', params] as const,
   detail: (id: string) => [...projectKeys.all, 'detail', id] as const,
   preparations: (id: string) => [...projectKeys.all, 'preparations', id] as const,
+  baselineByCage: (projectId: string, batchId: string, parameterCode: string) =>
+    [...projectKeys.all, 'baseline', 'by-cage', projectId, batchId, parameterCode] as const,
+  baselineByGroup: (projectId: string, batchId: string, parameterCode: string) =>
+    [...projectKeys.all, 'baseline', 'by-group', projectId, batchId, parameterCode] as const,
 };
 
 export interface ListProjectsParams {
@@ -79,12 +87,39 @@ export function useAddGroup(projectId: string, batchId: string) {
   });
 }
 
-/** Enrols an animal into a group. Invalidates the project detail + the list (animal count). */
-export function useAddAnimal(projectId: string, batchId: string, groupId: string) {
+/** Adds a cage (caixa) to a batch (SISLAB-03). Invalidates the project detail. */
+export function useAddCage(projectId: string, batchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: AddCageRequest) =>
+      api.post<string>(Endpoints.projects.cages(projectId, batchId), body),
+    onSuccess: () => invalidateProject(queryClient, projectId),
+  });
+}
+
+/**
+ * Houses an animal in a cage (SISLAB-03) — the new pre-randomization entry flow. The group is optional
+ * (assign later). Invalidates the project detail + the list (animal count).
+ */
+export function useAddAnimal(projectId: string, batchId: string, cageId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: AddAnimalRequest) =>
-      api.post<string>(Endpoints.projects.animals(projectId, batchId, groupId), body),
+      api.post<string>(Endpoints.projects.cageAnimals(projectId, batchId, cageId), body),
+    onSuccess: () => invalidateProject(queryClient, projectId),
+  });
+}
+
+/**
+ * Assigns (or moves) an animal to a treatment group after basal/induction (SISLAB-03) — including
+ * redistributing a discrepant cage. The backend rejects assignment once the leva starts (frozen design);
+ * the UI hides the action then. Invalidates the project detail so the new assignment is reflected.
+ */
+export function useAssignAnimalToGroup(projectId: string, batchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ animalId, body }: { animalId: string; body: AssignAnimalToGroupRequest }) =>
+      api.put<void>(Endpoints.projects.animalGroup(projectId, batchId, animalId), body),
     onSuccess: () => invalidateProject(queryClient, projectId),
   });
 }
@@ -138,6 +173,48 @@ export function usePrepareGroupSolution(
       api.post<string>(Endpoints.projects.preparations(projectId, batchId, groupId), body),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: projectKeys.preparations(projectId) }),
+  });
+}
+
+/**
+ * Baseline of one physiological parameter summarized by cage (SISLAB-03) — the pre-randomization view
+ * (mean/min/max per cage). Enabled only once a parameter code is chosen; an optional timepoint narrows it.
+ */
+export function useBaselineByCage(
+  projectId: string,
+  batchId: string,
+  parameterCode: string,
+  timepointLabel?: string,
+) {
+  return useQuery({
+    queryKey: [...projectKeys.baselineByCage(projectId, batchId, parameterCode), timepointLabel ?? null],
+    queryFn: () =>
+      api.get<CageBaselineItem[]>(Endpoints.projects.baselineByCage(projectId, batchId), {
+        parameterCode,
+        timepointLabel: timepointLabel || undefined,
+      }),
+    enabled: Boolean(projectId) && Boolean(batchId) && parameterCode.trim().length > 0,
+  });
+}
+
+/**
+ * Baseline of one physiological parameter summarized by treatment group (SISLAB-03) — the
+ * post-randomization balance-check view. Enabled only once a parameter code is chosen.
+ */
+export function useBaselineByGroup(
+  projectId: string,
+  batchId: string,
+  parameterCode: string,
+  timepointLabel?: string,
+) {
+  return useQuery({
+    queryKey: [...projectKeys.baselineByGroup(projectId, batchId, parameterCode), timepointLabel ?? null],
+    queryFn: () =>
+      api.get<GroupBaselineItem[]>(Endpoints.projects.baselineByGroup(projectId, batchId), {
+        parameterCode,
+        timepointLabel: timepointLabel || undefined,
+      }),
+    enabled: Boolean(projectId) && Boolean(batchId) && parameterCode.trim().length > 0,
   });
 }
 

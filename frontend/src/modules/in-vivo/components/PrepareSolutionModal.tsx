@@ -7,7 +7,7 @@ import { Label } from '@/shared/components/ui/label';
 import { Switch } from '@/shared/components/ui/switch';
 import { useToast } from '@/shared/components/ui/toast';
 import type { ApiError } from '@/shared/types/api';
-import type { CompoundState, GroupDetail } from '@/modules/in-vivo/types';
+import type { BatchDetail, CompoundState, GroupDetail } from '@/modules/in-vivo/types';
 import { compoundStateLabel } from '@/modules/in-vivo/presentation';
 import { usePrepareGroupSolution } from '@/modules/in-vivo/api/projects.queries';
 
@@ -23,22 +23,27 @@ const STATES: CompoundState[] = ['Powder', 'Liquid'];
  */
 export function PrepareSolutionModal({
   projectId,
-  batchId,
+  batch,
   group,
   onClose,
 }: {
   projectId: string;
-  batchId: string;
+  batch: BatchDetail;
   group: GroupDetail;
   onClose: () => void;
 }) {
   const toast = useToast();
-  const prepare = usePrepareGroupSolution(projectId, batchId, group.id);
+  const prepare = usePrepareGroupSolution(projectId, batch.id, group.id);
 
-  // Sum of the group's known animal weights — a sensible default for the weight basis (the operator can override).
+  // Sum of the known weights of the animals assigned to this group — a sensible default for the weight
+  // basis (the operator can override). Animals now live in cages (SISLAB-03), assigned to a group by id.
   const animalWeightSum = useMemo(
-    () => group.animals.reduce((total, animal) => total + (animal.weightGrams ?? 0), 0),
-    [group.animals],
+    () =>
+      batch.cages
+        .flatMap((cage) => cage.animals)
+        .filter((animal) => animal.groupId === group.id)
+        .reduce((total, animal) => total + (animal.weightGrams ?? 0), 0),
+    [batch.cages, group.id],
   );
   const defaultWeight = animalWeightSum > 0 ? String(Number(animalWeightSum.toFixed(2))) : '';
 
