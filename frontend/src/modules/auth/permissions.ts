@@ -137,6 +137,10 @@ export const Permissions = {
     assignRole: 'CollectionPlans.AssignRole',
     removeRole: 'CollectionPlans.RemoveRole',
   },
+  /** Experimentos — anexos de evidência (AttachmentsController upload) — SISLAB-09. */
+  attachments: {
+    attach: 'Attachments.Attach',
+  },
   // Auditoria — a trilha (AuditController.List/Export) é apenas [Authorize], sem [RequirePermission];
   // qualquer membro autenticado da empresa lê, então não há código a gatear aqui (guardado pelo drift test).
 } as const;
