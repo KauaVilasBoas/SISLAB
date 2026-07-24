@@ -105,4 +105,48 @@ public sealed class ExperimentCommandHandlerTests
         Assert.Equal(ExperimentStatus.AwaitingAnalysis, experiment.Status);
         Assert.Same(experiment, experiments.LastUpdated);
     }
+
+    [Fact]
+    public async Task ExcludeWell_marks_the_outlier_and_persists()
+    {
+        ViabilidadeCelularExperiment experiment = ExperimentTestData.NewExperiment();
+        experiment.DesignPlate(ExperimentTestData.FullyReadPlate(), "alice", Clock.UtcNow);
+        var experiments = new FakeExperimentRepository().Seed(experiment);
+        var handler = new ExcludeWellCommandHandler(experiments, Actor, CurrentUser);
+
+        await handler.HandleAsync(new ExcludeWellCommand(experiment.Id, "C1", "Controle destoante"));
+
+        var well = experiment.Plate.Wells.Single(w => w.Coordinate == "C1");
+        Assert.True(well.IsExcluded);
+        Assert.Equal("alice@lab", well.ExcludedBy);
+        Assert.Same(experiment, experiments.LastUpdated);
+    }
+
+    [Fact]
+    public async Task IncludeWell_clears_a_previous_exclusion()
+    {
+        ViabilidadeCelularExperiment experiment = ExperimentTestData.NewExperiment();
+        experiment.DesignPlate(ExperimentTestData.FullyReadPlate(), "alice", Clock.UtcNow);
+        experiment.ExcludeWell("C1", "Outlier", "alice@lab");
+        var experiments = new FakeExperimentRepository().Seed(experiment);
+        var handler = new IncludeWellCommandHandler(experiments, CurrentUser);
+
+        await handler.HandleAsync(new IncludeWellCommand(experiment.Id, "C1"));
+
+        Assert.False(experiment.Plate.Wells.Single(w => w.Coordinate == "C1").IsExcluded);
+    }
+
+    [Fact]
+    public async Task ExcludeWell_is_rejected_after_the_calculation_is_frozen()
+    {
+        ViabilidadeCelularExperiment experiment = ExperimentTestData.NewExperiment();
+        experiment.DesignPlate(ExperimentTestData.FullyReadPlate(), "alice", Clock.UtcNow);
+        experiment.ApplyCalculation(
+            FormulaSnapshot.Create("viability@v1", "expr", Clock.UtcNow, "{}"), "alice@lab");
+        var experiments = new FakeExperimentRepository().Seed(experiment);
+        var handler = new ExcludeWellCommandHandler(experiments, Actor, CurrentUser);
+
+        await Assert.ThrowsAsync<ConflictException>(() =>
+            handler.HandleAsync(new ExcludeWellCommand(experiment.Id, "C1", "Tarde demais")));
+    }
 }

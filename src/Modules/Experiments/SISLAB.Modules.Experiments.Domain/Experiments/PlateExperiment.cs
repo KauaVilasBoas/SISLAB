@@ -101,6 +101,33 @@ public abstract class PlateExperiment : Experiment
         => FindStep(ExperimentStepKind.Measurement)?.MarkPerformed(actor, performedAtUtc);
 
     /// <summary>
+    /// Marks a plate well as an excluded outlier (SISLAB-06): the calculation will ignore it in every mean,
+    /// calibration curve and result line. A visual, human decision — the operator's <paramref name="reason"/> and
+    /// author are recorded for traceability. Rejected once the calculation snapshot is frozen: the result is
+    /// immutable, so the set of replicates it was computed from cannot change afterwards (reproducibility).
+    /// </summary>
+    public void ExcludeWell(string coordinate, string reason, string actor)
+    {
+        EnsureNotYetCalculated();
+        Plate.ExcludeWell(coordinate, reason, actor);
+    }
+
+    /// <summary>Brings a previously excluded well back into the calculation (SISLAB-06). Rejected after freezing.</summary>
+    public void IncludeWell(string coordinate)
+    {
+        EnsureNotYetCalculated();
+        Plate.IncludeWell(coordinate);
+    }
+
+    private void EnsureNotYetCalculated()
+    {
+        if (CalculationResult is not null)
+            throw new ConflictException(
+                $"Experiment '{Title}' has already been calculated: its replicate set is frozen and " +
+                "wells can no longer be excluded or re-included.");
+    }
+
+    /// <summary>
     /// Stores the frozen calculation snapshot produced by the versioned protocol, marks the calculation step as
     /// performed and moves the experiment to <see cref="ExperimentStatus.AwaitingAnalysis"/> (the hand-off to the
     /// human analysis). Requires a complete plate reading and rejects recalculation of an already-calculated

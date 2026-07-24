@@ -63,14 +63,16 @@ internal sealed class NitricOxideCalculationStrategy : IExperimentProtocol
         if (wells.Count == 0)
             throw new DomainException("The plate has no wells to calculate.");
 
-        if (wells.Any(well => !well.HasReading))
+        // Excluded outliers (SISLAB-06) are ignored everywhere below: a missing reading on an excluded well never
+        // blocks the calculation, and the baseline/curve/results use only the replicates that still count.
+        if (wells.Any(well => !well.HasReading && !well.IsExcluded))
             throw new DomainException(
                 "Every designed well must have an imported absorbance before calculating nitric oxide.");
 
         decimal baseline = Mean(wells, WellRole.Blank) ?? 0m;
 
         IReadOnlyList<CurveDataPoint> standards = wells
-            .Where(well => well.Role == WellRole.Standard && well.ConcentrationUm.HasValue)
+            .Where(well => well.CountsTowardCalculation && well.Role == WellRole.Standard && well.ConcentrationUm.HasValue)
             .Select(well => new CurveDataPoint(well.ConcentrationUm!.Value, well.RawAbsorbance!.Value - baseline))
             .OrderBy(point => point.Concentration)
             .ToList();
@@ -87,7 +89,7 @@ internal sealed class NitricOxideCalculationStrategy : IExperimentProtocol
                 "The calibration curve is flat (zero slope): a nitric-oxide concentration cannot be derived.");
 
         IReadOnlyList<NitricOxideWellResult> sampleResults = wells
-            .Where(well => well.Role == WellRole.Sample)
+            .Where(well => well.CountsTowardCalculation && well.Role == WellRole.Sample)
             .OrderBy(well => well.Row)
             .ThenBy(well => well.Column)
             .Select(well => new NitricOxideWellResult(
@@ -155,7 +157,7 @@ internal sealed class NitricOxideCalculationStrategy : IExperimentProtocol
     private static decimal? Mean(IReadOnlyList<Well> wells, WellRole role)
     {
         List<decimal> values = wells
-            .Where(well => well.Role == role)
+            .Where(well => well.Role == role && well.CountsTowardCalculation)
             .Select(well => well.RawAbsorbance!.Value)
             .ToList();
 

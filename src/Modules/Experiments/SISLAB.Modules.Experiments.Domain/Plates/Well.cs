@@ -26,6 +26,8 @@ public sealed class Well : Entity<Guid>
     // Parameterless constructor for EF Core materialization.
     private Well() : base(Guid.Empty) { }
 
+    private const int MaxExclusionReasonLength = 500;
+
     private Well(Guid id, char row, int column, WellRole role, decimal? concentrationUm, string? sampleId)
         : base(id)
     {
@@ -58,6 +60,26 @@ public sealed class Well : Entity<Guid>
     public bool HasReading => RawAbsorbance.HasValue;
 
     /// <summary>
+    /// True when the operator has marked this replicate as an excluded outlier (SISLAB-06). An excluded well is
+    /// ignored by the calculation — it never enters a control/blank mean, the calibration curve or the per-well
+    /// results — but it is kept in the design (with its reason/author) for traceability.
+    /// </summary>
+    public bool IsExcluded { get; private set; }
+
+    /// <summary>The operator's reason for excluding this well as an outlier, or null when the well is included.</summary>
+    public string? ExclusionReason { get; private set; }
+
+    /// <summary>The actor who excluded this well (audit claim), or null when the well is included.</summary>
+    public string? ExcludedBy { get; private set; }
+
+    /// <summary>
+    /// True when this well takes part in the calculation: it has a reading and has not been excluded. The
+    /// strategies use it in place of <see cref="HasReading"/> so excluded replicates drop out of every mean,
+    /// curve fit and result line.
+    /// </summary>
+    public bool CountsTowardCalculation => HasReading && !IsExcluded;
+
+    /// <summary>
     /// Creates a well at the given coordinate with its assay role and optional metadata. Guards the
     /// coordinate against the 8×12 plate bounds so an out-of-range well can never exist.
     /// </summary>
@@ -86,6 +108,38 @@ public sealed class Well : Entity<Guid>
                 $"Absorbance for well {Coordinate} cannot be negative. Received: {rawAbsorbance}.");
 
         RawAbsorbance = rawAbsorbance;
+    }
+
+    /// <summary>
+    /// Marks this well as an excluded outlier with the operator's <paramref name="reason"/> and the acting
+    /// <paramref name="actor"/> (SISLAB-06). Re-excluding an already-excluded well just refreshes the reason/author.
+    /// The "cannot exclude after the calculation is frozen" invariant is enforced by the aggregate
+    /// (<c>PlateExperiment</c>), which owns the well and knows whether the snapshot exists.
+    /// </summary>
+    public void Exclude(string reason, string actor)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new DomainException($"An exclusion reason is required to exclude well {Coordinate}.");
+
+        if (string.IsNullOrWhiteSpace(actor))
+            throw new DomainException($"An actor is required to exclude well {Coordinate}.");
+
+        string trimmedReason = reason.Trim();
+        if (trimmedReason.Length > MaxExclusionReasonLength)
+            throw new DomainException(
+                $"The exclusion reason for well {Coordinate} cannot exceed {MaxExclusionReasonLength} characters.");
+
+        IsExcluded = true;
+        ExclusionReason = trimmedReason;
+        ExcludedBy = actor.Trim();
+    }
+
+    /// <summary>Clears the exclusion, bringing the well back into the calculation (SISLAB-06).</summary>
+    public void Include()
+    {
+        IsExcluded = false;
+        ExclusionReason = null;
+        ExcludedBy = null;
     }
 
     /// <summary>The well coordinate as the canonical label, e.g. "A1", "H12".</summary>
