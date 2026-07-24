@@ -6,8 +6,10 @@ import type {
   AddAnimalRequest,
   AddGroupRequest,
   CreateProjectRequest,
+  PrepareGroupSolutionRequest,
   ProjectDetail,
   ProjectListItem,
+  SolutionPreparationListItem,
 } from '@/modules/in-vivo/types';
 
 /** In vivo project query keys, namespaced so a write invalidates only this module's lists/details. */
@@ -15,6 +17,7 @@ export const projectKeys = {
   all: ['in-vivo', 'projects'] as const,
   list: (params: ListProjectsParams) => [...projectKeys.all, 'list', params] as const,
   detail: (id: string) => [...projectKeys.all, 'detail', id] as const,
+  preparations: (id: string) => [...projectKeys.all, 'preparations', id] as const,
 };
 
 export interface ListProjectsParams {
@@ -92,6 +95,34 @@ export function useStartBatch(projectId: string) {
     mutationFn: (batchId: string) =>
       api.post<void>(Endpoints.projects.startBatch(projectId, batchId), {}),
     onSuccess: () => invalidateProject(queryClient, projectId),
+  });
+}
+
+/** A project's confirmed in vivo solution preparations (SISLAB-01) — the frozen dose × weight snapshots. */
+export function usePreparations(projectId: string) {
+  return useQuery({
+    queryKey: projectKeys.preparations(projectId),
+    queryFn: () =>
+      api.get<SolutionPreparationListItem[]>(Endpoints.projects.listPreparations(projectId)),
+    enabled: Boolean(projectId),
+  });
+}
+
+/**
+ * Confirms an in vivo solution preparation for a dose group (SISLAB-01) — a frozen, traceable snapshot.
+ * Returns the new preparation id; invalidates the preparations list so the panel refreshes.
+ */
+export function usePrepareGroupSolution(
+  projectId: string,
+  batchId: string,
+  groupId: string,
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: PrepareGroupSolutionRequest) =>
+      api.post<string>(Endpoints.projects.preparations(projectId, batchId, groupId), body),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: projectKeys.preparations(projectId) }),
   });
 }
 
