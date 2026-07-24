@@ -128,11 +128,12 @@ namespace SISLAB.Modules.Experiments.Infrastructure.Persistence.Migrations
                 table: "project_animals",
                 column: "cage_id");
 
-            migrationBuilder.CreateIndex(
-                name: "ix_project_animals_group_id",
-                schema: "experiments",
-                table: "project_animals",
-                column: "group_id");
+            // ix_project_animals_group_id already exists from the original project_animals table
+            // (20260717204940_AddInVivoProjects) and survives the FK drop / nullability relaxation above. EF's
+            // differ re-emitted a CreateIndex for it here, which collides on an existing relation (42P07). Keep the
+            // index in place idempotently instead of recreating it.
+            migrationBuilder.Sql(
+                "CREATE INDEX IF NOT EXISTS ix_project_animals_group_id ON experiments.project_animals (group_id);");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_project_animals_project_cages_cage_id",
@@ -173,10 +174,8 @@ namespace SISLAB.Modules.Experiments.Infrastructure.Persistence.Migrations
                 schema: "experiments",
                 table: "project_animals");
 
-            migrationBuilder.DropIndex(
-                name: "ix_project_animals_group_id",
-                schema: "experiments",
-                table: "project_animals");
+            // ix_project_animals_group_id predates this migration (20260717204940_AddInVivoProjects) and must remain
+            // in the reverted schema, so it is intentionally NOT dropped here — Up did not create it either.
 
             migrationBuilder.DropColumn(
                 name: "cage_id",
