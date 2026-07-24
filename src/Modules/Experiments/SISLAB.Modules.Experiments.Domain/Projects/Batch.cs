@@ -208,6 +208,11 @@ public sealed class Batch : Entity<Guid>
     /// <summary>Every animal identifier currently housed in the batch (for uniqueness checks).</summary>
     internal IEnumerable<string> AnimalIdentifiers => _cages.SelectMany(cage => cage.AnimalIdentifiers);
 
+    /// <summary>Loads a dose group by id, or throws when it does not belong to the batch.</summary>
+    internal Group FindGroup(Guid groupId)
+        => _groups.FirstOrDefault(group => group.Id == groupId)
+           ?? throw new NotFoundException($"Group '{groupId}' was not found in batch '{Name}'.");
+
     private void EnsureGroupExists(Guid groupId)
     {
         if (_groups.All(group => group.Id != groupId))

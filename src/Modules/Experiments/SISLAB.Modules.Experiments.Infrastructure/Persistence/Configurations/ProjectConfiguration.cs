@@ -45,6 +45,9 @@ internal sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
         builder.OwnsMany(project => project.PhysiologicalReadings, ConfigureReadings);
         builder.Navigation(project => project.PhysiologicalReadings).AutoInclude();
 
+        builder.OwnsMany(project => project.SolutionPreparations, ConfigurePreparations);
+        builder.Navigation(project => project.SolutionPreparations).AutoInclude();
+
         builder.HasIndex(project => new { project.CompanyId, project.Id })
             .HasDatabaseName("ix_projects_company_id_id");
     }
@@ -200,5 +203,73 @@ internal sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
         readings.HasIndex("project_id").HasDatabaseName("ix_project_physiological_readings_project_id");
         readings.HasIndex(reading => reading.AnimalId)
             .HasDatabaseName("ix_project_physiological_readings_animal_id");
+    }
+
+    private static void ConfigurePreparations(
+        OwnedNavigationBuilder<Project, SolutionPreparation> preparations)
+    {
+        preparations.ToTable("project_solution_preparations");
+
+        preparations.WithOwner().HasForeignKey("project_id");
+        preparations.HasKey(preparation => preparation.Id);
+        preparations.Property(preparation => preparation.Id).HasColumnName("id").ValueGeneratedNever();
+        preparations.Property<Guid>("project_id");
+
+        // The batch and dose group the preparation was prepared for, held by value (project-internal ids) — no FK, the
+        // sibling owned entities are resolved within the aggregate (ids-by-value rule).
+        preparations.Property(preparation => preparation.BatchId).HasColumnName("batch_id").IsRequired();
+        preparations.Property(preparation => preparation.GroupId).HasColumnName("group_id").IsRequired();
+
+        // The frozen input value object, table-split onto the preparation row. The nested g:µL relation value object
+        // is flattened to a single µL-per-g column.
+        preparations.OwnsOne(preparation => preparation.Input, input =>
+        {
+            input.Property(i => i.IsVehicleOnly).HasColumnName("is_vehicle_only").IsRequired();
+            input.Property(i => i.DoseAmountGramsPerKilogram)
+                .HasColumnName("dose_amount_g_per_kg").HasColumnType("numeric(18,6)").IsRequired();
+            input.Property(i => i.GroupWeightGrams)
+                .HasColumnName("group_weight_grams").HasColumnType("numeric(18,4)").IsRequired();
+            input.Property(i => i.RelationWeightGrams)
+                .HasColumnName("relation_weight_grams").HasColumnType("numeric(18,4)").IsRequired();
+            input.Property(i => i.State)
+                .HasColumnName("compound_state").HasConversion<string>().HasMaxLength(20).IsRequired();
+            input.Property(i => i.DensityGramsPerMillilitre)
+                .HasColumnName("density_g_per_ml").HasColumnType("numeric(18,6)");
+
+            input.OwnsOne(i => i.Ratio, ratio =>
+            {
+                ratio.Property(r => r.MicrolitresPerGram)
+                    .HasColumnName("relation_microlitres_per_gram").HasColumnType("numeric(18,6)").IsRequired();
+            });
+            input.Navigation(i => i.Ratio).IsRequired();
+        });
+        preparations.Navigation(preparation => preparation.Input).IsRequired();
+
+        // The frozen result value object, table-split onto the preparation row.
+        preparations.OwnsOne(preparation => preparation.Result, result =>
+        {
+            result.Property(r => r.CompoundMassGrams)
+                .HasColumnName("compound_mass_grams").HasColumnType("numeric(18,6)").IsRequired();
+            result.Property(r => r.CompoundVolumeMicrolitres)
+                .HasColumnName("compound_volume_microlitres").HasColumnType("numeric(18,4)");
+            result.Property(r => r.FinalVolumeMicrolitres)
+                .HasColumnName("final_volume_microlitres").HasColumnType("numeric(18,4)").IsRequired();
+            result.Property(r => r.DiluentVolumeMicrolitres)
+                .HasColumnName("diluent_volume_microlitres").HasColumnType("numeric(18,4)").IsRequired();
+        });
+        preparations.Navigation(preparation => preparation.Result).IsRequired();
+
+        preparations.Property(preparation => preparation.FormulaCode)
+            .HasColumnName("formula_code").HasMaxLength(60).IsRequired();
+        preparations.Property(preparation => preparation.FormulaExpression)
+            .HasColumnName("formula_expression").HasMaxLength(500).IsRequired();
+        preparations.Property(preparation => preparation.PreparedBy)
+            .HasColumnName("prepared_by").HasMaxLength(200).IsRequired();
+        preparations.Property(preparation => preparation.PreparedAtUtc)
+            .HasColumnName("prepared_at_utc").IsRequired();
+
+        preparations.HasIndex("project_id").HasDatabaseName("ix_project_solution_preparations_project_id");
+        preparations.HasIndex(preparation => preparation.GroupId)
+            .HasDatabaseName("ix_project_solution_preparations_group_id");
     }
 }
