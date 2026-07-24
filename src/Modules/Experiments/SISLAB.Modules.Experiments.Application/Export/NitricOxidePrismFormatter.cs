@@ -28,7 +28,7 @@ internal sealed class NitricOxidePrismFormatter : IPrismCsvFormatter
     {
         NitricOxidePayload payload =
             JsonSerializer.Deserialize<NitricOxidePayload>(resultJson, Options)
-            ?? new NitricOxidePayload(null, null);
+            ?? new NitricOxidePayload(null, null, null);
 
         IReadOnlyList<CurvePoint> curve = payload.Curve ?? [];
         IReadOnlyList<SampleWell> samples = payload.Wells ?? [];
@@ -57,7 +57,33 @@ internal sealed class NitricOxidePrismFormatter : IPrismCsvFormatter
             csv.Append('\n');
         }
 
+        AppendConditionSummary(csv, payload.Conditions ?? []);
+
         return csv.ToString();
+    }
+
+    /// <summary>
+    /// Appends the per-condition summary block (SISLAB-07): one row per compound with its replicate count, mean
+    /// and sample SD of the computed NO µM, read straight from the frozen snapshot (never recomputed). Kept as a
+    /// third block after the curve and samples so the existing Prism paste layout is unchanged.
+    /// </summary>
+    private static void AppendConditionSummary(StringBuilder csv, IReadOnlyList<NitricOxideCondition> conditions)
+    {
+        if (conditions.Count == 0)
+            return;
+
+        csv.Append("Resumo por condição,N,Média NO (µM),Desvio NO (µM)\n");
+        foreach (NitricOxideCondition condition in conditions)
+        {
+            csv.Append(Csv.Escape(condition.SampleId ?? "—"));
+            csv.Append(',');
+            csv.Append(condition.ReplicateCount.ToString(CultureInfo.InvariantCulture));
+            csv.Append(',');
+            csv.Append(Format(condition.MeanConcentrationUm));
+            csv.Append(',');
+            csv.Append(condition.StdDevConcentrationUm is { } sd ? Format(sd) : NotApplicable);
+            csv.Append('\n');
+        }
     }
 
     private static string Format(decimal value)
@@ -65,9 +91,16 @@ internal sealed class NitricOxidePrismFormatter : IPrismCsvFormatter
 
     private sealed record NitricOxidePayload(
         IReadOnlyList<CurvePoint>? Curve,
-        IReadOnlyList<SampleWell>? Wells);
+        IReadOnlyList<SampleWell>? Wells,
+        IReadOnlyList<NitricOxideCondition>? Conditions);
 
     private sealed record CurvePoint(decimal ConcentrationUm, decimal Absorbance);
 
     private sealed record SampleWell(string Well, decimal RawAbsorbance, decimal ConcentrationUm);
+
+    private sealed record NitricOxideCondition(
+        string? SampleId,
+        int ReplicateCount,
+        decimal MeanConcentrationUm,
+        decimal? StdDevConcentrationUm);
 }

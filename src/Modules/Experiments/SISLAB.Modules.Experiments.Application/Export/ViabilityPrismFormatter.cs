@@ -26,7 +26,7 @@ internal sealed class ViabilityPrismFormatter : IPrismCsvFormatter
     {
         ViabilityPayload payload =
             JsonSerializer.Deserialize<ViabilityPayload>(resultJson, Options)
-            ?? new ViabilityPayload(null);
+            ?? new ViabilityPayload(null, null);
 
         IReadOnlyList<ViabilityWell> wells = payload.Wells ?? [];
 
@@ -65,13 +65,51 @@ internal sealed class ViabilityPrismFormatter : IPrismCsvFormatter
             csv.Append('\n');
         }
 
+        AppendConditionSummary(csv, payload.Conditions ?? []);
+
         return csv.ToString();
+    }
+
+    /// <summary>
+    /// Appends the per-condition summary block (SISLAB-07): one row per compound × concentration with its
+    /// replicate count, mean and sample SD, read straight from the frozen snapshot (never recomputed). Kept as a
+    /// second block after the replicate matrix so the existing Prism paste layout is unchanged.
+    /// </summary>
+    private static void AppendConditionSummary(StringBuilder csv, IReadOnlyList<ViabilityCondition> conditions)
+    {
+        if (conditions.Count == 0)
+            return;
+
+        csv.Append("\nResumo por condição,Composto,Concentração (µM),N,Média (%),Desvio (%)\n");
+        foreach (ViabilityCondition condition in conditions)
+        {
+            csv.Append(',');
+            csv.Append(Csv.Escape(condition.SampleId ?? "—"));
+            csv.Append(',');
+            csv.Append(condition.ConcentrationUm is { } concentration ? Format(concentration) : "—");
+            csv.Append(',');
+            csv.Append(condition.ReplicateCount.ToString(CultureInfo.InvariantCulture));
+            csv.Append(',');
+            csv.Append(Format(condition.MeanViabilityPct));
+            csv.Append(',');
+            csv.Append(condition.StdDevViabilityPct is { } sd ? Format(sd) : "—");
+            csv.Append('\n');
+        }
     }
 
     private static string Format(decimal value)
         => value.ToString("0.##", CultureInfo.InvariantCulture);
 
-    private sealed record ViabilityPayload(IReadOnlyList<ViabilityWell>? Wells);
+    private sealed record ViabilityPayload(
+        IReadOnlyList<ViabilityWell>? Wells,
+        IReadOnlyList<ViabilityCondition>? Conditions);
 
     private sealed record ViabilityWell(decimal? ConcentrationUm, decimal ViabilityPct);
+
+    private sealed record ViabilityCondition(
+        string? SampleId,
+        decimal? ConcentrationUm,
+        int ReplicateCount,
+        decimal MeanViabilityPct,
+        decimal? StdDevViabilityPct);
 }

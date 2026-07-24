@@ -95,6 +95,8 @@ internal sealed class NitricOxideCalculationStrategy : IExperimentProtocol
             .Select(well => new NitricOxideWellResult(
                 well.Coordinate,
                 well.Role.ToString(),
+                well.SampleId,
+                well.ConcentrationUm,
                 well.RawAbsorbance!.Value,
                 ConcentrationFrom(well.RawAbsorbance!.Value - baseline, fit)))
             .ToList();
@@ -102,6 +104,8 @@ internal sealed class NitricOxideCalculationStrategy : IExperimentProtocol
         IReadOnlyList<NitricOxideCurvePoint> curve = standards
             .Select(point => new NitricOxideCurvePoint(point.Concentration, point.Absorbance))
             .ToList();
+
+        IReadOnlyList<ConditionAggregate> conditions = AggregateByCondition(sampleResults);
 
         var payload = new NitricOxideResultPayload(
             FormulaCode,
@@ -111,7 +115,8 @@ internal sealed class NitricOxideCalculationStrategy : IExperimentProtocol
             fit.RSquared < MinAcceptableRSquared,
             Math.Round(baseline, 4),
             curve,
-            sampleResults);
+            sampleResults,
+            conditions);
 
         string resultJson = JsonSerializer.Serialize(payload, ResultSerializerOptions);
 
@@ -164,9 +169,37 @@ internal sealed class NitricOxideCalculationStrategy : IExperimentProtocol
         return values.Count == 0 ? null : values.Average();
     }
 
+    /// <summary>
+    /// Groups the per-sample NO results into conditions (SISLAB-07 — same compound = replicates; NO samples carry
+    /// no test concentration, so the sample identifier defines the condition) and computes the replicate count,
+    /// mean and sample SD of the NO µM per condition. Only wells that count reached <paramref name="samples"/>, so
+    /// excluded outliers are already out of the mean.
+    /// </summary>
+    private static IReadOnlyList<ConditionAggregate> AggregateByCondition(IReadOnlyList<NitricOxideWellResult> samples)
+        => samples
+            .GroupBy(sample => new ConditionKey(sample.SampleId, sample.TestConcentrationUm))
+            .OrderBy(group => group.Key.TestConcentrationUm ?? decimal.MaxValue)
+            .ThenBy(group => group.Key.SampleId)
+            .Select(group =>
+            {
+                (int count, decimal mean, decimal? standardDeviation) =
+                    ReplicateStatistics.Compute(group.Select(sample => sample.ConcentrationUm).ToList());
+
+                return new ConditionAggregate(
+                    group.Key.SampleId,
+                    group.Key.TestConcentrationUm,
+                    count,
+                    Math.Round(mean, 4),
+                    standardDeviation is { } sd ? Math.Round(sd, 4) : null,
+                    group.Select(sample => sample.Well).ToList());
+            })
+            .ToList();
+
     private readonly record struct CurveDataPoint(decimal Concentration, decimal Absorbance);
 
     private readonly record struct LinearFit(decimal Slope, decimal Intercept, decimal RSquared);
+
+    private readonly record struct ConditionKey(string? SampleId, decimal? TestConcentrationUm);
 
     /// <summary>Serialized result payload (the snapshot's frozen JSON). Web-cased to match the API shape.</summary>
     private sealed record NitricOxideResultPayload(
@@ -177,15 +210,34 @@ internal sealed class NitricOxideCalculationStrategy : IExperimentProtocol
         bool LowConfidence,
         decimal BlankBaseline,
         IReadOnlyList<NitricOxideCurvePoint> Curve,
-        IReadOnlyList<NitricOxideWellResult> Wells);
+        IReadOnlyList<NitricOxideWellResult> Wells,
+        IReadOnlyList<ConditionAggregate> Conditions);
 
     /// <summary>A baseline-corrected calibration point inside the result payload.</summary>
     private sealed record NitricOxideCurvePoint(decimal ConcentrationUm, decimal Absorbance);
 
-    /// <summary>Per-sample NO result line inside the result payload.</summary>
+    /// <summary>
+    /// Per-sample NO result line inside the result payload. <c>ConcentrationUm</c> is the computed NO
+    /// concentration read off the fitted line; <c>TestConcentrationUm</c> is the well's own design concentration
+    /// (usually null for NO samples) kept so replicate grouping and the export can distinguish conditions.
+    /// </summary>
     private sealed record NitricOxideWellResult(
         string Well,
         string Role,
+        string? SampleId,
+        decimal? TestConcentrationUm,
         decimal RawAbsorbance,
         decimal ConcentrationUm);
+
+    /// <summary>
+    /// Per-condition aggregate (SISLAB-07): the replicate count, mean and sample SD of the computed NO µM for one
+    /// compound (× design concentration when present), plus the coordinates of the replicates that fed it.
+    /// </summary>
+    private sealed record ConditionAggregate(
+        string? SampleId,
+        decimal? ConcentrationUm,
+        int ReplicateCount,
+        decimal MeanConcentrationUm,
+        decimal? StdDevConcentrationUm,
+        IReadOnlyList<string> Wells);
 }

@@ -21,11 +21,29 @@ namespace SISLAB.Modules.Experiments.Application.Experiments.Queries;
 /// </remarks>
 public sealed record GetPlateReadingResultQuery(Guid ExperimentId) : IQuery<PlateReadingResult>;
 
-/// <summary>The plate grid result: the experiment id and one <see cref="PlateWellResult"/> per designed well.</summary>
+/// <summary>
+/// The plate grid result: the experiment id, one <see cref="PlateWellResult"/> per designed well and — once
+/// calculated — the per-condition replicate aggregates (SISLAB-07: mean / SD over replicates of the same
+/// compound × concentration), both read from the frozen snapshot.
+/// </summary>
 public sealed record PlateReadingResult(
     Guid ExperimentId,
     bool IsCalculated,
-    IReadOnlyList<PlateWellResult> Wells);
+    IReadOnlyList<PlateWellResult> Wells,
+    IReadOnlyList<PlateConditionResult> Conditions);
+
+/// <summary>
+/// A replicate aggregate for the read-side (SISLAB-07): one compound × concentration condition with its replicate
+/// count, mean and sample SD of the assay's computed value, plus the coordinates that fed it. Unit-agnostic —
+/// the UI labels % viability or NO µM from the experiment type — reflecting exactly what the snapshot froze.
+/// </summary>
+public sealed record PlateConditionResult(
+    string? SampleId,
+    decimal? ConcentrationUm,
+    int ReplicateCount,
+    decimal Mean,
+    decimal? StandardDeviation,
+    IReadOnlyList<string> Wells);
 
 /// <summary>
 /// A single well on the result grid: coordinate, role, absorbance and — once calculated — the assay's computed
@@ -112,7 +130,44 @@ internal sealed class GetPlateReadingResultQueryHandler
                 row.ExcludedBy))
             .ToList();
 
-        return new PlateReadingResult(experiment.Id, experiment.ResultJson is not null, wells);
+        IReadOnlyList<PlateConditionResult> conditions = ParseConditions(experiment.ResultJson);
+
+        return new PlateReadingResult(experiment.Id, experiment.ResultJson is not null, wells, conditions);
+    }
+
+    /// <summary>
+    /// Extracts the per-condition replicate aggregates from the frozen snapshot JSON, unit-agnostically
+    /// (SISLAB-07): the viability payload carries <c>meanViabilityPct</c>/<c>stdDevViabilityPct</c> and the
+    /// nitric-oxide payload carries <c>meanConcentrationUm</c>/<c>stdDevConcentrationUm</c>, both under a
+    /// <c>conditions[]</c> key. A null/malformed snapshot simply yields no conditions.
+    /// </summary>
+    private static IReadOnlyList<PlateConditionResult> ParseConditions(string? resultJson)
+    {
+        if (string.IsNullOrWhiteSpace(resultJson))
+            return [];
+
+        try
+        {
+            SnapshotPayload? payload =
+                JsonSerializer.Deserialize<SnapshotPayload>(resultJson, ResultDeserializerOptions);
+
+            if (payload?.Conditions is null)
+                return [];
+
+            return payload.Conditions
+                .Select(condition => new PlateConditionResult(
+                    condition.SampleId,
+                    condition.ConcentrationUm,
+                    condition.ReplicateCount,
+                    condition.MeanViabilityPct ?? condition.MeanConcentrationUm ?? 0m,
+                    condition.StdDevViabilityPct ?? condition.StdDevConcentrationUm,
+                    condition.Wells ?? []))
+                .ToList();
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
     }
 
     /// <summary>
@@ -161,8 +216,25 @@ internal sealed class GetPlateReadingResultQueryHandler
         string? ExclusionReason,
         string? ExcludedBy);
 
-    /// <summary>Shape of the snapshot JSON common to both strategies (only the per-well computed value is read).</summary>
-    private sealed record SnapshotPayload(IReadOnlyList<SnapshotWell>? Wells);
+    /// <summary>Shape of the snapshot JSON common to both strategies (the per-well value and the condition aggregates).</summary>
+    private sealed record SnapshotPayload(
+        IReadOnlyList<SnapshotWell>? Wells,
+        IReadOnlyList<SnapshotCondition>? Conditions);
 
     private sealed record SnapshotWell(string Well, decimal? ViabilityPct, decimal? ConcentrationUm);
+
+    /// <summary>
+    /// Condition aggregate as it appears in either strategy's snapshot (SISLAB-07): the viability payload uses the
+    /// <c>*ViabilityPct</c> fields, the nitric-oxide payload the <c>*ConcentrationUm</c> fields; whichever is
+    /// present is coalesced into the unit-agnostic <see cref="PlateConditionResult"/>.
+    /// </summary>
+    private sealed record SnapshotCondition(
+        string? SampleId,
+        decimal? ConcentrationUm,
+        int ReplicateCount,
+        decimal? MeanViabilityPct,
+        decimal? StdDevViabilityPct,
+        decimal? MeanConcentrationUm,
+        decimal? StdDevConcentrationUm,
+        IReadOnlyList<string>? Wells);
 }
