@@ -1,7 +1,9 @@
+using SISLAB.Modules.Configuration.Application.CollectionRoles;
 using SISLAB.Modules.Configuration.Application.ExperimentalModels;
 using SISLAB.Modules.Configuration.Application.ExpiryPolicies;
 using SISLAB.Modules.Configuration.Application.InclusionCriteria;
 using SISLAB.Modules.Configuration.Application.ItemCategories;
+using SISLAB.Modules.Configuration.Application.Rooms;
 using SISLAB.Modules.Configuration.Contracts;
 using SISLAB.SharedKernel.Messaging;
 
@@ -79,6 +81,42 @@ internal sealed class LabConfiguration : ILabConfiguration
                 item.Threshold,
                 item.Unit))
             .ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<CollectionRoleDto>> GetCollectionRolesAsync(CancellationToken ct)
+    {
+        IReadOnlyList<CollectionRoleListItem> items = await _mediator.SendAsync(new ListCollectionRolesQuery(), ct);
+
+        return items
+            .Select(item => new CollectionRoleDto(item.Id, item.Name, item.Description))
+            .ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> CollectionRoleExistsAsync(Guid roleId, CancellationToken ct)
+    {
+        IReadOnlyList<CollectionRoleListItem> items = await _mediator.SendAsync(new ListCollectionRolesQuery(), ct);
+
+        return items.Any(item => item.Id == roleId);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<RoomDto>> GetRoomsAsync(CancellationToken ct)
+    {
+        IReadOnlyList<RoomListItem> items = await _mediator.SendAsync(new ListRoomsQuery(), ct);
+
+        return items
+            .Select(item => new RoomDto(item.Id, item.Name, item.RequiresAuthorization))
+            .ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> RoomExistsAsync(Guid roomId, CancellationToken ct)
+    {
+        IReadOnlyList<RoomListItem> items = await _mediator.SendAsync(new ListRoomsQuery(), ct);
+
+        return items.Any(item => item.Id == roomId);
     }
 
     /// <summary>

@@ -47,4 +47,17 @@ internal sealed class FakeLabConfiguration : ILabConfiguration
     // Inclusion criteria (SISLAB-02) are consumed by the Experiments selection, not Inventory; unused here.
     public Task<IReadOnlyList<InclusionCriterionDto>> GetInclusionCriteriaAsync(CancellationToken ct)
         => throw new NotSupportedException("GetInclusionCriteriaAsync is not used by the Inventory tests.");
+
+    // Collection roles and rooms (SISLAB-08) are consumed by the Experiments collection plan, not Inventory; unused here.
+    public Task<IReadOnlyList<CollectionRoleDto>> GetCollectionRolesAsync(CancellationToken ct)
+        => throw new NotSupportedException("GetCollectionRolesAsync is not used by the Inventory tests.");
+
+    public Task<bool> CollectionRoleExistsAsync(Guid roleId, CancellationToken ct)
+        => throw new NotSupportedException("CollectionRoleExistsAsync is not used by the Inventory tests.");
+
+    public Task<IReadOnlyList<RoomDto>> GetRoomsAsync(CancellationToken ct)
+        => throw new NotSupportedException("GetRoomsAsync is not used by the Inventory tests.");
+
+    public Task<bool> RoomExistsAsync(Guid roomId, CancellationToken ct)
+        => throw new NotSupportedException("RoomExistsAsync is not used by the Inventory tests.");
 }

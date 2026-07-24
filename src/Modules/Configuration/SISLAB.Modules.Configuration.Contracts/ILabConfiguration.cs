@@ -76,4 +76,38 @@ public interface ILabConfiguration
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     Task<IReadOnlyList<InclusionCriterionDto>> GetInclusionCriteriaAsync(CancellationToken ct);
+
+    /// <summary>
+    /// Returns the active company's collection roles (SISLAB-08) — the cadastered jobs (e.g. "Volante", "Anestesia",
+    /// "Sangue") the Experiments module assigns to members on a collection plan. A lab that has cadastered none gets an
+    /// empty list.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task<IReadOnlyList<CollectionRoleDto>> GetCollectionRolesAsync(CancellationToken ct);
+
+    /// <summary>
+    /// Returns <see langword="true"/> when a collection role with <paramref name="roleId"/> exists for the active
+    /// company; otherwise <see langword="false"/>. This is the write-side validation guard the Experiments module uses
+    /// to reject assigning a member to an unknown/other-tenant role when building a collection plan.
+    /// </summary>
+    /// <param name="roleId">Identifier of the collection role to probe.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<bool> CollectionRoleExistsAsync(Guid roleId, CancellationToken ct);
+
+    /// <summary>
+    /// Returns the active company's rooms (card [E12] #76) — the labs/freezer rooms other modules reference by value,
+    /// e.g. as a collection plan's sample storage location (SISLAB-08). A lab that has cadastered none gets an empty
+    /// list.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task<IReadOnlyList<RoomDto>> GetRoomsAsync(CancellationToken ct);
+
+    /// <summary>
+    /// Returns <see langword="true"/> when a room with <paramref name="roomId"/> exists for the active company;
+    /// otherwise <see langword="false"/>. This is the write-side validation guard other modules use to reject
+    /// referencing an unknown/other-tenant room (e.g. a collection routing's storage).
+    /// </summary>
+    /// <param name="roomId">Identifier of the room to probe.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<bool> RoomExistsAsync(Guid roomId, CancellationToken ct);
 }
