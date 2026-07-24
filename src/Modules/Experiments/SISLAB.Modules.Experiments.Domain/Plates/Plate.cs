@@ -59,6 +59,41 @@ public sealed class Plate
     }
 
     /// <summary>
+    /// Populates the test concentrations (µM) of a designed column from a computed serial-dilution series
+    /// (SISLAB-05), top row down: the series' points are written onto the column's wells in ascending row order
+    /// (A → H). This is how the mother-plate scheme drives the plate design — the operator computes the series once
+    /// and stamps it onto the column instead of typing each <c>ConcentrationUm</c> by hand.
+    /// </summary>
+    /// <remarks>
+    /// The column must be fully covered: it must have exactly as many designed wells as the series has points, so a
+    /// mismatch (a short column, an extra well, or a series longer than the plate) is rejected rather than silently
+    /// leaving wells unset or points unplaced. Existing readings are untouched — only the concentration changes.
+    /// </remarks>
+    public void ApplyConcentrationSeries(int column, IReadOnlyList<decimal> concentrationsMicromolar)
+    {
+        ArgumentNullException.ThrowIfNull(concentrationsMicromolar);
+
+        if (column is < 1 or > Columns)
+            throw new DomainException($"Column '{column}' is out of range. Expected 1–{Columns}.");
+
+        if (concentrationsMicromolar.Count == 0)
+            throw new DomainException("A concentration series must contain at least one point.");
+
+        List<Well> columnWells = _wells
+            .Where(well => well.Column == column)
+            .OrderBy(well => well.Row)
+            .ToList();
+
+        if (columnWells.Count != concentrationsMicromolar.Count)
+            throw new DomainException(
+                $"Column '{column}' has {columnWells.Count} designed well(s) but the series has " +
+                $"{concentrationsMicromolar.Count} point(s); the column must match the series exactly.");
+
+        for (int index = 0; index < columnWells.Count; index++)
+            columnWells[index].AssignConcentration(concentrationsMicromolar[index]);
+    }
+
+    /// <summary>
     /// Applies the reader's absorbance for a single well identified by its coordinate. An unknown coordinate
     /// (a value for a well that was not designed) is rejected — the import must match the plate layout.
     /// </summary>

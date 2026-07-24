@@ -100,6 +100,15 @@ public sealed class Well : Entity<Guid>
         return new Well(Guid.NewGuid(), normalizedRow, column, role, NormalizeConcentration(concentrationUm), normalizedSampleId);
     }
 
+    /// <summary>
+    /// Sets (or clears) this well's test concentration in µM (SISLAB-05), used when a computed serial-dilution
+    /// scheme is applied to the plate. Mutated only through the aggregate (<see cref="Plate"/>/<c>PlateExperiment</c>),
+    /// which decides which wells a series covers. A negative value is normalised to null (no concentration), matching
+    /// the creation-time rule.
+    /// </summary>
+    internal void AssignConcentration(decimal? concentrationUm)
+        => ConcentrationUm = NormalizeConcentration(concentrationUm);
+
     /// <summary>Records the plate reader's raw absorbance for this well. Must be non-negative.</summary>
     public void RecordAbsorbance(decimal rawAbsorbance)
     {

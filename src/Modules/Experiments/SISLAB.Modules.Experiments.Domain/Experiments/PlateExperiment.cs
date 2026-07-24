@@ -84,6 +84,21 @@ public abstract class PlateExperiment : Experiment
             Start();
     }
 
+    /// <summary>
+    /// Populates the test concentrations (µM) of a plate column from a computed serial-dilution series (SISLAB-05).
+    /// The plate must already be designed (the wells exist) and the calculation must not be frozen yet — the
+    /// concentrations are part of the plate design, so they cannot change once the result snapshot was computed from
+    /// them (reproducibility). The column must match the series length exactly (guarded by the <see cref="Plate"/>).
+    /// </summary>
+    public void ApplyConcentrationScheme(int column, IReadOnlyList<decimal> concentrationsMicromolar)
+    {
+        if (!Plate.IsDesigned)
+            throw new DomainException("The plate must be designed before applying a concentration scheme.");
+
+        EnsureNotYetCalculated();
+        Plate.ApplyConcentrationSeries(column, concentrationsMicromolar);
+    }
+
     /// <summary>Applies the plate reader's absorbance for a single well coordinate. Requires a designed plate.</summary>
     public void RecordWellAbsorbance(string coordinate, decimal rawAbsorbance)
     {

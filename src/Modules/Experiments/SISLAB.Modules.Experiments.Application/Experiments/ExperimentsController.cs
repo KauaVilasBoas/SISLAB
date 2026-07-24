@@ -183,6 +183,85 @@ public sealed class ExperimentsController : SislabControllerBase
         return Ok(new ApiResult(true, "Plate designed."));
     }
 
+    /// <summary>
+    /// Computes a serial-dilution scheme (SISLAB-05) from a top concentration/factor/points/final volume — the series
+    /// and the C1V1=C2V2 transfer/diluent volumes, plus the optional stock and DMSO control. Stateless: it reads and
+    /// changes nothing, so it is a page-level <c>[Authorize]</c> GET (any member may compute), not permission-gated.
+    /// Returns the scheme for the UI to render and to drive the plate-populate call.
+    /// </summary>
+    [HttpGet("dilution-scheme")]
+    [ProducesResponseType(typeof(ApiResult<SerialDilutionSchemeResult>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ComputeDilutionScheme(
+        [FromQuery] decimal topConcentrationMicromolar,
+        [FromQuery] decimal factor,
+        [FromQuery] int numberOfPoints,
+        [FromQuery] decimal finalVolumeMicrolitres,
+        [FromQuery] bool doubleForHalfInWell = false,
+        [FromQuery] decimal? stockMolarMassGramsPerMole = null,
+        [FromQuery] decimal? stockMassMilligrams = null,
+        [FromQuery] decimal? stockTargetMolarityMicromolar = null,
+        [FromQuery] decimal? stockConcentrationMilligramsPerMillilitre = null,
+        [FromQuery] decimal? stockVolumeMillilitres = null,
+        [FromQuery] decimal? dmsoMicrolitres = null,
+        [FromQuery] decimal? dmsoSolutionMicrolitres = null,
+        [FromQuery] decimal? dmsoInWellDilutionRatio = null,
+        CancellationToken ct = default)
+    {
+        SerialDilutionSchemeResult scheme = await _mediator.SendAsync(
+            new ComputeSerialDilutionSchemeQuery(
+                topConcentrationMicromolar,
+                factor,
+                numberOfPoints,
+                finalVolumeMicrolitres,
+                doubleForHalfInWell)
+            {
+                StockMolarMassGramsPerMole = stockMolarMassGramsPerMole,
+                StockMassMilligrams = stockMassMilligrams,
+                StockTargetMolarityMicromolar = stockTargetMolarityMicromolar,
+                StockConcentrationMilligramsPerMillilitre = stockConcentrationMilligramsPerMillilitre,
+                StockVolumeMillilitres = stockVolumeMillilitres,
+                DmsoMicrolitres = dmsoMicrolitres,
+                DmsoSolutionMicrolitres = dmsoSolutionMicrolitres,
+                DmsoInWellDilutionRatio = dmsoInWellDilutionRatio ?? 1m,
+            },
+            ct);
+
+        return Ok(new ApiResult<SerialDilutionSchemeResult>(true, "Dilution scheme computed.", scheme));
+    }
+
+    /// <summary>
+    /// Populates a plate column's <c>ConcentrationUm</c> wells from a serial-dilution scheme (SISLAB-05). The plate
+    /// must already be designed and the column must match the series length. Permission-gated (it changes the design).
+    /// </summary>
+    [HttpPost("{experimentId:guid}/apply-dilution-scheme")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ApplyDilutionScheme(
+        Guid experimentId,
+        [FromBody] ApplyDilutionSchemeRequest body,
+        CancellationToken ct)
+    {
+        await _mediator.SendAsync(
+            new ApplyDilutionSchemeCommand(
+                experimentId,
+                body.Column,
+                body.TopConcentrationMicromolar,
+                body.Factor,
+                body.NumberOfPoints,
+                body.FinalVolumeMicrolitres,
+                body.DoubleForHalfInWell),
+            ct);
+
+        return Ok(new ApiResult(true, "Plate concentrations populated from the dilution scheme."));
+    }
+
     /// <summary>Imports the plate reader's raw absorbance from the canonical <c>well,absorbance</c> CSV.</summary>
     [HttpPost("{experimentId:guid}/import-reading")]
     [RequirePermission]
@@ -379,6 +458,18 @@ public sealed record DesignPlateWellRequest(
 
 /// <summary>Request body to import a plate reading — the canonical <c>well,absorbance</c> CSV as text.</summary>
 public sealed record ImportReadingRequest(string CsvContent);
+
+/// <summary>
+/// Request body to populate a plate column's concentrations from a serial-dilution scheme (SISLAB-05): the target
+/// column plus the same series inputs (recomputed server-side from the pure formula).
+/// </summary>
+public sealed record ApplyDilutionSchemeRequest(
+    int Column,
+    decimal TopConcentrationMicromolar,
+    decimal Factor,
+    int NumberOfPoints,
+    decimal FinalVolumeMicrolitres,
+    bool DoubleForHalfInWell = false);
 
 /// <summary>Request body to exclude a well as an outlier (SISLAB-06): the operator's reason.</summary>
 public sealed record ExcludeWellRequest(string Reason);
