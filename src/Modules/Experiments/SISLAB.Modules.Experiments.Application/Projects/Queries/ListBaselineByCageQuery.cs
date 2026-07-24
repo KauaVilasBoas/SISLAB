@@ -60,7 +60,7 @@ internal sealed class ListBaselineByCageQueryHandler
         SELECT
             c.id                       AS cageid,
             c.name                     AS cagename,
-            count(l.animal_id)         AS animalswithreading,
+            count(l.animal_id)::int    AS animalswithreading,
             avg(l.value)               AS meanvalue,
             min(l.value)               AS minvalue,
             max(l.value)               AS maxvalue,
