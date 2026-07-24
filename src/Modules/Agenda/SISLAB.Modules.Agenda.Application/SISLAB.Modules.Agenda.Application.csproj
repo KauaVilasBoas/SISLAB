@@ -3,6 +3,9 @@
   <ItemGroup>
     <ProjectReference Include="..\SISLAB.Modules.Agenda.Domain\SISLAB.Modules.Agenda.Domain.csproj" />
     <ProjectReference Include="..\SISLAB.Modules.Agenda.Infrastructure\SISLAB.Modules.Agenda.Infrastructure.csproj" />
+    <!-- Agenda.Contracts: the module's public IAgendaScheduler port (SISLAB-10). Implemented here by an adapter
+         that dispatches CreateAgendaEntryCommand, so another module can create entries without touching internals. -->
+    <ProjectReference Include="..\SISLAB.Modules.Agenda.Contracts\SISLAB.Modules.Agenda.Contracts.csproj" />
     <ProjectReference Include="..\..\..\..\src\Shared\SISLAB.Infrastructure\SISLAB.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Audit\SISLAB.Modules.Audit.Contracts\SISLAB.Modules.Audit.Contracts.csproj" />
     <!-- Experiments.Contracts: IExperimentDirectory, to resolve an experiment's title on the calendar
