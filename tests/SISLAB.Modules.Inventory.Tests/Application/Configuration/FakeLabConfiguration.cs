@@ -43,4 +43,8 @@ internal sealed class FakeLabConfiguration : ILabConfiguration
 
     public Task<bool> ExperimentalModelExistsAsync(Guid modelId, CancellationToken ct)
         => throw new NotSupportedException("ExperimentalModelExistsAsync is not used by the Inventory tests.");
+
+    // Inclusion criteria (SISLAB-02) are consumed by the Experiments selection, not Inventory; unused here.
+    public Task<IReadOnlyList<InclusionCriterionDto>> GetInclusionCriteriaAsync(CancellationToken ct)
+        => throw new NotSupportedException("GetInclusionCriteriaAsync is not used by the Inventory tests.");
 }

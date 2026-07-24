@@ -52,23 +52,51 @@ internal sealed class FakeCompanyMembershipQuery : ICompanyMembershipQuery
 }
 
 /// <summary>
-/// Fake of the Configuration <see cref="ILabConfiguration"/> port (SISLAB-04). Treats a fixed allow-list of
+/// Fake of the Configuration <see cref="ILabConfiguration"/> port (SISLAB-04/02). Treats a fixed allow-list of
 /// experimental-model ids as existing for the active company; defaults to allowing every id when constructed empty,
-/// so tests that do not care about the model-existence guard stay terse. Only the members the Experiments write-side
-/// consumes are meaningful; the rest throw to make an unexpected dependency obvious.
+/// so tests that do not care about the model-existence guard stay terse. The applicable parameters returned per model
+/// and the inclusion criteria are settable so the SISLAB-02 selection handler can be exercised end to end. Only the
+/// members the Experiments write-side consumes are meaningful; the rest throw to make an unexpected dependency obvious.
 /// </summary>
 internal sealed class FakeLabConfiguration : ILabConfiguration
 {
     private readonly HashSet<Guid>? _knownModels;
+    private readonly Dictionary<Guid, ExperimentalModelDto> _models = new();
+    private IReadOnlyList<InclusionCriterionDto> _criteria = new List<InclusionCriterionDto>();
 
     public FakeLabConfiguration(params Guid[] knownModels)
         => _knownModels = knownModels.Length == 0 ? null : knownModels.ToHashSet();
+
+    /// <summary>Registers a model with the parameters it declares applicable (SISLAB-04), for the selection tests.</summary>
+    public FakeLabConfiguration WithModel(Guid modelId, params string[] applicableParameters)
+    {
+        _models[modelId] = new ExperimentalModelDto(
+            modelId,
+            "Modelo",
+            null,
+            new InductionProtocolDto(1, 0, 0),
+            new List<string> { "basal" },
+            applicableParameters.ToList(),
+            new List<StandardGroupDto>(),
+            new DilutionDefaultsDto(5m, "Óleo de soja"));
+        return this;
+    }
+
+    /// <summary>Sets the inclusion criteria the port returns (SISLAB-02), for the selection tests.</summary>
+    public FakeLabConfiguration WithCriteria(params InclusionCriterionDto[] criteria)
+    {
+        _criteria = criteria.ToList();
+        return this;
+    }
 
     public Task<bool> ExperimentalModelExistsAsync(Guid modelId, CancellationToken ct)
         => Task.FromResult(_knownModels is null || _knownModels.Contains(modelId));
 
     public Task<ExperimentalModelDto?> GetExperimentalModelAsync(Guid modelId, CancellationToken ct)
-        => throw new NotSupportedException("GetExperimentalModelAsync is not exercised by these tests.");
+        => Task.FromResult(_models.GetValueOrDefault(modelId));
+
+    public Task<IReadOnlyList<InclusionCriterionDto>> GetInclusionCriteriaAsync(CancellationToken ct)
+        => Task.FromResult(_criteria);
 
     public Task<int> GetExpiryWarningWindowDaysAsync(CancellationToken ct)
         => throw new NotSupportedException("GetExpiryWarningWindowDaysAsync is not exercised by these tests.");

@@ -67,4 +67,13 @@ public interface ILabConfiguration
     /// <param name="modelId">Identifier of the experimental model to probe.</param>
     /// <param name="ct">Cancellation token.</param>
     Task<bool> ExperimentalModelExistsAsync(Guid modelId, CancellationToken ct);
+
+    /// <summary>
+    /// Returns the active company's animal-inclusion criteria (SISLAB-02) — the cadastered "(parameter, operator,
+    /// threshold, unit)" rules the Experiments module applies to select animals from their physiological readings.
+    /// Never empty-guarantees a criterion for any parameter: a lab that has cadastered none gets an empty list, and a
+    /// parameter without a criterion simply drives no inclusion decision.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task<IReadOnlyList<InclusionCriterionDto>> GetInclusionCriteriaAsync(CancellationToken ct);
 }

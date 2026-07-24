@@ -1,5 +1,6 @@
 using SISLAB.Modules.Configuration.Application.ExperimentalModels;
 using SISLAB.Modules.Configuration.Application.ExpiryPolicies;
+using SISLAB.Modules.Configuration.Application.InclusionCriteria;
 using SISLAB.Modules.Configuration.Application.ItemCategories;
 using SISLAB.Modules.Configuration.Contracts;
 using SISLAB.SharedKernel.Messaging;
@@ -63,6 +64,21 @@ internal sealed class LabConfiguration : ILabConfiguration
         ExperimentalModelView? view = await _mediator.SendAsync(new GetExperimentalModelQuery(modelId), ct);
 
         return view is not null;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<InclusionCriterionDto>> GetInclusionCriteriaAsync(CancellationToken ct)
+    {
+        IReadOnlyList<InclusionCriterionListItem> items =
+            await _mediator.SendAsync(new ListInclusionCriteriaQuery(), ct);
+
+        return items
+            .Select(item => new InclusionCriterionDto(
+                item.ParameterCode,
+                item.Operator.ToString(),
+                item.Threshold,
+                item.Unit))
+            .ToList();
     }
 
     /// <summary>
