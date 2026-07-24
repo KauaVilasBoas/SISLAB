@@ -117,6 +117,11 @@ export const Permissions = {
     /** Re-include a previously excluded plate well before calculation (SISLAB-06). */
     includeWell: 'Experiments.IncludeWell',
   },
+  /** Experimentos — cronograma (SchedulingController: gerar cronograma a partir do modelo) — SISLAB-10. */
+  scheduling: {
+    /** Generate an experiment's schedule from its model and materialise the Agenda entries (SISLAB-10). */
+    generate: 'Scheduling.Generate',
+  },
   /** Experimentos — responsabilidade (ExperimentsController responsible-assignment endpoints, card [E11]). */
   experimentResponsibility: {
     assignResponsible: 'Experiments.AssignResponsible',

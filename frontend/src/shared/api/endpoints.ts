@@ -174,6 +174,8 @@ export const Endpoints = {
     exportBehavioral: (id: string) => `/api/experiments/${id}/export-behavioral`,
     /** Operator pendencies panel (open work across the module) — card #90. */
     pendencies: '/api/experiments/pendencies',
+    /** Generate an experiment's schedule from its bound experimental model and materialise Agenda entries — SISLAB-10. */
+    schedule: (id: string) => `/api/experiments/${id}/schedule`,
     /** Set/replace the experiment's lead responsible (full edit authority) — card [E11]. */
     responsible: (id: string) => `/api/experiments/${id}/responsible`,
     /** Add a responsible to a step (step-scoped edit authority) — card [E11]. */

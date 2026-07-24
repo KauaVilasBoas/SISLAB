@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Box,
+  CalendarClock,
   FlaskConical,
   FlaskRound,
   Loader2,
@@ -25,6 +26,7 @@ import {
   AssignAnimalToGroupModal,
 } from '@/modules/in-vivo/components/ProjectDesignModals';
 import { LaunchBehavioralModal } from '@/modules/in-vivo/components/LaunchBehavioralModal';
+import { GenerateScheduleModal } from '@/modules/in-vivo/components/GenerateScheduleModal';
 import { PrepareSolutionModal } from '@/modules/in-vivo/components/PrepareSolutionModal';
 import { SolutionPreparationsPanel } from '@/modules/in-vivo/components/SolutionPreparationsPanel';
 import { BatchModelPanel } from '@/modules/in-vivo/components/BatchModelPanel';
@@ -75,6 +77,7 @@ export function ProjectDetailPage() {
     groups: GroupDetail[];
   } | null>(null);
   const [launchingBatch, setLaunchingBatch] = useState<string | null>(null);
+  const [schedulingBatch, setSchedulingBatch] = useState<BatchDetail | null>(null);
   const [preparingSolution, setPreparingSolution] = useState<{
     batch: BatchDetail;
     group: GroupDetail;
@@ -240,6 +243,19 @@ export function ProjectDetailPage() {
                         </Button>
                       </RequirePermission>
                     )}
+                    {/* Schedule generation needs the induction cadence — only offered once a model is bound (SISLAB-10). */}
+                    {isRunning && batch.experimentalModelId && (
+                      <RequirePermission code={Permissions.scheduling.generate}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSchedulingBatch(batch)}
+                        >
+                          <CalendarClock className="size-4" />
+                          Gerar cronograma
+                        </Button>
+                      </RequirePermission>
+                    )}
                   </div>
                 </div>
 
@@ -336,6 +352,13 @@ export function ProjectDetailPage() {
           batch={preparingSolution.batch}
           group={preparingSolution.group}
           onClose={() => setPreparingSolution(null)}
+        />
+      )}
+      {schedulingBatch && (
+        <GenerateScheduleModal
+          experimentId={schedulingBatch.id}
+          batch={schedulingBatch}
+          onClose={() => setSchedulingBatch(null)}
         />
       )}
     </div>
