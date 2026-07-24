@@ -1,13 +1,17 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using SISLAB.Infrastructure.Data;
 using SISLAB.Infrastructure.Messaging;
 using SISLAB.Infrastructure.Messaging.Behaviors;
 using SISLAB.Infrastructure.Multitenancy;
 using SISLAB.Infrastructure.Observability;
+using SISLAB.Infrastructure.Storage;
 using SISLAB.SharedKernel.Messaging;
 using SISLAB.SharedKernel.Multitenancy;
 using SISLAB.SharedKernel.Observability;
+using SISLAB.SharedKernel.Storage;
 using SISLAB.SharedKernel.Time;
 
 namespace SISLAB.Infrastructure.DependencyInjection;
@@ -56,6 +60,15 @@ public static class InfrastructureServiceExtensions
         // queries) to register an otherwise-unused IUnitOfWork just to satisfy the constructor.
         services.AddScoped(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
         services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+
+        // File storage port (SISLAB-09). The default implementation is the LOCAL placeholder adapter
+        // (filesystem), registered via TryAdd so the S3 adapter (card #53) can override it with a single
+        // registration later without touching any caller — callers depend only on IFileStorage. The options bind
+        // from configuration section "FileStorage:Local"; a missing section falls back to a temp-based root.
+        services.AddOptions<LocalFileStorageOptions>()
+            .Configure<IConfiguration>((options, configuration) =>
+                configuration.GetSection(LocalFileStorageOptions.SectionName).Bind(options));
+        services.TryAddSingleton<IFileStorage, LocalFileStorage>();
 
         return services;
     }
