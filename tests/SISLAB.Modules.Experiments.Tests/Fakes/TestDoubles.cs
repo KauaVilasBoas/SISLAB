@@ -63,9 +63,25 @@ internal sealed class FakeLabConfiguration : ILabConfiguration
     private readonly HashSet<Guid>? _knownModels;
     private readonly Dictionary<Guid, ExperimentalModelDto> _models = new();
     private IReadOnlyList<InclusionCriterionDto> _criteria = new List<InclusionCriterionDto>();
+    private readonly List<CollectionRoleDto> _collectionRoles = new();
+    private readonly HashSet<Guid> _rooms = new();
 
     public FakeLabConfiguration(params Guid[] knownModels)
         => _knownModels = knownModels.Length == 0 ? null : knownModels.ToHashSet();
+
+    /// <summary>Registers a collection role (SISLAB-08), so the assignment guard accepts its id and the board can name it.</summary>
+    public FakeLabConfiguration WithCollectionRole(Guid roleId, string name)
+    {
+        _collectionRoles.Add(new CollectionRoleDto(roleId, name, null));
+        return this;
+    }
+
+    /// <summary>Registers a room id (SISLAB-08), so the routing's storage-existence guard accepts it.</summary>
+    public FakeLabConfiguration WithRoom(Guid roomId)
+    {
+        _rooms.Add(roomId);
+        return this;
+    }
 
     /// <summary>Registers a model with the parameters it declares applicable (SISLAB-04), for the selection tests.</summary>
     public FakeLabConfiguration WithModel(Guid modelId, params string[] applicableParameters)
@@ -106,6 +122,19 @@ internal sealed class FakeLabConfiguration : ILabConfiguration
 
     public Task<bool> ItemCategoryExistsAsync(Guid categoryId, CancellationToken ct)
         => throw new NotSupportedException("ItemCategoryExistsAsync is not exercised by these tests.");
+
+    public Task<IReadOnlyList<CollectionRoleDto>> GetCollectionRolesAsync(CancellationToken ct)
+        => Task.FromResult<IReadOnlyList<CollectionRoleDto>>(_collectionRoles);
+
+    public Task<bool> CollectionRoleExistsAsync(Guid roleId, CancellationToken ct)
+        => Task.FromResult(_collectionRoles.Any(role => role.Id == roleId));
+
+    public Task<IReadOnlyList<RoomDto>> GetRoomsAsync(CancellationToken ct)
+        => Task.FromResult<IReadOnlyList<RoomDto>>(
+            _rooms.Select(id => new RoomDto(id, "Room", false)).ToList());
+
+    public Task<bool> RoomExistsAsync(Guid roomId, CancellationToken ct)
+        => Task.FromResult(_rooms.Contains(roomId));
 }
 
 /// <summary>An <see cref="ITenantContext"/> pinned to a fixed company, matching how the read side resolves it.</summary>

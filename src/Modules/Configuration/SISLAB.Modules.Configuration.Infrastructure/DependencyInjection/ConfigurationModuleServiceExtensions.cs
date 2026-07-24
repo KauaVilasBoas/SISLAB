@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SISLAB.Infrastructure.Messaging.Behaviors;
 using SISLAB.Infrastructure.Persistence;
+using SISLAB.Modules.Configuration.Domain.CollectionRoles;
 using SISLAB.Modules.Configuration.Domain.ExperimentalModels;
 using SISLAB.Modules.Configuration.Domain.ExpiryPolicies;
 using SISLAB.Modules.Configuration.Domain.InclusionCriteria;
@@ -60,6 +61,7 @@ public static class ConfigurationModuleServiceExtensions
         services.AddScoped<IRoomRepository, RoomRepository>();
         services.AddScoped<IExperimentalModelRepository, ExperimentalModelRepository>();
         services.AddScoped<IInclusionCriterionRepository, InclusionCriterionRepository>();
+        services.AddScoped<ICollectionRoleRepository, CollectionRoleRepository>();
 
         // 3. Write-side unit of work for this module's commands. This module raises no integration events,
         //    so the dispatcher is a no-op that just drains any aggregate domain events; IUnitOfWork is the
