@@ -18,6 +18,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Modules\Configuration\SISLAB.Modules.Configuration.Domain\SISLAB.Modules.Configuration.Domain.csproj" />
+    <!-- Application: exercises the ExperimentalModel command handler (SISLAB-04) mapping the flat payload onto
+         the aggregate's value objects. -->
+    <ProjectReference Include="..\..\src\Modules\Configuration\SISLAB.Modules.Configuration.Application\SISLAB.Modules.Configuration.Application.csproj" />
     <!-- Infrastructure: exercises the provisioner + the CompanyCreated integration-event handler (card #75b)
          against the real ConfigurationDbContext (EF InMemory), plus Identity.Contracts for the event type. -->
     <ProjectReference Include="..\..\src\Modules\Configuration\SISLAB.Modules.Configuration.Infrastructure\SISLAB.Modules.Configuration.Infrastructure.csproj" />
