@@ -1,5 +1,4 @@
 using SISLAB.SharedKernel.Domain;
-using SISLAB.SharedKernel.Exceptions;
 using SISLAB.SharedKernel.Guards;
 
 namespace SISLAB.Modules.Experiments.Domain.Projects;
@@ -10,15 +9,16 @@ namespace SISLAB.Modules.Experiments.Domain.Projects;
 /// control at dose 0, then ascending doses), and are the unit the Prism export aggregates by (group × timepoint).
 /// </summary>
 /// <remarks>
+/// <para>
 /// A group is a child entity of the <see cref="Project"/> aggregate, reached through its <see cref="Batch"/>, and
-/// only ever mutated through the aggregate. It owns its animals and the invariant that an animal identifier is
-/// unique within the group; the aggregate additionally enforces uniqueness across the whole project.
+/// only ever mutated through the aggregate. Since SISLAB-03 the group is a pure <b>treatment definition</b> (name +
+/// dose): it no longer <i>owns</i> animals — animals are housed in a <see cref="Cage"/> and reference their group by
+/// value (<see cref="Animal.GroupId"/>). This lets an animal exist before it is assigned to any group.
+/// </para>
 /// </remarks>
 public sealed class Group : Entity<Guid>
 {
     private const int MaxNameLength = 120;
-
-    private readonly List<Animal> _animals = [];
 
     // Parameterless constructor for EF Core materialization.
     private Group() : base(Guid.Empty)
@@ -40,11 +40,8 @@ public sealed class Group : Entity<Guid>
     /// <summary>The dose every animal in this arm receives (zero for the vehicle/control arm).</summary>
     public Dose Dose { get; private set; }
 
-    /// <summary>The animals enrolled in this arm.</summary>
-    public IReadOnlyList<Animal> Animals => _animals.AsReadOnly();
-
-    /// <summary>Creates an empty group (no animals yet) at the given name and dose.</summary>
-    public static Group Create(string name, Dose dose)
+    /// <summary>Creates a group (a treatment definition) at the given name and dose.</summary>
+    internal static Group Create(string name, Dose dose)
     {
         Guard.AgainstNullOrWhiteSpace(name, nameof(name));
         string trimmedName = name.Trim();
@@ -54,20 +51,4 @@ public sealed class Group : Entity<Guid>
 
         return new Group(Guid.NewGuid(), trimmedName, dose);
     }
-
-    /// <summary>Enrols an animal in the group, rejecting a duplicate identifier within the group.</summary>
-    public Animal AddAnimal(string identifier, AnimalSex sex, decimal? weightGrams = null)
-    {
-        Animal animal = Animal.Create(identifier, sex, weightGrams);
-
-        if (_animals.Any(a => string.Equals(a.Identifier, animal.Identifier, StringComparison.OrdinalIgnoreCase)))
-            throw new ConflictException(
-                $"Animal '{animal.Identifier}' is already enrolled in group '{Name}'.");
-
-        _animals.Add(animal);
-        return animal;
-    }
-
-    /// <summary>Every animal identifier currently enrolled in the group (for project-wide uniqueness checks).</summary>
-    internal IEnumerable<string> AnimalIdentifiers => _animals.Select(a => a.Identifier);
 }

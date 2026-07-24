@@ -89,7 +89,7 @@ public sealed class ProjectReadQueryTests
     }
 
     [Fact]
-    public void Assemble_nests_batches_groups_and_animals_by_their_foreign_keys()
+    public void Assemble_nests_batches_groups_cages_and_animals_by_their_foreign_keys()
     {
         var header = new GetProjectQueryHandler.ProjectHeaderRow(
             Guid.NewGuid(), "P", "Rat", "d", "Active", CurrentDesignVersion: 2);
@@ -97,6 +97,7 @@ public sealed class ProjectReadQueryTests
         Guid batchId = Guid.NewGuid();
         Guid controlId = Guid.NewGuid();
         Guid doseId = Guid.NewGuid();
+        Guid cageId = Guid.NewGuid();
         Guid modelId = Guid.NewGuid();
 
         var batches = new[] { new GetProjectQueryHandler.BatchRow(batchId, "Leva 1", 1, "Running", modelId) };
@@ -105,18 +106,67 @@ public sealed class ProjectReadQueryTests
             new GetProjectQueryHandler.GroupRow(controlId, batchId, "Controle", 0m, "mg/kg"),
             new GetProjectQueryHandler.GroupRow(doseId, batchId, "Dose 10", 10m, "mg/kg"),
         };
+        var cages = new[] { new GetProjectQueryHandler.CageRow(cageId, batchId, "CX1", 4) };
         var animals = new[]
         {
-            new GetProjectQueryHandler.AnimalRow(Guid.NewGuid(), controlId, "M1-01", "Male", 250m),
-            new GetProjectQueryHandler.AnimalRow(Guid.NewGuid(), doseId, "M1-02", "Female", null),
+            // One animal assigned to control, one still unassigned (group_id null) — both housed in the same cage.
+            new GetProjectQueryHandler.AnimalRow(Guid.NewGuid(), cageId, "CX1-A1", "Male", 250m, controlId),
+            new GetProjectQueryHandler.AnimalRow(Guid.NewGuid(), cageId, "CX1-A2", "Female", null, null),
         };
 
-        ProjectDetail detail = GetProjectQueryHandler.Assemble(header, batches, groups, animals);
+        ProjectDetail detail = GetProjectQueryHandler.Assemble(header, batches, groups, cages, animals);
 
         BatchDetail batch = Assert.Single(detail.Batches);
         Assert.Equal(modelId, batch.ExperimentalModelId);
         Assert.Equal(2, batch.Groups.Count);
-        Assert.Equal("M1-01", Assert.Single(batch.Groups.Single(g => g.Id == controlId).Animals).Identifier);
-        Assert.Equal("M1-02", Assert.Single(batch.Groups.Single(g => g.Id == doseId).Animals).Identifier);
+        CageDetail cage = Assert.Single(batch.Cages);
+        Assert.Equal(4, cage.Capacity);
+        Assert.Equal(2, cage.Animals.Count);
+        Assert.Equal(controlId, cage.Animals.Single(a => a.Identifier == "CX1-A1").GroupId);
+        Assert.Null(cage.Animals.Single(a => a.Identifier == "CX1-A2").GroupId);
+    }
+
+    // BuildParameters does not touch the connection factory, so a null factory is never dereferenced here.
+    private readonly ListBaselineByCageQueryHandler _baselineByCageHandler =
+        new(connectionFactory: null!, new StubTenantContext(ActiveCompany));
+
+    // BuildParameters does not touch the connection factory, so a null factory is never dereferenced here.
+    private readonly ListBaselineByGroupQueryHandler _baselineByGroupHandler =
+        new(connectionFactory: null!, new StubTenantContext(ActiveCompany));
+
+    [Fact]
+    public void Baseline_by_cage_query_takes_the_company_from_the_tenant_context_and_trims_the_parameter()
+    {
+        var projectId = Guid.NewGuid();
+        var batchId = Guid.NewGuid();
+
+        BaselineByCageQueryParameters parameters = _baselineByCageHandler.BuildParameters(
+            new ListBaselineByCageQuery(projectId, batchId, "  glicemia  ") { TimepointLabel = "  basal  " });
+
+        Assert.Equal(ActiveCompany, parameters.CompanyId);
+        Assert.Equal(projectId, parameters.ProjectId);
+        Assert.Equal(batchId, parameters.BatchId);
+        Assert.Equal("glicemia", parameters.ParameterCode);
+        Assert.Equal("basal", parameters.TimepointLabel);
+    }
+
+    [Fact]
+    public void Baseline_by_cage_query_collapses_a_blank_timepoint_to_null()
+    {
+        BaselineByCageQueryParameters parameters = _baselineByCageHandler.BuildParameters(
+            new ListBaselineByCageQuery(Guid.NewGuid(), Guid.NewGuid(), "glicemia") { TimepointLabel = "   " });
+
+        Assert.Null(parameters.TimepointLabel);
+    }
+
+    [Fact]
+    public void Baseline_by_group_query_takes_the_company_from_the_tenant_context()
+    {
+        BaselineByGroupQueryParameters parameters = _baselineByGroupHandler.BuildParameters(
+            new ListBaselineByGroupQuery(Guid.NewGuid(), Guid.NewGuid(), "glicemia"));
+
+        Assert.Equal(ActiveCompany, parameters.CompanyId);
+        Assert.Equal("glicemia", parameters.ParameterCode);
+        Assert.Null(parameters.TimepointLabel);
     }
 }

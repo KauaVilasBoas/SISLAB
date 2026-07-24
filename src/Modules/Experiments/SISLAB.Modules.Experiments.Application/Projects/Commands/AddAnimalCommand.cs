@@ -6,17 +6,21 @@ using SISLAB.SharedKernel.Messaging;
 namespace SISLAB.Modules.Experiments.Application.Projects.Commands;
 
 /// <summary>
-/// Enrols an animal into a group of a batch (card [E11] #73). The <paramref name="Identifier"/> (ear tag / cage
-/// code) is kept unique across the whole project by the aggregate, so a timepoint launch can name the animal
-/// unambiguously. <paramref name="WeightGrams"/> is an optional baseline body weight. Returns the new animal id.
+/// Houses an animal in a cage of a batch (card [E11] #73, SISLAB-03). The <paramref name="Identifier"/> (ear tag /
+/// cage code) is kept unique across the whole project by the aggregate, so a timepoint launch can name the animal
+/// unambiguously. <paramref name="WeightGrams"/> is an optional baseline body weight. The treatment
+/// <paramref name="GroupId"/> is <b>optional</b>: omit it for the pre-randomization flow (the animal is measured basal
+/// before being assigned a group), or supply it to assign the group at entry (the classic flow). Returns the new
+/// animal id.
 /// </summary>
 public sealed record AddAnimalCommand(
     Guid ProjectId,
     Guid BatchId,
-    Guid GroupId,
+    Guid CageId,
     string Identifier,
     AnimalSex Sex,
-    decimal? WeightGrams) : ICommand<Guid>;
+    decimal? WeightGrams,
+    Guid? GroupId = null) : ICommand<Guid>;
 
 internal sealed class AddAnimalCommandValidator : AbstractValidator<AddAnimalCommand>
 {
@@ -24,10 +28,11 @@ internal sealed class AddAnimalCommandValidator : AbstractValidator<AddAnimalCom
     {
         RuleFor(command => command.ProjectId).NotEmpty();
         RuleFor(command => command.BatchId).NotEmpty();
-        RuleFor(command => command.GroupId).NotEmpty();
+        RuleFor(command => command.CageId).NotEmpty();
         RuleFor(command => command.Identifier).NotEmpty().MaximumLength(60);
         RuleFor(command => command.Sex).IsInEnum();
         RuleFor(command => command.WeightGrams).GreaterThanOrEqualTo(0).When(c => c.WeightGrams.HasValue);
+        RuleFor(command => command.GroupId).NotEqual(Guid.Empty).When(c => c.GroupId.HasValue);
     }
 }
 
@@ -42,12 +47,13 @@ internal sealed class AddAnimalCommandHandler : ICommandHandler<AddAnimalCommand
         Project project = await _projects.FindByIdAsync(request.ProjectId, cancellationToken)
             ?? throw new NotFoundException($"Project '{request.ProjectId}' was not found.");
 
-        Animal animal = project.AddAnimal(
+        Animal animal = project.AddAnimalToCage(
             request.BatchId,
-            request.GroupId,
+            request.CageId,
             request.Identifier,
             request.Sex,
-            request.WeightGrams);
+            request.WeightGrams,
+            request.GroupId);
 
         await _projects.UpdateAsync(project, cancellationToken);
 

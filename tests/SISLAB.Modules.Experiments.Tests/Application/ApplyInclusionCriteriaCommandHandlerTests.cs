@@ -24,7 +24,8 @@ public sealed class ApplyInclusionCriteriaCommandHandlerTests
         Batch batch = project.AddBatch("Leva 1");
         project.BindBatchToModel(batch.Id, modelId);
         Group group = project.AddGroup(batch.Id, "Curva", Dose.Of(3m, "g/kg"));
-        Animal animal = project.AddAnimal(batch.Id, group.Id, "M1-01", AnimalSex.Male);
+        Cage cage = project.AddCage(batch.Id, "CX1", capacity: 4);
+        Animal animal = project.AddAnimalToCage(batch.Id, cage.Id, "M1-01", AnimalSex.Male, groupId: group.Id);
         project.RecordPhysiologicalReading(animal.Id, "glicemia", glicemia, "mg/dL", "pós-indução", "vic@lab", When);
         return (project, batch.Id, animal);
     }
@@ -83,7 +84,8 @@ public sealed class ApplyInclusionCriteriaCommandHandlerTests
         Project project = Project.Create("Neuropatia diabética", "Rattus norvegicus");
         Batch batch = project.AddBatch("Leva 1");
         Group group = project.AddGroup(batch.Id, "Curva", Dose.Of(3m, "g/kg"));
-        Animal animal = project.AddAnimal(batch.Id, group.Id, "M1-01", AnimalSex.Male);
+        Cage cage = project.AddCage(batch.Id, "CX1", capacity: 4);
+        Animal animal = project.AddAnimalToCage(batch.Id, cage.Id, "M1-01", AnimalSex.Male, groupId: group.Id);
         project.RecordPhysiologicalReading(animal.Id, "glicemia", 268m, "mg/dL", "pós-indução", "vic@lab", When);
         var projects = new FakeProjectRepository().Seed(project);
         var lab = new FakeLabConfiguration().WithCriteria(GlicemiaGte250);

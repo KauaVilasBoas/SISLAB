@@ -88,8 +88,8 @@ public sealed class ProjectCommandHandlerTests
     {
         Project project = Project.Create("P", "Rat");
         Batch batch = project.AddBatch("Leva 1");
-        Group control = project.AddGroup(batch.Id, "Controle", Dose.Of(0m, "mg/kg"));
-        Animal animal = project.AddAnimal(batch.Id, control.Id, "M1-01", AnimalSex.Male);
+        Cage cage = project.AddCage(batch.Id, "CX1", capacity: 4);
+        Animal animal = project.AddAnimalToCage(batch.Id, cage.Id, "CX1-A1", AnimalSex.Male);
         var projects = new FakeProjectRepository().Seed(project);
         var when = new DateTime(2026, 7, 24, 9, 0, 0, DateTimeKind.Utc);
         var handler = new RecordPhysiologicalReadingCommandHandler(
@@ -121,8 +121,8 @@ public sealed class ProjectCommandHandlerTests
     {
         Project project = Project.Create("P", "Rat");
         Batch batch = project.AddBatch("Leva 1");
-        Group control = project.AddGroup(batch.Id, "Controle", Dose.Of(0m, "mg/kg"));
-        project.AddAnimal(batch.Id, control.Id, "M1-01", AnimalSex.Male);
+        Cage cage = project.AddCage(batch.Id, "CX1", capacity: 4);
+        project.AddAnimalToCage(batch.Id, cage.Id, "CX1-A1", AnimalSex.Male);
         var projects = new FakeProjectRepository().Seed(project);
         var handler = new StartBatchCommandHandler(projects);
 
@@ -130,5 +130,54 @@ public sealed class ProjectCommandHandlerTests
 
         Assert.Equal(BatchStatus.Running, projects.LastUpdated!.FindBatch(batch.Id).Status);
         Assert.Equal(ProjectStatus.Active, projects.LastUpdated!.Status);
+    }
+
+    [Fact]
+    public async Task AddCage_adds_a_cage_and_persists()
+    {
+        Project project = Project.Create("P", "Rat");
+        Batch batch = project.AddBatch("Leva 1");
+        var projects = new FakeProjectRepository().Seed(project);
+        var handler = new AddCageCommandHandler(projects);
+
+        Guid cageId = await handler.HandleAsync(new AddCageCommand(project.Id, batch.Id, "CX1", 4));
+
+        Assert.NotNull(projects.LastUpdated);
+        Cage cage = Assert.Single(projects.LastUpdated!.FindBatch(batch.Id).Cages);
+        Assert.Equal(cageId, cage.Id);
+        Assert.Equal(4, cage.Capacity);
+    }
+
+    [Fact]
+    public async Task AddAnimal_houses_the_animal_in_a_cage_without_a_group()
+    {
+        Project project = Project.Create("P", "Rat");
+        Batch batch = project.AddBatch("Leva 1");
+        Cage cage = project.AddCage(batch.Id, "CX1", capacity: 4);
+        var projects = new FakeProjectRepository().Seed(project);
+        var handler = new AddAnimalCommandHandler(projects);
+
+        Guid animalId = await handler.HandleAsync(
+            new AddAnimalCommand(project.Id, batch.Id, cage.Id, "CX1-A1", AnimalSex.Male, 189.6m));
+
+        Animal animal = Assert.Single(projects.LastUpdated!.FindBatch(batch.Id).Animals);
+        Assert.Equal(animalId, animal.Id);
+        Assert.Null(animal.GroupId);
+    }
+
+    [Fact]
+    public async Task AssignAnimalToGroup_assigns_and_persists()
+    {
+        Project project = Project.Create("P", "Rat");
+        Batch batch = project.AddBatch("Leva 1");
+        Group dose = project.AddGroup(batch.Id, "Dose 3", Dose.Of(3m, "g/kg"));
+        Cage cage = project.AddCage(batch.Id, "CX1", capacity: 4);
+        Animal animal = project.AddAnimalToCage(batch.Id, cage.Id, "CX1-A1", AnimalSex.Male);
+        var projects = new FakeProjectRepository().Seed(project);
+        var handler = new AssignAnimalToGroupCommandHandler(projects);
+
+        await handler.HandleAsync(new AssignAnimalToGroupCommand(project.Id, batch.Id, animal.Id, dose.Id));
+
+        Assert.Equal(dose.Id, projects.LastUpdated!.FindBatch(batch.Id).Animals.Single().GroupId);
     }
 }

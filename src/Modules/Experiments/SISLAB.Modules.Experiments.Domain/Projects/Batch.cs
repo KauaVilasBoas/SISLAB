@@ -5,24 +5,27 @@ using SISLAB.SharedKernel.Guards;
 namespace SISLAB.Modules.Experiments.Domain.Projects;
 
 /// <summary>
-/// A "leva" (batch/cohort) of a <see cref="Project"/> (card [E11] #73): a set of treatment <see cref="Group"/>s,
-/// each with its animals, that are run together on one schedule. The batch is the unit that <b>fixes the design
-/// version</b> — decision F1: the delineation is versionable per batch, so a change to the project design bumps a
-/// new batch's <see cref="DesignVersion"/> while a running or completed batch keeps the exact design it ran.
+/// A "leva" (batch/cohort) of a <see cref="Project"/> (card [E11] #73): the animals housed in <see cref="Cage"/>s
+/// and the treatment <see cref="Group"/>s (doses) they may be assigned to, run together on one schedule. The batch is
+/// the unit that <b>fixes the design version</b> — decision F1: the delineation is versionable per batch, so a change
+/// to the project design bumps a new batch's <see cref="DesignVersion"/> while a running or completed batch keeps the
+/// exact design it ran.
 /// </summary>
 /// <remarks>
 /// <para>
-/// A batch is a child entity of the <see cref="Project"/> aggregate and is only mutated through it. Its groups may
-/// only be edited while it is <see cref="BatchStatus.Planned"/>; once it is <see cref="Start">started</see> the
-/// design is frozen — this is what makes the per-batch versioning meaningful (a started batch is a stable,
-/// reproducible cohort). An <see cref="Experiment"/> references a batch <b>by value</b> (its <see cref="Entity{TId}.Id"/>),
-/// never by navigation, honouring the module's ids-by-value rule.
+/// A batch is a child entity of the <see cref="Project"/> aggregate and is only mutated through it. Its design —
+/// cages, groups and group assignments — may only be edited while it is <see cref="BatchStatus.Planned"/>; once it is
+/// <see cref="Start">started</see> the design is frozen, so randomization/assignment is locked after the leva starts
+/// (SISLAB-03). This is what makes the per-batch versioning meaningful (a started batch is a stable, reproducible
+/// cohort). An <see cref="Experiment"/> references a batch <b>by value</b> (its <see cref="Entity{TId}.Id"/>), never by
+/// navigation, honouring the module's ids-by-value rule.
 /// </para>
 /// </remarks>
 public sealed class Batch : Entity<Guid>
 {
     private const int MaxNameLength = 120;
 
+    private readonly List<Cage> _cages = [];
     private readonly List<Group> _groups = [];
 
     // Parameterless constructor for EF Core materialization.
@@ -57,8 +60,14 @@ public sealed class Batch : Entity<Guid>
     /// </summary>
     public Guid? ExperimentalModelId { get; private set; }
 
-    /// <summary>The treatment arms (dose groups) of this batch.</summary>
+    /// <summary>The physical housing units (caixas) of this batch (SISLAB-03), each holding its animals.</summary>
+    public IReadOnlyList<Cage> Cages => _cages.AsReadOnly();
+
+    /// <summary>The treatment arms (dose groups) of this batch. Animals reference a group by value, not by ownership.</summary>
     public IReadOnlyList<Group> Groups => _groups.AsReadOnly();
+
+    /// <summary>Every animal of the batch, housed across its cages (regardless of group assignment).</summary>
+    public IEnumerable<Animal> Animals => _cages.SelectMany(cage => cage.Animals);
 
     /// <summary>Creates a planned batch pinned to the supplied design version.</summary>
     internal static Batch Create(string name, int designVersion)
@@ -81,6 +90,19 @@ public sealed class Batch : Entity<Guid>
         Group group = Group.Create(name, dose);
         _groups.Add(group);
         return group;
+    }
+
+    /// <summary>
+    /// Adds a cage (caixa) to the batch (SISLAB-03), with an optional capacity (e.g. 4 — a parameter, not fixed).
+    /// Allowed only while the design is open (planned).
+    /// </summary>
+    public Cage AddCage(string name, int? capacity = null)
+    {
+        EnsureDesignOpen();
+
+        Cage cage = Cage.Create(name, capacity);
+        _cages.Add(cage);
+        return cage;
     }
 
     /// <summary>
@@ -109,31 +131,54 @@ public sealed class Batch : Entity<Guid>
         ExperimentalModelId = null;
     }
 
-    /// <summary>Enrols an animal into one of the batch's groups. Allowed only while the design is open.</summary>
-    public Animal AddAnimal(Guid groupId, string identifier, AnimalSex sex, decimal? weightGrams = null)
+    /// <summary>
+    /// Houses an animal in one of the batch's cages (SISLAB-03), optionally already assigned to a group — the
+    /// pre-randomization flow adds it with no group; the classic flow assigns the group at entry. Allowed only while
+    /// the design is open. The identifier's project-wide uniqueness is enforced by the aggregate root before this call.
+    /// </summary>
+    internal Animal AddAnimalToCage(Guid cageId, string identifier, AnimalSex sex, decimal? weightGrams, Guid? groupId)
     {
         EnsureDesignOpen();
 
-        Group group = _groups.FirstOrDefault(g => g.Id == groupId)
-            ?? throw new NotFoundException($"Group '{groupId}' was not found in batch '{Name}'.");
+        Cage cage = FindCage(cageId);
 
-        EnsureIdentifierIsFree(identifier);
+        if (groupId is { } assignedGroup)
+            EnsureGroupExists(assignedGroup);
 
-        return group.AddAnimal(identifier, sex, weightGrams);
+        return cage.AddAnimal(identifier, sex, weightGrams, groupId);
     }
 
     /// <summary>
-    /// Starts the batch: freezes its design and moves it to <see cref="BatchStatus.Running"/>. Requires at least
-    /// one group with at least one animal — an empty design cannot be run.
+    /// Assigns (or moves) an animal to a treatment group (SISLAB-03), regardless of which cage houses it — this is how
+    /// a discrepant cage is redistributed after basal/induction. Allowed only while the design is open.
+    /// </summary>
+    internal void AssignAnimalToGroup(Guid animalId, Guid groupId)
+    {
+        EnsureDesignOpen();
+        EnsureGroupExists(groupId);
+
+        FindAnimal(animalId).AssignToGroup(groupId);
+    }
+
+    /// <summary>Removes an animal's group assignment (back to unassigned). Allowed only while the design is open.</summary>
+    internal void UnassignAnimalFromGroup(Guid animalId)
+    {
+        EnsureDesignOpen();
+        FindAnimal(animalId).Unassign();
+    }
+
+    /// <summary>
+    /// Starts the batch: freezes its design and moves it to <see cref="BatchStatus.Running"/>. Requires at least one
+    /// animal housed — an empty design cannot be run.
     /// </summary>
     public void Start()
     {
         if (Status != BatchStatus.Planned)
             throw new DomainException($"Batch '{Name}' can only be started while it is planned.");
 
-        if (_groups.Count == 0 || _groups.All(group => group.Animals.Count == 0))
+        if (!Animals.Any())
             throw new DomainException(
-                $"Batch '{Name}' cannot be started: it must have at least one group with at least one animal.");
+                $"Batch '{Name}' cannot be started: it must house at least one animal.");
 
         Status = BatchStatus.Running;
     }
@@ -147,26 +192,32 @@ public sealed class Batch : Entity<Guid>
         Status = BatchStatus.Completed;
     }
 
-    /// <summary>Total number of animals enrolled across the batch's groups.</summary>
-    public int AnimalCount => _groups.Sum(group => group.Animals.Count);
+    /// <summary>Total number of animals housed across the batch's cages.</summary>
+    public int AnimalCount => _cages.Sum(cage => cage.Animals.Count);
+
+    /// <summary>Loads a cage by id, or throws when it does not belong to the batch.</summary>
+    internal Cage FindCage(Guid cageId)
+        => _cages.FirstOrDefault(cage => cage.Id == cageId)
+           ?? throw new NotFoundException($"Cage '{cageId}' was not found in batch '{Name}'.");
+
+    /// <summary>Loads an animal by id from whichever cage houses it, or throws when the batch has no such animal.</summary>
+    internal Animal FindAnimal(Guid animalId)
+        => _cages.SelectMany(cage => cage.Animals).FirstOrDefault(animal => animal.Id == animalId)
+           ?? throw new NotFoundException($"Animal '{animalId}' was not found in batch '{Name}'.");
+
+    /// <summary>Every animal identifier currently housed in the batch (for uniqueness checks).</summary>
+    internal IEnumerable<string> AnimalIdentifiers => _cages.SelectMany(cage => cage.AnimalIdentifiers);
+
+    private void EnsureGroupExists(Guid groupId)
+    {
+        if (_groups.All(group => group.Id != groupId))
+            throw new NotFoundException($"Group '{groupId}' was not found in batch '{Name}'.");
+    }
 
     private void EnsureDesignOpen()
     {
         if (Status != BatchStatus.Planned)
             throw new DomainException(
                 $"Batch '{Name}' design is frozen (status {Status}); it can only be edited while planned.");
-    }
-
-    private void EnsureIdentifierIsFree(string identifier)
-    {
-        string trimmed = identifier?.Trim() ?? string.Empty;
-
-        bool taken = _groups
-            .SelectMany(group => group.AnimalIdentifiers)
-            .Any(existing => string.Equals(existing, trimmed, StringComparison.OrdinalIgnoreCase));
-
-        if (taken)
-            throw new ConflictException(
-                $"Animal identifier '{trimmed}' is already used in batch '{Name}'.");
     }
 }
