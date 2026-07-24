@@ -44,7 +44,14 @@ export interface BatchDetail {
   name: string;
   designVersion: number;
   status: BatchStatus;
+  /** The bound experimental model / induction protocol (SISLAB-04), or null while unbound. */
+  experimentalModelId: string | null;
   groups: GroupDetail[];
+}
+
+/** Request body to bind a batch (leva) to an experimental model (SISLAB-04). */
+export interface BindBatchModelRequest {
+  experimentalModelId: string;
 }
 
 export interface ProjectDetail {

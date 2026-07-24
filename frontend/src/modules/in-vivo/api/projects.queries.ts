@@ -5,6 +5,7 @@ import type { PagedResult } from '@/shared/types/api';
 import type {
   AddAnimalRequest,
   AddGroupRequest,
+  BindBatchModelRequest,
   CreateProjectRequest,
   PrepareGroupSolutionRequest,
   ProjectDetail,
@@ -94,6 +95,20 @@ export function useStartBatch(projectId: string) {
   return useMutation({
     mutationFn: (batchId: string) =>
       api.post<void>(Endpoints.projects.startBatch(projectId, batchId), {}),
+    onSuccess: () => invalidateProject(queryClient, projectId),
+  });
+}
+
+/**
+ * Binds a batch (leva) to an experimental model / induction protocol (SISLAB-04). The backend rejects binding
+ * a started (frozen) batch; the UI already hides the action then. Invalidates the project detail so the bound
+ * model is reflected.
+ */
+export function useBindBatchModel(projectId: string, batchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: BindBatchModelRequest) =>
+      api.put<void>(Endpoints.projects.batchModel(projectId, batchId), body),
     onSuccess: () => invalidateProject(queryClient, projectId),
   });
 }
