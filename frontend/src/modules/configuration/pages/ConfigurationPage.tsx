@@ -6,8 +6,9 @@ import { RoomsTab } from '@/modules/configuration/components/RoomsTab';
 import { ItemCategoriesTab } from '@/modules/configuration/components/ItemCategoriesTab';
 import { ReferenceRangesTab } from '@/modules/configuration/components/ReferenceRangesTab';
 import { ExpiryPolicyTab } from '@/modules/configuration/components/ExpiryPolicyTab';
+import { ExperimentalModelsTab } from '@/modules/configuration/components/ExperimentalModelsTab';
 
-type TabKey = 'units' | 'rooms' | 'categories' | 'ranges' | 'expiry';
+type TabKey = 'units' | 'rooms' | 'categories' | 'ranges' | 'expiry' | 'models';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'units', label: 'Unidades de medida' },
@@ -15,6 +16,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'categories', label: 'Categorias de itens' },
   { key: 'ranges', label: 'Faixas de referência' },
   { key: 'expiry', label: 'Política de validade' },
+  { key: 'models', label: 'Modelos experimentais' },
 ];
 
 /**
@@ -29,7 +31,7 @@ export function ConfigurationPage() {
     <div className="space-y-6">
       <PageHeader
         title="Configurações"
-        description="Catálogos do laboratório: unidades, salas, categorias, faixas de referência e política de validade."
+        description="Catálogos do laboratório: unidades, salas, categorias, faixas de referência, política de validade e modelos experimentais."
       />
 
       <div
@@ -61,6 +63,7 @@ export function ConfigurationPage() {
       {tab === 'categories' ? <ItemCategoriesTab /> : null}
       {tab === 'ranges' ? <ReferenceRangesTab /> : null}
       {tab === 'expiry' ? <ExpiryPolicyTab /> : null}
+      {tab === 'models' ? <ExperimentalModelsTab /> : null}
     </div>
   );
 }

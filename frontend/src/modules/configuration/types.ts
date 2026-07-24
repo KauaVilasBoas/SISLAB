@@ -91,3 +91,68 @@ export interface CreateReferenceRangeRequest {
 export interface SetExpiryWarningWindowRequest {
   warningWindowDays: number;
 }
+
+// ---------------------------------------------------------------------------
+// Experimental models / induction protocols (SISLAB-04)
+// ---------------------------------------------------------------------------
+
+/**
+ * Kind of a standard (default) group, as a stable string code mirroring the backend
+ * `StandardGroupKind` enum. Only a `Dose` group carries a dose amount + unit.
+ */
+export type StandardGroupKind = 'Naive' | 'Control' | 'Dose';
+
+/** A compact experimental-model row for the "Modelos experimentais" listing (GET list). */
+export interface ExperimentalModelListItem {
+  id: string;
+  name: string;
+  description: string | null;
+  inductionAdministrations: number;
+  referenceDayAfterInduction: number;
+}
+
+/** The induction protocol of an experimental model (administrations, spacing, reference day). */
+export interface InductionProtocol {
+  administrations: number;
+  intervalDays: number;
+  referenceDayAfterInduction: number;
+}
+
+/** One standard group of an experimental model (name, role and — for a dose arm — its dose). */
+export interface StandardGroup {
+  name: string;
+  kind: StandardGroupKind;
+  doseAmount: number | null;
+  doseUnit: string | null;
+}
+
+/** The default dilution parameters (µL per gram of animal + default diluent). */
+export interface DilutionDefaults {
+  microlitresPerGram: number;
+  defaultDiluent: string;
+}
+
+/** The full experimental-model payload (GET {id}) — the structured detail view. */
+export interface ExperimentalModelView {
+  id: string;
+  name: string;
+  description: string | null;
+  induction: InductionProtocol;
+  /** Default timepoint labels the model measures at (e.g. basal, pós-indução, 7/15/21/28 dias). */
+  timepoints: string[];
+  /** Applicable physiological/behavioural parameter codes (e.g. glicemia, rotarod, peso). */
+  parameters: string[];
+  groups: StandardGroup[];
+  dilutionDefaults: DilutionDefaults;
+}
+
+/** Request body for creating an experimental model — mirrors CreateExperimentalModelCommand. */
+export interface CreateExperimentalModelRequest {
+  name: string;
+  description: string | null;
+  induction: InductionProtocol;
+  timepoints: string[];
+  parameters: string[];
+  groups: StandardGroup[];
+  dilutionDefaults: DilutionDefaults;
+}

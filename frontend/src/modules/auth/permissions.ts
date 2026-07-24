@@ -61,6 +61,8 @@ export const Permissions = {
     createReferenceRange: 'ReferenceRange.Create',
     createItemCategory: 'ItemCategory.Create',
     setExpiryWarningWindow: 'ExpiryPolicy.SetWarningWindow',
+    /** Cadaster a per-tenant experimental model / induction protocol (SISLAB-04). */
+    createExperimentalModel: 'ExperimentalModel.Create',
   },
   /** Perfis e Permissões — ProfilesController + MemberProfilesController. */
   profiles: {
@@ -88,6 +90,8 @@ export const Permissions = {
     startBatch: 'Projects.StartBatch',
     /** Confirm an in vivo solution preparation for a dose group (SISLAB-01). */
     prepareGroupSolution: 'Projects.PrepareGroupSolution',
+    /** Bind a batch (leva) to an experimental model / induction protocol (SISLAB-04). */
+    bindBatchModel: 'Projects.BindBatchModel',
   },
   /** Experimentos — testes comportamentais in vivo (ExperimentsController behavioural write endpoints). */
   experiments: {

@@ -127,6 +127,11 @@ export const Endpoints = {
     referenceRanges: '/api/configuration/reference-ranges',
     rooms: '/api/configuration/rooms',
     units: '/api/configuration/units',
+    /** Per-tenant experimental models / induction protocols (SISLAB-04) — list, resolve, create. */
+    experimentalModels: {
+      root: '/api/configuration/experimental-models',
+      byId: (id: string) => `/api/configuration/experimental-models/${id}`,
+    },
   },
 
   /** Experiments module — in vitro cell-viability slice (card [E11] #68). */
@@ -186,6 +191,9 @@ export const Endpoints = {
     /** Start a batch (freezes its design). */
     startBatch: (id: string, batchId: string) =>
       `/api/projects/${id}/batches/${batchId}/start`,
+    /** Bind a batch (leva) to an experimental model / induction protocol (SISLAB-04). */
+    batchModel: (id: string, batchId: string) =>
+      `/api/projects/${id}/batches/${batchId}/model`,
     /** Confirm an in vivo solution preparation for a dose group (SISLAB-01). */
     preparations: (id: string, batchId: string, groupId: string) =>
       `/api/projects/${id}/batches/${batchId}/groups/${groupId}/preparations`,
