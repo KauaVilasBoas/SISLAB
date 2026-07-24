@@ -177,6 +177,40 @@ public sealed class ProjectsController : SislabControllerBase
     }
 
     /// <summary>
+    /// Applies the inclusion criteria (SISLAB-02) to a batch's animals, marking each included/excluded from its
+    /// physiological readings. The batch's experimental model gates which parameters apply. Returns how many animals
+    /// a decision was taken for.
+    /// </summary>
+    [HttpPost("{projectId:guid}/batches/{batchId:guid}/apply-selection")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult<int>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ApplySelection(Guid projectId, Guid batchId, CancellationToken ct)
+    {
+        int decided = await _mediator.SendAsync(new ApplyInclusionCriteriaCommand(projectId, batchId), ct);
+        return Ok(new ApiResult<int>(true, "Inclusion criteria applied.", decided));
+    }
+
+    /// <summary>Lists a batch's animals with their inclusion decision, optionally filtered by inclusion status.</summary>
+    [HttpGet("{projectId:guid}/batches/{batchId:guid}/selection")]
+    [ProducesResponseType(typeof(ApiResult<IReadOnlyList<AnimalSelectionListItem>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ListSelection(
+        Guid projectId,
+        Guid batchId,
+        [FromQuery] string? status = null,
+        CancellationToken ct = default)
+    {
+        IReadOnlyList<AnimalSelectionListItem> selection = await _mediator.SendAsync(
+            new ListAnimalSelectionQuery(projectId, batchId) { Status = status }, ct);
+
+        return Ok(new ApiResult<IReadOnlyList<AnimalSelectionListItem>>(true, "Selection retrieved.", selection));
+    }
+
+    /// <summary>
     /// Binds a batch (leva) to an experimental model (SISLAB-04). The model is validated to exist for the active
     /// company through the Configuration Contracts port; the batch keeps only the model id, by value.
     /// </summary>

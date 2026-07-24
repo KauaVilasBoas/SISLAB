@@ -152,6 +152,75 @@ public sealed class Project : AggregateRoot<Guid>, ITenantEntity
     }
 
     /// <summary>
+    /// Applies the inclusion criteria (SISLAB-02) to the animals of one batch, marking each included/excluded and
+    /// recording the deciding parameter, value and reason on the animal (<see cref="Animal.Inclusion"/>). Selection
+    /// is per batch ("leva") because the experimental model — and therefore which parameters apply — is bound per
+    /// batch (SISLAB-04); the model's <paramref name="applicableParameters"/> gate which criteria run: a criterion
+    /// whose parameter is <b>not</b> applicable is skipped, so it never blocks or excludes an animal (glicemia is
+    /// simply ignored for a non-diabetic model). A criterion that applies but has no reading for an animal leaves
+    /// that animal's prior decision untouched (nothing to decide on).
+    /// </summary>
+    /// <remarks>
+    /// The criteria and applicable-parameter set arrive as domain-local abstractions (<see cref="IInclusionRule"/>
+    /// and a plain code set), adapted in the application layer from the Configuration Contracts — the aggregate
+    /// depends on no other module. The latest reading (by instant) for the parameter is the deciding one, so a
+    /// re-measured animal is re-selected on its newest value. Allowed on any non-closed project.
+    /// </remarks>
+    /// <returns>The number of animals for which a decision was taken (i.e. had an applicable reading).</returns>
+    public int ApplyInclusionCriteria(
+        Guid batchId,
+        IEnumerable<IInclusionRule> criteria,
+        IReadOnlySet<string> applicableParameters)
+    {
+        Guard.AgainstNull(criteria, nameof(criteria));
+        Guard.AgainstNull(applicableParameters, nameof(applicableParameters));
+        EnsureNotClosed();
+
+        Batch batch = FindBatch(batchId);
+
+        // Only criteria whose parameter the model declares applicable participate — an inapplicable parameter is
+        // non-blocking (critério de aceite: "parâmetro inaplicável ao modelo não bloqueia").
+        List<IInclusionRule> applicableRules = criteria
+            .Where(rule => applicableParameters.Contains(rule.ParameterCode, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+
+        if (applicableRules.Count == 0)
+            return 0;
+
+        int decided = 0;
+
+        IEnumerable<Animal> batchAnimals = batch.Groups.SelectMany(group => group.Animals);
+
+        foreach (Animal animal in batchAnimals)
+        {
+            foreach (IInclusionRule rule in applicableRules)
+            {
+                PhysiologicalReading? reading = LatestReadingFor(animal.Id, rule.ParameterCode);
+                if (reading is null)
+                    continue;
+
+                bool qualified = rule.QualifiedBy(reading.Value);
+                string reason = rule.Describe(reading.Value, qualified);
+
+                animal.RecordInclusion(qualified
+                    ? InclusionDecision.Included(rule.ParameterCode, reading.Value, reason)
+                    : InclusionDecision.Excluded(rule.ParameterCode, reading.Value, reason));
+
+                decided++;
+            }
+        }
+
+        return decided;
+    }
+
+    /// <summary>The latest (by instant) reading of <paramref name="parameterCode"/> for an animal, or null.</summary>
+    private PhysiologicalReading? LatestReadingFor(Guid animalId, string parameterCode)
+        => _physiologicalReadings
+            .Where(reading => reading.AnimalId == animalId && reading.IsForParameter(parameterCode))
+            .OrderByDescending(reading => reading.RecordedAtUtc)
+            .FirstOrDefault();
+
+    /// <summary>
     /// Binds one of the project's batches to an experimental model (SISLAB-04), referenced by value. Only valid on a
     /// non-closed project and while that batch's design is open (enforced by the batch). The model's existence and
     /// tenant ownership are validated in the application layer through the Configuration Contracts port before this

@@ -40,6 +40,12 @@ public sealed class Animal : Entity<Guid>
     /// <summary>Optional baseline body weight in grams; null when not recorded.</summary>
     public decimal? WeightGrams { get; private set; }
 
+    /// <summary>
+    /// The most recent inclusion decision taken on this animal (SISLAB-02), or <see langword="null"/> while no
+    /// selection criterion has been applied. Only ever set through the owning <see cref="Project"/> aggregate.
+    /// </summary>
+    public InclusionDecision? Inclusion { get; private set; }
+
     /// <summary>Creates an animal, guarding a present identifier and a non-negative weight when supplied.</summary>
     public static Animal Create(string identifier, AnimalSex sex, decimal? weightGrams = null)
     {
@@ -52,4 +58,11 @@ public sealed class Animal : Entity<Guid>
 
         return new Animal(Guid.NewGuid(), trimmedIdentifier, sex, weightGrams);
     }
+
+    /// <summary>
+    /// Records the outcome of applying an inclusion criterion to this animal (SISLAB-02), replacing any previous
+    /// decision. Only ever called through the owning <see cref="Project"/> aggregate, which owns the evaluation.
+    /// </summary>
+    internal void RecordInclusion(InclusionDecision decision)
+        => Inclusion = Guard.AgainstNull(decision, nameof(decision));
 }

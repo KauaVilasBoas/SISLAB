@@ -119,6 +119,26 @@ internal sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
             .HasColumnName("weight_grams")
             .HasColumnType("numeric(10,2)");
 
+        // Inclusion decision (SISLAB-02): an optional owned single table-split onto the animal row. All columns are
+        // nullable together — an animal with no applied criterion carries no decision — and the value object is
+        // rebuilt through its validated factory on read-back.
+        animals.OwnsOne(animal => animal.Inclusion, inclusion =>
+        {
+            inclusion.Property(decision => decision.Status)
+                .HasColumnName("inclusion_status")
+                .HasConversion<string>()
+                .HasMaxLength(20);
+            inclusion.Property(decision => decision.ParameterCode)
+                .HasColumnName("inclusion_parameter_code")
+                .HasMaxLength(60);
+            inclusion.Property(decision => decision.DecidingValue)
+                .HasColumnName("inclusion_deciding_value")
+                .HasColumnType("numeric(18,4)");
+            inclusion.Property(decision => decision.Reason)
+                .HasColumnName("inclusion_reason")
+                .HasMaxLength(300);
+        });
+
         animals.HasIndex("group_id").HasDatabaseName("ix_project_animals_group_id");
     }
 

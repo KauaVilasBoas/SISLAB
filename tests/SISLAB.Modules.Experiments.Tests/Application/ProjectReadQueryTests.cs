@@ -39,6 +39,34 @@ public sealed class ProjectReadQueryTests
     private readonly ListPhysiologicalReadingsQueryHandler _readingsHandler =
         new(connectionFactory: null!, new StubTenantContext(ActiveCompany));
 
+    // BuildParameters does not touch the connection factory, so a null factory is never dereferenced here.
+    private readonly ListAnimalSelectionQueryHandler _selectionHandler =
+        new(connectionFactory: null!, new StubTenantContext(ActiveCompany));
+
+    [Fact]
+    public void Selection_query_takes_the_company_from_the_tenant_context_and_keeps_the_ids()
+    {
+        var projectId = Guid.NewGuid();
+        var batchId = Guid.NewGuid();
+
+        AnimalSelectionQueryParameters parameters = _selectionHandler.BuildParameters(
+            new ListAnimalSelectionQuery(projectId, batchId) { Status = "  Included  " });
+
+        Assert.Equal(ActiveCompany, parameters.CompanyId);
+        Assert.Equal(projectId, parameters.ProjectId);
+        Assert.Equal(batchId, parameters.BatchId);
+        Assert.Equal("Included", parameters.Status);
+    }
+
+    [Fact]
+    public void Selection_query_collapses_a_blank_status_filter_to_null()
+    {
+        AnimalSelectionQueryParameters parameters = _selectionHandler.BuildParameters(
+            new ListAnimalSelectionQuery(Guid.NewGuid(), Guid.NewGuid()) { Status = "   " });
+
+        Assert.Null(parameters.Status);
+    }
+
     [Fact]
     public void Readings_query_takes_the_company_from_the_tenant_context()
     {
