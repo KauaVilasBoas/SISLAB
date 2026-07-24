@@ -110,6 +110,10 @@ export const Permissions = {
     calculateBehavioral: 'Experiments.CalculateBehavioral',
     /** Populate a plate column's concentrations from a serial-dilution scheme (SISLAB-05). */
     applyDilutionScheme: 'Experiments.ApplyDilutionScheme',
+    /** Exclude a plate well as an outlier before calculation (SISLAB-06). */
+    excludeWell: 'Experiments.ExcludeWell',
+    /** Re-include a previously excluded plate well before calculation (SISLAB-06). */
+    includeWell: 'Experiments.IncludeWell',
   },
   /** Experimentos — responsabilidade (ExperimentsController responsible-assignment endpoints, card [E11]). */
   experimentResponsibility: {

@@ -150,6 +150,12 @@ export const Endpoints = {
     dilutionScheme: '/api/experiments/dilution-scheme',
     /** Populate a plate column's concentrations from a serial-dilution scheme — SISLAB-05. */
     applyDilutionScheme: (id: string) => `/api/experiments/${id}/apply-dilution-scheme`,
+    /** Exclude a plate well as an outlier before calculation (coordinate e.g. "A1") — SISLAB-06. */
+    excludeWell: (id: string, coordinate: string) =>
+      `/api/experiments/${id}/wells/${coordinate}/exclude`,
+    /** Re-include a previously excluded plate well before calculation — SISLAB-06. */
+    includeWell: (id: string, coordinate: string) =>
+      `/api/experiments/${id}/wells/${coordinate}/include`,
     /** Import the reader's absorbance (canonical well,absorbance CSV). */
     importReading: (id: string) => `/api/experiments/${id}/import-reading`,
     /** Run the versioned calculation (viability or nitric oxide). */

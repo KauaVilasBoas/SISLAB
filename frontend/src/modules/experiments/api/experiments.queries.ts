@@ -6,6 +6,7 @@ import type {
   AssignResponsibleRequest,
   CreateExperimentRequest,
   DesignPlateWellRequest,
+  ExcludeWellRequest,
   ExperimentDetail,
   ExperimentListItem,
   PlateReadingResult,
@@ -108,6 +109,33 @@ export function useImportReading(id: string) {
   return useMutation({
     mutationFn: (csvContent: string) =>
       api.post<void>(Endpoints.experiments.importReading(id), { csvContent }),
+    onSuccess: () => invalidateExperiment(queryClient, id),
+  });
+}
+
+/**
+ * Marks a plate well as an excluded outlier before the calculation (SISLAB-06). The coordinate is the
+ * well label (e.g. "A1"). Rejected by the backend once the snapshot is frozen (409). Invalidates the
+ * experiment detail + plate result so the grid re-renders the exclusion.
+ */
+export function useExcludeWell(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ coordinate, body }: { coordinate: string; body: ExcludeWellRequest }) =>
+      api.post<void>(Endpoints.experiments.excludeWell(id, coordinate), body),
+    onSuccess: () => invalidateExperiment(queryClient, id),
+  });
+}
+
+/**
+ * Brings a previously excluded well back into the calculation (SISLAB-06). Rejected once frozen (409).
+ * Invalidates the experiment detail + plate result.
+ */
+export function useIncludeWell(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (coordinate: string) =>
+      api.post<void>(Endpoints.experiments.includeWell(id, coordinate), {}),
     onSuccess: () => invalidateExperiment(queryClient, id),
   });
 }
