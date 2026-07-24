@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SISLAB.Modules.Experiments.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using SISLAB.Modules.Experiments.Infrastructure.Persistence;
 namespace SISLAB.Modules.Experiments.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ExperimentsDbContext))]
-    partial class ExperimentsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260724112654_AddEvidenceAttachments")]
+    partial class AddEvidenceAttachments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
