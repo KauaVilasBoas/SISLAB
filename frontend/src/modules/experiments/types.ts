@@ -89,6 +89,28 @@ export interface PlateWellResult {
   rawAbsorbance: number | null;
   /** The assay's computed value for this well (% viability or NO µM); null until calculated. */
   computedValue: number | null;
+  /** True when the operator dropped this well as an outlier before calculation (SISLAB-06). */
+  isExcluded: boolean;
+  /** The operator's reason for the exclusion, when excluded (SISLAB-06). */
+  exclusionReason: string | null;
+  /** The actor who excluded the well, when excluded (SISLAB-06). */
+  excludedBy: string | null;
+}
+
+/**
+ * A per-condition replicate aggregate on the plate result (SISLAB-07): one compound × concentration
+ * with its replicate count, mean and sample SD of the assay's computed value, plus the well coordinates
+ * that fed it. Unit-agnostic — the UI labels % viability or NO µM from the experiment type. Excluded
+ * replicates are already left out of the aggregate by the frozen snapshot.
+ */
+export interface PlateConditionResult {
+  sampleId: string | null;
+  concentrationUm: number | null;
+  replicateCount: number;
+  mean: number;
+  standardDeviation: number | null;
+  /** Coordinates of the wells that fed this condition (e.g. ["A1", "A2", "A3"]). */
+  wells: string[];
 }
 
 /** The plate-result grid. */
@@ -96,6 +118,13 @@ export interface PlateReadingResult {
   experimentId: string;
   isCalculated: boolean;
   wells: PlateWellResult[];
+  /** Per-condition replicate aggregates (mean/SD), populated once calculated (SISLAB-07). */
+  conditions: PlateConditionResult[];
+}
+
+/** Request body to exclude a well as an outlier before calculation (SISLAB-06). */
+export interface ExcludeWellRequest {
+  reason: string;
 }
 
 /** Request body to create a plate experiment (viability or nitric oxide). */

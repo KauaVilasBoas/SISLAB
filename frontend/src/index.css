@@ -124,6 +124,18 @@
 }
 
 @layer utilities {
+  /* Diagonal hatch marking an excluded outlier well on the plate grid (SISLAB-06). Overlaid on top of the
+     role tint via a repeating linear gradient so the base color still reads through the stripes. */
+  .excluded-hatch {
+    background-image: repeating-linear-gradient(
+      45deg,
+      hsl(var(--destructive) / 0.28) 0,
+      hsl(var(--destructive) / 0.28) 2px,
+      transparent 2px,
+      transparent 6px
+    );
+  }
+
   /* Fade applied on route change (keyed by pathname in AppShell). */
   .page-enter {
     animation: sislab-fade-in 0.25s ease-out;
