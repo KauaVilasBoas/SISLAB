@@ -63,6 +63,8 @@ export const Permissions = {
     setExpiryWarningWindow: 'ExpiryPolicy.SetWarningWindow',
     /** Cadaster a per-tenant experimental model / induction protocol (SISLAB-04). */
     createExperimentalModel: 'ExperimentalModel.Create',
+    /** Cadaster a per-tenant animal-inclusion criterion (parameter, operator, threshold, unit) — SISLAB-02. */
+    createInclusionCriterion: 'InclusionCriterion.Create',
   },
   /** Perfis e Permissões — ProfilesController + MemberProfilesController. */
   profiles: {
@@ -96,6 +98,10 @@ export const Permissions = {
     prepareGroupSolution: 'Projects.PrepareGroupSolution',
     /** Bind a batch (leva) to an experimental model / induction protocol (SISLAB-04). */
     bindBatchModel: 'Projects.BindBatchModel',
+    /** Record a physiological reading (glicemia/peso, …) on an animal at a timepoint (SISLAB-02). */
+    recordReading: 'Projects.RecordReading',
+    /** Apply the inclusion criteria to a batch, marking each animal included/excluded (SISLAB-02). */
+    applySelection: 'Projects.ApplySelection',
   },
   /** Experimentos — testes comportamentais in vivo (ExperimentsController behavioural write endpoints). */
   experiments: {

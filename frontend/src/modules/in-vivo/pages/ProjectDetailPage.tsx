@@ -29,6 +29,8 @@ import { PrepareSolutionModal } from '@/modules/in-vivo/components/PrepareSoluti
 import { SolutionPreparationsPanel } from '@/modules/in-vivo/components/SolutionPreparationsPanel';
 import { BatchModelPanel } from '@/modules/in-vivo/components/BatchModelPanel';
 import { BaselinePanel } from '@/modules/in-vivo/components/BaselinePanel';
+import { PhysiologicalReadingsPanel } from '@/modules/in-vivo/components/PhysiologicalReadingsPanel';
+import { AnimalSelectionPanel } from '@/modules/in-vivo/components/AnimalSelectionPanel';
 import {
   animalSexLabel,
   batchStatusPresentation,
@@ -257,6 +259,12 @@ export function ProjectDetailPage() {
                     setAssigningAnimal({ batchId: batch.id, animal, groups: batch.groups })
                   }
                 />
+
+                {/* Physiological readings (glicemia/peso, …) per animal/timepoint, filtered by the batch model (SISLAB-02). */}
+                <PhysiologicalReadingsPanel projectId={project.id} batch={batch} />
+
+                {/* Apply the inclusion criteria and review included/excluded animals (SISLAB-02). */}
+                <AnimalSelectionPanel projectId={project.id} batch={batch} />
 
                 {/* Baseline (mean/min/max) by cage and by group — the Prism pre/post-randomization views. */}
                 <div className="border-t p-4">

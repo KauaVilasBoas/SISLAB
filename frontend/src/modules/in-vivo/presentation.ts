@@ -5,6 +5,7 @@ import type {
   BatchStatus,
   BehavioralType,
   CompoundState,
+  InclusionStatus,
   PendencyKind,
   ProjectStatus,
   SampleType,
@@ -88,6 +89,15 @@ export const analysisStatusPresentation: Record<
 > = {
   Pending: { label: 'Pendente', variant: 'secondary' },
   Completed: { label: 'Concluída', variant: 'default' },
+};
+
+/** Human label + badge variant for each inclusion decision (SISLAB-02). */
+export const inclusionStatusPresentation: Record<
+  InclusionStatus,
+  { label: string; variant: Variant }
+> = {
+  Included: { label: 'Incluído', variant: 'default' },
+  Excluded: { label: 'Excluído', variant: 'outline' },
 };
 
 /** Human label + badge variant for each pendency kind. */

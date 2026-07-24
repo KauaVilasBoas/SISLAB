@@ -190,6 +190,51 @@ export interface SolutionPreparationListItem {
 }
 
 // ---------------------------------------------------------------------------
+// Physiological readings + animal selection (SISLAB-02)
+// ---------------------------------------------------------------------------
+
+/** Request body to record a physiological reading on an animal at a timepoint (SISLAB-02). */
+export interface RecordReadingRequest {
+  parameterCode: string;
+  value: number;
+  unit: string;
+  timepointLabel: string;
+}
+
+/** A recorded physiological reading (glicemia/peso, …) of one animal at one timepoint (SISLAB-02). */
+export interface PhysiologicalReadingListItem {
+  id: string;
+  animalId: string;
+  animalIdentifier: string;
+  parameterCode: string;
+  value: number;
+  unit: string;
+  timepointLabel: string;
+  recordedBy: string;
+  recordedAtUtc: string;
+}
+
+/** Inclusion decision of an animal, as the backend serializes the status enum (SISLAB-02). */
+export type InclusionStatus = 'Included' | 'Excluded';
+
+/**
+ * An animal with its inclusion decision after applying the criteria (SISLAB-02). While no criterion was applied
+ * — or when the batch's model does not list the criterion's parameter (non-applicable) — the inclusion fields
+ * stay null: the UI reflects that as "pendente"/"não aplicável" without treating it as an error.
+ */
+export interface AnimalSelectionListItem {
+  id: string;
+  identifier: string;
+  sex: string;
+  cageName: string;
+  groupName: string | null;
+  inclusionStatus: InclusionStatus | null;
+  inclusionParameterCode: string | null;
+  inclusionDecidingValue: number | null;
+  inclusionReason: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // Behavioural experiments (timepoint launch)
 // ---------------------------------------------------------------------------
 

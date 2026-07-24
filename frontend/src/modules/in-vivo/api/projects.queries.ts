@@ -6,14 +6,17 @@ import type {
   AddAnimalRequest,
   AddCageRequest,
   AddGroupRequest,
+  AnimalSelectionListItem,
   AssignAnimalToGroupRequest,
   BindBatchModelRequest,
   CageBaselineItem,
   CreateProjectRequest,
   GroupBaselineItem,
+  PhysiologicalReadingListItem,
   PrepareGroupSolutionRequest,
   ProjectDetail,
   ProjectListItem,
+  RecordReadingRequest,
   SolutionPreparationListItem,
 } from '@/modules/in-vivo/types';
 
@@ -27,6 +30,10 @@ export const projectKeys = {
     [...projectKeys.all, 'baseline', 'by-cage', projectId, batchId, parameterCode] as const,
   baselineByGroup: (projectId: string, batchId: string, parameterCode: string) =>
     [...projectKeys.all, 'baseline', 'by-group', projectId, batchId, parameterCode] as const,
+  readings: (projectId: string, parameterCode: string | null, animalId: string | null) =>
+    [...projectKeys.all, 'readings', projectId, parameterCode ?? null, animalId ?? null] as const,
+  selection: (projectId: string, batchId: string, status: string | null) =>
+    [...projectKeys.all, 'selection', projectId, batchId, status ?? null] as const,
 };
 
 export interface ListProjectsParams {
@@ -215,6 +222,76 @@ export function useBaselineByGroup(
         timepointLabel: timepointLabel || undefined,
       }),
     enabled: Boolean(projectId) && Boolean(batchId) && parameterCode.trim().length > 0,
+  });
+}
+
+/**
+ * Records a physiological reading (glicemia/peso, … — SISLAB-02) on a project animal at a timepoint. Invalidates
+ * the readings list, the batch selection (a new reading can change a decision on the next apply) and the baseline
+ * summaries (they aggregate the same readings). Returns the new reading id.
+ */
+export function useRecordReading(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ animalId, body }: { animalId: string; body: RecordReadingRequest }) =>
+      api.post<string>(Endpoints.projects.animalReadings(projectId, animalId), body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [...projectKeys.all, 'readings', projectId] });
+      void queryClient.invalidateQueries({ queryKey: [...projectKeys.all, 'selection', projectId] });
+      void queryClient.invalidateQueries({ queryKey: [...projectKeys.all, 'baseline'] });
+    },
+  });
+}
+
+/**
+ * A project's physiological readings (SISLAB-02), optionally narrowed by parameter code and/or a single animal.
+ * A blank parameter code lists every parameter; a null animal lists every animal.
+ */
+export function useReadings(
+  projectId: string,
+  parameterCode?: string,
+  animalId?: string | null,
+) {
+  const code = parameterCode?.trim() || null;
+  const animal = animalId ?? null;
+  return useQuery({
+    queryKey: projectKeys.readings(projectId, code, animal),
+    queryFn: () =>
+      api.get<PhysiologicalReadingListItem[]>(Endpoints.projects.readings(projectId), {
+        parameterCode: code || undefined,
+        animalId: animal || undefined,
+      }),
+    enabled: Boolean(projectId),
+  });
+}
+
+/**
+ * Applies the active company's inclusion criteria (SISLAB-02) to a batch's animals, marking each
+ * included/excluded from its readings. Returns how many animals a decision was taken for. Invalidates the batch
+ * selection so the board refreshes.
+ */
+export function useApplySelection(projectId: string, batchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<number>(Endpoints.projects.applySelection(projectId, batchId), {}),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: [...projectKeys.all, 'selection', projectId, batchId] }),
+  });
+}
+
+/**
+ * A batch's animals with their inclusion decision (SISLAB-02) — the deciding value and reason — optionally
+ * filtered by inclusion status ("Included"/"Excluded"). A blank status lists every animal.
+ */
+export function useSelection(projectId: string, batchId: string, status?: string) {
+  const normalized = status?.trim() || null;
+  return useQuery({
+    queryKey: projectKeys.selection(projectId, batchId, normalized),
+    queryFn: () =>
+      api.get<AnimalSelectionListItem[]>(Endpoints.projects.selection(projectId, batchId), {
+        status: normalized || undefined,
+      }),
+    enabled: Boolean(projectId) && Boolean(batchId),
   });
 }
 

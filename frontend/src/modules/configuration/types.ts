@@ -156,3 +156,35 @@ export interface CreateExperimentalModelRequest {
   groups: StandardGroup[];
   dilutionDefaults: DilutionDefaults;
 }
+
+// ---------------------------------------------------------------------------
+// Inclusion criteria (SISLAB-02 — configurable animal selection rules)
+// ---------------------------------------------------------------------------
+
+/**
+ * The comparison an inclusion criterion applies between an animal's measured value and its threshold,
+ * as a stable string mirroring the backend `ComparisonOperator` enum (serialized by name).
+ */
+export type ComparisonOperator =
+  | 'GreaterThanOrEqual'
+  | 'GreaterThan'
+  | 'LessThanOrEqual'
+  | 'LessThan'
+  | 'Equal';
+
+/** A row on the "Critérios de inclusão" listing — one configurable selection rule (SISLAB-02). */
+export interface InclusionCriterionListItem {
+  id: string;
+  parameterCode: string;
+  operator: ComparisonOperator;
+  threshold: number;
+  unit: string;
+}
+
+/** Request body for creating an inclusion criterion — mirrors CreateInclusionCriterionCommand. */
+export interface CreateInclusionCriterionRequest {
+  parameterCode: string;
+  operator: ComparisonOperator;
+  threshold: number;
+  unit: string;
+}
