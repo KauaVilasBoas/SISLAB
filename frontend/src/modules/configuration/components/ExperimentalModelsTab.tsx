@@ -190,6 +190,11 @@ function CreateExperimentalModelModal({ onClose }: { onClose: () => void }) {
       return;
     }
 
+    if (!defaultDiluent.trim()) {
+      toast('error', 'Informe o diluente padrão (ex.: Óleo de soja).');
+      return;
+    }
+
     try {
       await create.mutateAsync({
         name: name.trim(),
