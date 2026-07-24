@@ -176,6 +176,55 @@ public sealed class ProjectTests
     }
 
     [Fact]
+    public void RecordPhysiologicalReading_stores_the_reading_against_an_enrolled_animal()
+    {
+        Project project = NewProject();
+        Batch batch = project.AddBatch("Leva 1");
+        Group control = project.AddGroup(batch.Id, "Controle", Dose.Of(0m, "mg/kg"));
+        Animal animal = project.AddAnimal(batch.Id, control.Id, "M1-01", AnimalSex.Male);
+        var when = new DateTime(2026, 7, 24, 9, 0, 0, DateTimeKind.Utc);
+
+        PhysiologicalReading reading = project.RecordPhysiologicalReading(
+            animal.Id, "glicemia", 268m, "mg/dL", "pós-indução", "vic@lab", when);
+
+        PhysiologicalReading stored = Assert.Single(project.PhysiologicalReadings);
+        Assert.Equal(reading.Id, stored.Id);
+        Assert.Equal(animal.Id, stored.AnimalId);
+        Assert.Equal(268m, stored.Value);
+        Assert.Equal("mg/dL", stored.Unit);
+        Assert.Equal("pós-indução", stored.TimepointLabel);
+        Assert.Equal("vic@lab", stored.RecordedBy);
+        Assert.Equal(when, stored.RecordedAtUtc);
+        Assert.True(stored.IsForParameter("GLICEMIA"));
+    }
+
+    [Fact]
+    public void RecordPhysiologicalReading_rejects_an_animal_not_enrolled_in_the_project()
+    {
+        Project project = NewProject();
+        Batch batch = project.AddBatch("Leva 1");
+        Group control = project.AddGroup(batch.Id, "Controle", Dose.Of(0m, "mg/kg"));
+        project.AddAnimal(batch.Id, control.Id, "M1-01", AnimalSex.Male);
+
+        Assert.Throws<NotFoundException>(() => project.RecordPhysiologicalReading(
+            Guid.NewGuid(), "glicemia", 268m, "mg/dL", "basal", "vic@lab", DateTime.UtcNow));
+    }
+
+    [Fact]
+    public void RecordPhysiologicalReading_can_capture_a_parameter_at_several_timepoints()
+    {
+        Project project = NewProject();
+        Batch batch = project.AddBatch("Leva 1");
+        Group control = project.AddGroup(batch.Id, "Controle", Dose.Of(0m, "mg/kg"));
+        Animal animal = project.AddAnimal(batch.Id, control.Id, "M1-01", AnimalSex.Male);
+
+        project.RecordPhysiologicalReading(animal.Id, "peso", 189.6m, "g", "basal", "vic@lab", DateTime.UtcNow);
+        project.RecordPhysiologicalReading(animal.Id, "peso", 195.2m, "g", "28 dias", "dai@lab", DateTime.UtcNow);
+
+        Assert.Equal(2, project.PhysiologicalReadings.Count(r => r.IsForParameter("peso")));
+    }
+
+    [Fact]
     public void Dose_is_compared_by_value_and_guards_a_non_negative_amount()
     {
         Assert.Equal(Dose.Of(10m, "mg/kg"), Dose.Of(10m, "mg/kg"));

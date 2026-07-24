@@ -84,6 +84,39 @@ public sealed class ProjectCommandHandlerTests
     }
 
     [Fact]
+    public async Task RecordPhysiologicalReading_persists_the_reading_with_the_actor_and_clock()
+    {
+        Project project = Project.Create("P", "Rat");
+        Batch batch = project.AddBatch("Leva 1");
+        Group control = project.AddGroup(batch.Id, "Controle", Dose.Of(0m, "mg/kg"));
+        Animal animal = project.AddAnimal(batch.Id, control.Id, "M1-01", AnimalSex.Male);
+        var projects = new FakeProjectRepository().Seed(project);
+        var when = new DateTime(2026, 7, 24, 9, 0, 0, DateTimeKind.Utc);
+        var handler = new RecordPhysiologicalReadingCommandHandler(
+            projects, new FakeActorAccessor("vic@lab"), new FixedClock(when));
+
+        Guid id = await handler.HandleAsync(new RecordPhysiologicalReadingCommand(
+            project.Id, animal.Id, "glicemia", 268m, "mg/dL", "pós-indução"));
+
+        PhysiologicalReading reading = Assert.Single(projects.LastUpdated!.PhysiologicalReadings);
+        Assert.Equal(id, reading.Id);
+        // The author and instant come from the accessor/clock, never the request body.
+        Assert.Equal("vic@lab", reading.RecordedBy);
+        Assert.Equal(when, reading.RecordedAtUtc);
+    }
+
+    [Fact]
+    public async Task RecordPhysiologicalReading_on_a_missing_project_throws_not_found()
+    {
+        var handler = new RecordPhysiologicalReadingCommandHandler(
+            new FakeProjectRepository(), new FakeActorAccessor(), new FixedClock(DateTime.UtcNow));
+
+        await Assert.ThrowsAsync<NotFoundException>(() => handler.HandleAsync(
+            new RecordPhysiologicalReadingCommand(
+                Guid.NewGuid(), Guid.NewGuid(), "glicemia", 268m, "mg/dL", "basal")));
+    }
+
+    [Fact]
     public async Task StartBatch_freezes_the_batch_and_activates_the_project()
     {
         Project project = Project.Create("P", "Rat");

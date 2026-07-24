@@ -35,6 +35,7 @@ public sealed class Project : AggregateRoot<Guid>, ITenantEntity
     private const int MaxDescriptionLength = 2000;
 
     private readonly List<Batch> _batches = [];
+    private readonly List<PhysiologicalReading> _physiologicalReadings = [];
 
     // Parameterless constructor for EF Core materialization.
     private Project() : base(Guid.Empty)
@@ -73,6 +74,13 @@ public sealed class Project : AggregateRoot<Guid>, ITenantEntity
 
     /// <summary>The batches (levas) of the project.</summary>
     public IReadOnlyList<Batch> Batches => _batches.AsReadOnly();
+
+    /// <summary>
+    /// The recurring physiological readings (glicemia/peso, …) taken on the project's animals across timepoints
+    /// (SISLAB-02). Held on the root so the animal-selection criterion can evaluate them together with the animals
+    /// they belong to, within a single aggregate.
+    /// </summary>
+    public IReadOnlyList<PhysiologicalReading> PhysiologicalReadings => _physiologicalReadings.AsReadOnly();
 
     /// <summary>
     /// Creates a project in <see cref="ProjectStatus.Draft"/> at design version 1 and raises the creation event.
@@ -115,6 +123,32 @@ public sealed class Project : AggregateRoot<Guid>, ITenantEntity
     {
         EnsureIdentifierIsFreeAcrossProject(identifier);
         return FindBatch(batchId).AddAnimal(groupId, identifier, sex, weightGrams);
+    }
+
+    /// <summary>
+    /// Records a recurring physiological reading (glicemia/peso, …) on one of the project's animals at a timepoint
+    /// (SISLAB-02). The animal must belong to the project (guarded here); the parameter code, value, unit and
+    /// timepoint are supplied by the caller — nothing lab-specific is fixed by the aggregate. Allowed on any
+    /// non-closed project (readings are collected while the study runs, not part of the frozen design). Returns the
+    /// new reading.
+    /// </summary>
+    public PhysiologicalReading RecordPhysiologicalReading(
+        Guid animalId,
+        string parameterCode,
+        decimal value,
+        string unit,
+        string timepointLabel,
+        string recordedBy,
+        DateTime recordedAtUtc)
+    {
+        EnsureNotClosed();
+        EnsureAnimalBelongsToProject(animalId);
+
+        PhysiologicalReading reading = PhysiologicalReading.Create(
+            animalId, parameterCode, value, unit, timepointLabel, recordedBy, recordedAtUtc);
+
+        _physiologicalReadings.Add(reading);
+        return reading;
     }
 
     /// <summary>
@@ -190,6 +224,17 @@ public sealed class Project : AggregateRoot<Guid>, ITenantEntity
     {
         if (Status == ProjectStatus.Closed)
             throw new DomainException($"Project '{Name}' is closed and cannot be modified.");
+    }
+
+    /// <summary>Every animal enrolled anywhere in the project (across its batches and groups).</summary>
+    private IEnumerable<Animal> AllAnimals =>
+        _batches.SelectMany(batch => batch.Groups).SelectMany(group => group.Animals);
+
+    private void EnsureAnimalBelongsToProject(Guid animalId)
+    {
+        if (AllAnimals.All(animal => animal.Id != animalId))
+            throw new NotFoundException(
+                $"Animal '{animalId}' is not enrolled in project '{Name}'.");
     }
 
     private void EnsureIdentifierIsFreeAcrossProject(string identifier)

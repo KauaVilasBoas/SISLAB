@@ -135,6 +135,48 @@ public sealed class ProjectsController : SislabControllerBase
     }
 
     /// <summary>
+    /// Records a physiological reading (glicemia/peso, … — SISLAB-02) on a project animal at a timepoint. The author
+    /// and instant come from the session/clock; the parameter code and unit are cadaster values. Returns the new id.
+    /// </summary>
+    [HttpPost("{projectId:guid}/animals/{animalId:guid}/readings")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult<Guid>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> RecordReading(
+        Guid projectId,
+        Guid animalId,
+        [FromBody] RecordReadingRequest body,
+        CancellationToken ct)
+    {
+        Guid id = await _mediator.SendAsync(
+            new RecordPhysiologicalReadingCommand(
+                projectId, animalId, body.ParameterCode, body.Value, body.Unit, body.TimepointLabel),
+            ct);
+
+        return Ok(new ApiResult<Guid>(true, "Physiological reading recorded.", id));
+    }
+
+    /// <summary>Lists a project's physiological readings, optionally filtered by parameter code and/or animal.</summary>
+    [HttpGet("{projectId:guid}/readings")]
+    [ProducesResponseType(typeof(ApiResult<IReadOnlyList<PhysiologicalReadingListItem>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ListReadings(
+        Guid projectId,
+        [FromQuery] string? parameterCode = null,
+        [FromQuery] Guid? animalId = null,
+        CancellationToken ct = default)
+    {
+        IReadOnlyList<PhysiologicalReadingListItem> readings = await _mediator.SendAsync(
+            new ListPhysiologicalReadingsQuery(projectId) { ParameterCode = parameterCode, AnimalId = animalId },
+            ct);
+
+        return Ok(new ApiResult<IReadOnlyList<PhysiologicalReadingListItem>>(true, "Readings retrieved.", readings));
+    }
+
+    /// <summary>
     /// Binds a batch (leva) to an experimental model (SISLAB-04). The model is validated to exist for the active
     /// company through the Configuration Contracts port; the batch keeps only the model id, by value.
     /// </summary>
@@ -186,3 +228,6 @@ public sealed record AddGroupRequest(string Name, decimal DoseAmount, string Dos
 
 /// <summary>Request body to enrol an animal into a group.</summary>
 public sealed record AddAnimalRequest(string Identifier, AnimalSex Sex, decimal? WeightGrams);
+
+/// <summary>Request body to record a physiological reading (SISLAB-02); author/instant come from the session/clock.</summary>
+public sealed record RecordReadingRequest(string ParameterCode, decimal Value, string Unit, string TimepointLabel);
