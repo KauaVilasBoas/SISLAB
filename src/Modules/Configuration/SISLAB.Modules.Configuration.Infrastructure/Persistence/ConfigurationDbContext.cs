@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SISLAB.Infrastructure.Multitenancy;
 using SISLAB.Infrastructure.Persistence;
+using SISLAB.Modules.Configuration.Domain.ExperimentalModels;
 using SISLAB.Modules.Configuration.Domain.ExpiryPolicies;
 using SISLAB.Modules.Configuration.Domain.ItemCategories;
 using SISLAB.Modules.Configuration.Domain.ReferenceRanges;
@@ -41,6 +42,8 @@ public sealed class ConfigurationDbContext : SislabDbContextBase
 
     public DbSet<Room> Rooms => Set<Room>();
 
+    public DbSet<ExperimentalModel> ExperimentalModels => Set<ExperimentalModel>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Every table of this module lives in the "configuration" schema.
@@ -51,6 +54,7 @@ public sealed class ConfigurationDbContext : SislabDbContextBase
         modelBuilder.ApplyConfiguration(new UnitConfiguration());
         modelBuilder.ApplyConfiguration(new ReferenceRangeConfiguration());
         modelBuilder.ApplyConfiguration(new RoomConfiguration());
+        modelBuilder.ApplyConfiguration(new ExperimentalModelConfiguration());
 
         // snake_case naming + tenant query filter applied by the base AFTER the configurations.
         base.OnModelCreating(modelBuilder);
