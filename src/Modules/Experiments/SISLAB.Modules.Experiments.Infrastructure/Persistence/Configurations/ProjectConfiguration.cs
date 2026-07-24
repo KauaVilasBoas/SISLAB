@@ -40,6 +40,9 @@ internal sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
         builder.OwnsMany(project => project.Batches, ConfigureBatches);
         builder.Navigation(project => project.Batches).AutoInclude();
 
+        builder.OwnsMany(project => project.PhysiologicalReadings, ConfigureReadings);
+        builder.Navigation(project => project.PhysiologicalReadings).AutoInclude();
+
         builder.HasIndex(project => new { project.CompanyId, project.Id })
             .HasDatabaseName("ix_projects_company_id_id");
     }
@@ -117,5 +120,36 @@ internal sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
             .HasColumnType("numeric(10,2)");
 
         animals.HasIndex("group_id").HasDatabaseName("ix_project_animals_group_id");
+    }
+
+    private static void ConfigureReadings(OwnedNavigationBuilder<Project, PhysiologicalReading> readings)
+    {
+        readings.ToTable("project_physiological_readings");
+
+        readings.WithOwner().HasForeignKey("project_id");
+        readings.HasKey(reading => reading.Id);
+        readings.Property(reading => reading.Id).HasColumnName("id").ValueGeneratedNever();
+        readings.Property<Guid>("project_id");
+
+        // The animal the reading is for, held by value (a project animal id) — no FK: the animal is an owned entity
+        // of a group, and this is the module's ids-by-value rule applied within the same aggregate.
+        readings.Property(reading => reading.AnimalId).HasColumnName("animal_id").IsRequired();
+
+        readings.Property(reading => reading.ParameterCode)
+            .HasColumnName("parameter_code").HasMaxLength(60).IsRequired();
+        readings.Property(reading => reading.Value)
+            .HasColumnName("value").HasColumnType("numeric(18,4)").IsRequired();
+        readings.Property(reading => reading.Unit)
+            .HasColumnName("unit").HasMaxLength(30).IsRequired();
+        readings.Property(reading => reading.TimepointLabel)
+            .HasColumnName("timepoint_label").HasMaxLength(60).IsRequired();
+        readings.Property(reading => reading.RecordedBy)
+            .HasColumnName("recorded_by").HasMaxLength(200).IsRequired();
+        readings.Property(reading => reading.RecordedAtUtc)
+            .HasColumnName("recorded_at_utc").IsRequired();
+
+        readings.HasIndex("project_id").HasDatabaseName("ix_project_physiological_readings_project_id");
+        readings.HasIndex(reading => reading.AnimalId)
+            .HasDatabaseName("ix_project_physiological_readings_animal_id");
     }
 }

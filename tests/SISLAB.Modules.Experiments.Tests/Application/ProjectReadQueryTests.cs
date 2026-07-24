@@ -35,6 +35,31 @@ public sealed class ProjectReadQueryTests
         Assert.Null(parameters.Status);
     }
 
+    // BuildParameters does not touch the connection factory, so a null factory is never dereferenced here.
+    private readonly ListPhysiologicalReadingsQueryHandler _readingsHandler =
+        new(connectionFactory: null!, new StubTenantContext(ActiveCompany));
+
+    [Fact]
+    public void Readings_query_takes_the_company_from_the_tenant_context()
+    {
+        PhysiologicalReadingsQueryParameters parameters =
+            _readingsHandler.BuildParameters(new ListPhysiologicalReadingsQuery(Guid.NewGuid()));
+
+        Assert.Equal(ActiveCompany, parameters.CompanyId);
+    }
+
+    [Fact]
+    public void Readings_query_collapses_a_blank_parameter_filter_to_null()
+    {
+        var projectId = Guid.NewGuid();
+
+        PhysiologicalReadingsQueryParameters parameters = _readingsHandler.BuildParameters(
+            new ListPhysiologicalReadingsQuery(projectId) { ParameterCode = "   " });
+
+        Assert.Null(parameters.ParameterCode);
+        Assert.Equal(projectId, parameters.ProjectId);
+    }
+
     [Fact]
     public void Assemble_nests_batches_groups_and_animals_by_their_foreign_keys()
     {
