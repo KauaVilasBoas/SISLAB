@@ -410,6 +410,37 @@ export interface AssignCollectionRoleRequest {
 }
 
 // ---------------------------------------------------------------------------
+// Evidence attachments (SISLAB-09 — photos/PDF on a reading/analysis)
+// ---------------------------------------------------------------------------
+
+/** What a piece of evidence is attached to, mirroring the backend AttachmentTargetKind enum (serialized by name). */
+export type AttachmentTargetKind = 'SampleAnalysis' | 'ExperimentReading';
+
+/** Flat read row for one evidence attachment (mirror of AttachmentListItem) — metadata only; bytes stream separately. */
+export interface AttachmentListItem {
+  id: string;
+  animalId: string;
+  targetKind: string;
+  targetId: string;
+  storageKey: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  origin: string | null;
+  uploadedBy: string;
+  uploadedAtUtc: string;
+}
+
+/** The multipart fields (besides the file itself) to attach evidence to an animal's reading/analysis. */
+export interface AttachEvidenceFields {
+  animalId: string;
+  targetKind: AttachmentTargetKind;
+  ownerId: string;
+  targetId: string;
+  origin: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // Pendencies panel
 // ---------------------------------------------------------------------------
 

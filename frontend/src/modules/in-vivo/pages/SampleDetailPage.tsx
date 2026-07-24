@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, Plus, ClipboardCheck } from 'lucide-react';
 import { PageHeader } from '@/shared/components/PageHeader';
@@ -11,6 +11,7 @@ import {
   AnalyseSampleModal,
   RecordResultModal,
 } from '@/modules/in-vivo/components/SampleAnalysisModals';
+import { AttachmentsPanel } from '@/modules/in-vivo/components/AttachmentsPanel';
 import {
   analysisStatusPresentation,
   formatAmount,
@@ -161,39 +162,53 @@ export function SampleDetailPage() {
                 const presentation =
                   analysisStatusPresentation[analysis.status as AnalysisStatus];
                 return (
-                  <tr key={analysis.id} className="border-b last:border-0">
-                    <td className="px-4 py-3 font-medium">{analysis.name}</td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {formatAmount(analysis.consumedQuantity, analysis.unit)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={presentation?.variant ?? 'muted'}>
-                        {presentation?.label ?? analysis.status}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {analysis.result ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {analysis.performedBy}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {analysis.status === 'Pending' && (
-                        <RequirePermission code={Permissions.samples.recordResult}>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              setRecordingFor({ id: analysis.id, name: analysis.name })
-                            }
-                          >
-                            <ClipboardCheck className="size-4" />
-                            Resultado
-                          </Button>
-                        </RequirePermission>
-                      )}
-                    </td>
-                  </tr>
+                  <Fragment key={analysis.id}>
+                    <tr className="border-b">
+                      <td className="px-4 py-3 font-medium">{analysis.name}</td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {formatAmount(analysis.consumedQuantity, analysis.unit)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant={presentation?.variant ?? 'muted'}>
+                          {presentation?.label ?? analysis.status}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {analysis.result ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {analysis.performedBy}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {analysis.status === 'Pending' && (
+                          <RequirePermission code={Permissions.samples.recordResult}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                setRecordingFor({ id: analysis.id, name: analysis.name })
+                              }
+                            >
+                              <ClipboardCheck className="size-4" />
+                              Resultado
+                            </Button>
+                          </RequirePermission>
+                        )}
+                      </td>
+                    </tr>
+                    <tr className="border-b last:border-0">
+                      <td colSpan={6} className="px-4 pb-3">
+                        {/* Evidence attachments for this analysis (SISLAB-09): laudo/reader photos tied to the animal. */}
+                        <AttachmentsPanel
+                          animalId={sample.animalId}
+                          targetKind="SampleAnalysis"
+                          ownerId={sample.id}
+                          targetId={analysis.id}
+                          targetLabel={analysis.name}
+                        />
+                      </td>
+                    </tr>
+                  </Fragment>
                 );
               })}
             </tbody>

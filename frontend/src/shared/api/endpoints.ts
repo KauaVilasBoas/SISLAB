@@ -254,6 +254,14 @@ export const Endpoints = {
       `/api/collection-plans/${planId}/roles/${roleId}`,
   },
 
+  /** Experiments module — evidence attachments (SISLAB-09): list, upload (multipart) and download by key. */
+  attachments: {
+    /** List an animal's evidence, optionally narrowed to one reading/analysis (query: animalId, targetKind, targetId). */
+    root: '/api/attachments',
+    /** Stream an attachment's file bytes back (blob download). */
+    content: (attachmentId: string) => `/api/attachments/${attachmentId}/content`,
+  },
+
   /** Experiments module — biobank: Sample → Analysis with a derived balance (card [E11] #89). */
   samples: {
     /** Paginated list + collect. */
