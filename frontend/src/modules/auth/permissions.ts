@@ -65,6 +65,8 @@ export const Permissions = {
     createExperimentalModel: 'ExperimentalModel.Create',
     /** Cadaster a per-tenant animal-inclusion criterion (parameter, operator, threshold, unit) — SISLAB-02. */
     createInclusionCriterion: 'InclusionCriterion.Create',
+    /** Cadaster a per-tenant collection role (Volante, Sangue, …) — SISLAB-08. */
+    createCollectionRole: 'CollectionRole.Create',
   },
   /** Perfis e Permissões — ProfilesController + MemberProfilesController. */
   profiles: {
@@ -126,6 +128,14 @@ export const Permissions = {
     collect: 'Samples.Collect',
     analyse: 'Samples.Analyse',
     recordResult: 'Samples.RecordResult',
+  },
+  /** Experimentos — planejamento de coleta (CollectionPlansController write endpoints) — SISLAB-08. */
+  collectionPlans: {
+    create: 'CollectionPlans.Create',
+    defineRouting: 'CollectionPlans.DefineRouting',
+    removeRouting: 'CollectionPlans.RemoveRouting',
+    assignRole: 'CollectionPlans.AssignRole',
+    removeRole: 'CollectionPlans.RemoveRole',
   },
   // Auditoria — a trilha (AuditController.List/Export) é apenas [Authorize], sem [RequirePermission];
   // qualquer membro autenticado da empresa lê, então não há código a gatear aqui (guardado pelo drift test).

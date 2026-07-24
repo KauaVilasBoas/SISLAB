@@ -339,6 +339,77 @@ export interface RecordAnalysisResultRequest {
 }
 
 // ---------------------------------------------------------------------------
+// Collection plan (SISLAB-08 — sample→analysis matrix, roles, status board)
+// ---------------------------------------------------------------------------
+
+/** One matrix row: a sample type routed to its planned analyses and storage (mirror of SampleRoutingView). */
+export interface SampleRoutingView {
+  sampleType: string;
+  plannedAnalyses: string[];
+  storageRoomId: string | null;
+  storageLabel: string | null;
+  conservationTempMinCelsius: number | null;
+  conservationTempMaxCelsius: number | null;
+}
+
+/** One roster row: a collection role assigned to a member, both held by value (mirror of CollectionRoleAssignmentView). */
+export interface CollectionRoleAssignmentView {
+  roleId: string;
+  userId: string;
+}
+
+/** A batch's collection plan — its header, matrix rows and role roster (mirror of CollectionPlanView). */
+export interface CollectionPlanView {
+  id: string;
+  projectId: string;
+  batchId: string;
+  routings: SampleRoutingView[];
+  assignments: CollectionRoleAssignmentView[];
+}
+
+/**
+ * One status-board row — a planned analysis of a sample type — with the counts derived from the real biobank
+ * analyses and the responsible member (mirror of CollectionStatusRow). `isDone` mirrors the backend flag.
+ */
+export interface CollectionStatusRow {
+  sampleType: string;
+  analysisName: string;
+  responsibleUserId: string | null;
+  collectedSamples: number;
+  pendingAnalyses: number;
+  completedAnalyses: number;
+  isDone: boolean;
+}
+
+/** The derived status board of a batch's collection plan (mirror of CollectionStatusBoardView). */
+export interface CollectionStatusBoardView {
+  batchId: string;
+  rows: CollectionStatusRow[];
+}
+
+/** Request body to create a collection plan for a batch (mirror of CreateCollectionPlanRequest). */
+export interface CreateCollectionPlanRequest {
+  projectId: string;
+  batchId: string;
+}
+
+/** Request body to define a sample type's routing (planned analyses + storage) — mirror of DefineSampleRoutingRequest. */
+export interface DefineSampleRoutingRequest {
+  sampleType: SampleType;
+  plannedAnalyses: string[];
+  storageRoomId: string | null;
+  storageLabel: string | null;
+  conservationTempMinCelsius: number | null;
+  conservationTempMaxCelsius: number | null;
+}
+
+/** Request body to assign a member to a collection role (mirror of AssignCollectionRoleRequest). */
+export interface AssignCollectionRoleRequest {
+  roleId: string;
+  userId: string;
+}
+
+// ---------------------------------------------------------------------------
 // Pendencies panel
 // ---------------------------------------------------------------------------
 

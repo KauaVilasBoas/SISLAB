@@ -31,6 +31,7 @@ import { BatchModelPanel } from '@/modules/in-vivo/components/BatchModelPanel';
 import { BaselinePanel } from '@/modules/in-vivo/components/BaselinePanel';
 import { PhysiologicalReadingsPanel } from '@/modules/in-vivo/components/PhysiologicalReadingsPanel';
 import { AnimalSelectionPanel } from '@/modules/in-vivo/components/AnimalSelectionPanel';
+import { CollectionPlanPanel } from '@/modules/in-vivo/components/CollectionPlanPanel';
 import {
   animalSexLabel,
   batchStatusPresentation,
@@ -265,6 +266,9 @@ export function ProjectDetailPage() {
 
                 {/* Apply the inclusion criteria and review included/excluded animals (SISLAB-02). */}
                 <AnimalSelectionPanel projectId={project.id} batch={batch} />
+
+                {/* Collection plan: sample→analysis matrix, collection roles and the derived status board (SISLAB-08). */}
+                <CollectionPlanPanel projectId={project.id} batchId={batch.id} />
 
                 {/* Baseline (mean/min/max) by cage and by group — the Prism pre/post-randomization views. */}
                 <div className="border-t p-4">

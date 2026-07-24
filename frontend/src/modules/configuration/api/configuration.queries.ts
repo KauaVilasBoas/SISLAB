@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/shared/api/http';
 import { Endpoints } from '@/shared/api/endpoints';
 import type {
+  CollectionRoleListItem,
+  CreateCollectionRoleRequest,
   CreateExperimentalModelRequest,
   CreateInclusionCriterionRequest,
   CreateItemCategoryRequest,
@@ -33,6 +35,7 @@ export const configurationKeys = {
   experimentalModel: (id: string) =>
     [...configurationKeys.experimentalModels(), id] as const,
   inclusionCriteria: () => [...configurationKeys.all, 'inclusion-criteria'] as const,
+  collectionRoles: () => [...configurationKeys.all, 'collection-roles'] as const,
 };
 
 // The catalogues change rarely; keep them fresh for a couple of minutes to avoid refetch churn.
@@ -116,6 +119,19 @@ export function useInclusionCriteria() {
   });
 }
 
+/**
+ * The active company's collection roles (SISLAB-08), ordered by name. Shared surface: the collection-plan role
+ * roster (in vivo) consumes this same hook to populate its role dropdown (Configuration owns the endpoint).
+ */
+export function useCollectionRoles() {
+  return useQuery({
+    queryKey: configurationKeys.collectionRoles(),
+    queryFn: () =>
+      api.get<CollectionRoleListItem[]>(Endpoints.configuration.collectionRoles),
+    staleTime: CATALOGUE_STALE_TIME,
+  });
+}
+
 /** The active company's expiry warning window, in days before expiry (the default when unset). */
 export function useExpiryPolicy() {
   return useQuery({
@@ -190,6 +206,17 @@ export function useCreateInclusionCriterion() {
       api.post<string>(Endpoints.configuration.inclusionCriteria, body),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: configurationKeys.inclusionCriteria() }),
+  });
+}
+
+/** Creates a collection role (SISLAB-08); returns the new id. Refreshes the roles list. */
+export function useCreateCollectionRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateCollectionRoleRequest) =>
+      api.post<string>(Endpoints.configuration.collectionRoles, body),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: configurationKeys.collectionRoles() }),
   });
 }
 
