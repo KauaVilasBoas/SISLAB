@@ -188,3 +188,20 @@ export interface CreateInclusionCriterionRequest {
   threshold: number;
   unit: string;
 }
+
+// ---------------------------------------------------------------------------
+// Collection roles (SISLAB-08 — configurable collection jobs)
+// ---------------------------------------------------------------------------
+
+/** A row on the "Funções de coleta" listing — one configurable collection job (Volante, Sangue, …). */
+export interface CollectionRoleListItem {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+/** Request body for creating a collection role — mirrors CreateCollectionRoleRequest. */
+export interface CreateCollectionRoleRequest {
+  name: string;
+  description: string | null;
+}

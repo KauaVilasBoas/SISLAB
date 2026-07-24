@@ -134,6 +134,8 @@ export const Endpoints = {
     },
     /** Per-tenant animal-inclusion criteria (SISLAB-02) — list + create (parameter, operator, threshold, unit). */
     inclusionCriteria: '/api/configuration/inclusion-criteria',
+    /** Per-tenant collection roles (SISLAB-08) — list + create the configurable collection jobs (Volante, Sangue, …). */
+    collectionRoles: '/api/configuration/collection-roles',
   },
 
   /** Experiments module — in vitro cell-viability slice (card [E11] #68). */
@@ -230,6 +232,26 @@ export const Endpoints = {
     /** List a batch's animals with their inclusion decision (deciding value + reason) — SISLAB-02. */
     selection: (id: string, batchId: string) =>
       `/api/projects/${id}/batches/${batchId}/selection`,
+  },
+
+  /** Experiments module — collection plan of a batch (SISLAB-08): matrix, role roster and derived status board. */
+  collectionPlans: {
+    /** A batch's collection plan (matrix + role roster). */
+    byBatch: (batchId: string) => `/api/collection-plans/${batchId}`,
+    /** A batch's derived status board (pending/done per planned analysis). */
+    status: (batchId: string) => `/api/collection-plans/${batchId}/status`,
+    /** Create the plan for a batch. */
+    root: '/api/collection-plans',
+    /** Define (or replace) a sample type's routing on a plan. */
+    routings: (planId: string) => `/api/collection-plans/${planId}/routings`,
+    /** Remove a sample type's routing from a plan (sample type by name). */
+    routing: (planId: string, sampleType: string) =>
+      `/api/collection-plans/${planId}/routings/${sampleType}`,
+    /** Assign a member to a collection role on a plan. */
+    roles: (planId: string) => `/api/collection-plans/${planId}/roles`,
+    /** Remove a role assignment from a plan. */
+    role: (planId: string, roleId: string) =>
+      `/api/collection-plans/${planId}/roles/${roleId}`,
   },
 
   /** Experiments module — biobank: Sample → Analysis with a derived balance (card [E11] #89). */
