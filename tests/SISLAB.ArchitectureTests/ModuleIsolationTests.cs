@@ -46,6 +46,10 @@ public sealed class ModuleIsolationTests
     private const string ExperimentsApplicationAssembly = "SISLAB.Modules.Experiments.Application";
     private const string ExperimentsContractsAssembly = "SISLAB.Modules.Experiments.Contracts";
     private const string ExperimentsInfrastructureAssembly = "SISLAB.Modules.Experiments.Infrastructure";
+    private const string AgendaDomainAssembly = "SISLAB.Modules.Agenda.Domain";
+    private const string AgendaApplicationAssembly = "SISLAB.Modules.Agenda.Application";
+    private const string AgendaContractsAssembly = "SISLAB.Modules.Agenda.Contracts";
+    private const string AgendaInfrastructureAssembly = "SISLAB.Modules.Agenda.Infrastructure";
     private const string SharedKernelAssembly = "SISLAB.SharedKernel";
     private const string InfrastructureAssembly = "SISLAB.Infrastructure";
     private const string JobsAssembly = "SISLAB.Jobs";
@@ -905,6 +909,106 @@ public sealed class ModuleIsolationTests
             .Types().That().ResideInAssembly(ExperimentsContractsAssembly)
             .Should().NotDependOnAnyTypesThat()
             .ResideInNamespace("Microsoft.EntityFrameworkCore")
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Agenda module (card [E10] #67, SISLAB-10). Its public IAgendaScheduler boundary is the surface the
+    // Experiments module consumes to materialise a generated experiment schedule as calendar entries.
+    // (b) That Contracts boundary must stay clean (no Domain/Application/Infrastructure/EF), so a consumer that
+    //     references only Agenda.Contracts (Experiments) cannot reach the internals through it.
+    // (a) The Experiments module, which schedules through that port, must never reach into Agenda's internal
+    //     Domain/Application/Infrastructure (module isolation, section 2), symmetric to the Configuration rules.
+    // ---------------------------------------------------------------------------------------------
+
+    /// <summary>(b) O boundary público (Contracts) da Agenda não deve depender do seu Domain interno.</summary>
+    [Fact]
+    public void AgendaContracts_ShouldNotDependOn_AgendaDomain()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(AgendaContractsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(AgendaDomainAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(b) O boundary público (Contracts) da Agenda não deve depender da Application do módulo.</summary>
+    [Fact]
+    public void AgendaContracts_ShouldNotDependOn_AgendaApplication()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(AgendaContractsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(AgendaApplicationAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(b) O boundary público (Contracts) da Agenda não deve depender da Infrastructure do módulo.</summary>
+    [Fact]
+    public void AgendaContracts_ShouldNotDependOn_AgendaInfrastructure()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(AgendaContractsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(AgendaInfrastructureAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(b) O boundary público (Contracts) da Agenda não deve depender de EF Core.</summary>
+    [Fact]
+    public void AgendaContracts_ShouldNotDependOn_EntityFramework()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(AgendaContractsAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInNamespace("Microsoft.EntityFrameworkCore")
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(a) O Experiments (Application) só consome a Agenda via Contracts, nunca seu Domain interno.</summary>
+    [Fact]
+    public void ExperimentsApplication_ShouldNotDependOn_AgendaDomain()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ExperimentsApplicationAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(AgendaDomainAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(a) O Experiments (Application) não deve depender da Application interna da Agenda.</summary>
+    [Fact]
+    public void ExperimentsApplication_ShouldNotDependOn_AgendaApplication()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ExperimentsApplicationAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(AgendaApplicationAssembly)
+            .WithoutRequiringPositiveResults();
+
+        rule.Check(Architecture);
+    }
+
+    /// <summary>(a) O Experiments (Application) não deve depender da Infrastructure interna da Agenda.</summary>
+    [Fact]
+    public void ExperimentsApplication_ShouldNotDependOn_AgendaInfrastructure()
+    {
+        IArchRule rule = ArchRuleDefinition
+            .Types().That().ResideInAssembly(ExperimentsApplicationAssembly)
+            .Should().NotDependOnAnyTypesThat()
+            .ResideInAssembly(AgendaInfrastructureAssembly)
             .WithoutRequiringPositiveResults();
 
         rule.Check(Architecture);

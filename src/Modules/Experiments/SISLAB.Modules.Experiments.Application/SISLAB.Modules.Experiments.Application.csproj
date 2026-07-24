@@ -32,6 +32,14 @@
       Domain/Application/Infrastructure; the Batch keeps the model id by value.
     -->
     <ProjectReference Include="..\..\Configuration\SISLAB.Modules.Configuration.Contracts\SISLAB.Modules.Configuration.Contracts.csproj" />
+    <!--
+      Agenda.Contracts: the public IAgendaScheduler port (SISLAB-10). The Experiments module generates an
+      experiment's schedule from an induction protocol and materialises it as calendar entries through this port —
+      the calendar is owned by the Agenda bounded context, so the write crosses the boundary only via Contracts
+      (module isolation, section 2). Only the Contracts assembly is referenced, never Agenda's
+      Domain/Application/Infrastructure; the experiment id is passed by value.
+    -->
+    <ProjectReference Include="..\..\Agenda\SISLAB.Modules.Agenda.Contracts\SISLAB.Modules.Agenda.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

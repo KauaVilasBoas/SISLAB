@@ -45,6 +45,13 @@ internal static class AssemblyRegistry
             typeof(Modules.Experiments.Application.ExperimentsModule).Assembly,                          // Experiments.Application
             typeof(Modules.Experiments.Contracts.Events.ExperimentCalculatedIntegrationEvent).Assembly,  // Experiments.Contracts
             typeof(Modules.Experiments.Infrastructure.Persistence.ExperimentsDbContext).Assembly,        // Experiments.Infrastructure
+            // Agenda module (card [E10] #67): all four projects loaded so the module-isolation rules can evaluate
+            // the Domain internals and the public Contracts boundary (IAgendaScheduler, SISLAB-10) against real
+            // types — Experiments consumes that boundary to materialise a generated schedule as calendar entries.
+            typeof(Modules.Agenda.Domain.Entries.AgendaEntry).Assembly,                    // Agenda.Domain
+            typeof(Modules.Agenda.Application.AgendaModule).Assembly,                      // Agenda.Application
+            typeof(Modules.Agenda.Contracts.IAgendaScheduler).Assembly,                    // Agenda.Contracts
+            typeof(Modules.Agenda.Infrastructure.Persistence.AgendaDbContext).Assembly,    // Agenda.Infrastructure
             // Jobs host library (E6 #39): loaded so the Host-style isolation rules can be evaluated
             // against real types — it must depend only on shared Infrastructure/module Application,
             // never on a module's internal Domain.

@@ -1,3 +1,4 @@
+using SISLAB.Modules.Agenda.Contracts;
 using SISLAB.Modules.Audit.Contracts;
 using SISLAB.Modules.Configuration.Contracts;
 using SISLAB.Modules.Experiments.Application.Experiments;
@@ -98,6 +99,27 @@ internal sealed class FakeLabConfiguration : ILabConfiguration
         return this;
     }
 
+    /// <summary>
+    /// Registers a model with a full induction protocol and timepoint labels (SISLAB-10), so the schedule-generation
+    /// handler reads the cadence (administrations/interval) and the readout labels from the model, not the code.
+    /// </summary>
+    public FakeLabConfiguration WithModel(
+        Guid modelId,
+        InductionProtocolDto induction,
+        IReadOnlyList<string> timepoints)
+    {
+        _models[modelId] = new ExperimentalModelDto(
+            modelId,
+            "Modelo",
+            null,
+            induction,
+            timepoints.ToList(),
+            new List<string>(),
+            new List<StandardGroupDto>(),
+            new DilutionDefaultsDto(5m, "Óleo de soja"));
+        return this;
+    }
+
     /// <summary>Sets the inclusion criteria the port returns (SISLAB-02), for the selection tests.</summary>
     public FakeLabConfiguration WithCriteria(params InclusionCriterionDto[] criteria)
     {
@@ -135,6 +157,25 @@ internal sealed class FakeLabConfiguration : ILabConfiguration
 
     public Task<bool> RoomExistsAsync(Guid roomId, CancellationToken ct)
         => Task.FromResult(_rooms.Contains(roomId));
+}
+
+/// <summary>
+/// Fake of the Agenda <see cref="IAgendaScheduler"/> port (SISLAB-10): records every request it is handed and returns
+/// a fresh id per created entry, so the schedule-generation handler can be exercised end to end without the Agenda
+/// module. The captured <see cref="Requests"/> let a test assert the generated dates, kinds, responsibles and
+/// reminders that crossed the boundary.
+/// </summary>
+internal sealed class FakeAgendaScheduler : IAgendaScheduler
+{
+    public List<ScheduleAgendaEntryRequest> Requests { get; } = new();
+
+    public Task<IReadOnlyList<Guid>> ScheduleAsync(
+        IReadOnlyList<ScheduleAgendaEntryRequest> requests, CancellationToken cancellationToken = default)
+    {
+        Requests.AddRange(requests);
+        IReadOnlyList<Guid> ids = requests.Select(_ => Guid.NewGuid()).ToList();
+        return Task.FromResult(ids);
+    }
 }
 
 /// <summary>An <see cref="ITenantContext"/> pinned to a fixed company, matching how the read side resolves it.</summary>
