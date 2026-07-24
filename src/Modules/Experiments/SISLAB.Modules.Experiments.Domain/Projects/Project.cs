@@ -7,11 +7,12 @@ using SISLAB.SharedKernel.Multitenancy;
 namespace SISLAB.Modules.Experiments.Domain.Projects;
 
 /// <summary>
-/// Aggregate root for the in vivo experimental design (decision card [E11] #73, discovery decision F1): the
-/// delineation <c>Project → Batch (leva) → Group (dose) → Animal</c>. A project owns its identity, tenant,
+/// Aggregate root for the in vivo experimental design (decision card [E11] #73, discovery decision F1, SISLAB-03):
+/// the delineation <c>Project → Batch (leva) → Cage (caixa) → Animal</c>, with <c>Group (dose)</c> an <b>optional
+/// assignment</b> on the animal (by value) rather than its owner. A project owns its identity, tenant,
 /// <see cref="Name"/>, the animal <see cref="Species"/> under study, an optional <see cref="Description"/>, its
 /// lifecycle <see cref="ProjectStatus"/>, the design-version counter and the ordered collection of
-/// <see cref="Batch"/>es with their groups and animals.
+/// <see cref="Batch"/>es with their cages, groups and animals.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -118,11 +119,47 @@ public sealed class Project : AggregateRoot<Guid>, ITenantEntity
     public Group AddGroup(Guid batchId, string name, Dose dose)
         => FindBatch(batchId).AddGroup(name, dose);
 
-    /// <summary>Enrols an animal into a group of a batch, keeping the identifier unique across the whole project.</summary>
-    public Animal AddAnimal(Guid batchId, Guid groupId, string identifier, AnimalSex sex, decimal? weightGrams = null)
+    /// <summary>
+    /// Adds a cage (caixa) to one of the project's batches (SISLAB-03), with an optional capacity (e.g. 4 — a
+    /// parameter, never fixed). Only valid while that batch's design is open.
+    /// </summary>
+    public Cage AddCage(Guid batchId, string name, int? capacity = null)
+        => FindBatch(batchId).AddCage(name, capacity);
+
+    /// <summary>
+    /// Houses an animal in a cage of a batch (SISLAB-03), keeping the identifier unique across the whole project. The
+    /// treatment <paramref name="groupId"/> is <b>optional</b>: pass <see langword="null"/> for the pre-randomization
+    /// flow (animal exists in a cage without a group and is assigned later), or a group id to assign it at entry (the
+    /// classic "divide groups before induction" flow). The group, when supplied, must belong to the same batch.
+    /// </summary>
+    public Animal AddAnimalToCage(
+        Guid batchId,
+        Guid cageId,
+        string identifier,
+        AnimalSex sex,
+        decimal? weightGrams = null,
+        Guid? groupId = null)
     {
         EnsureIdentifierIsFreeAcrossProject(identifier);
-        return FindBatch(batchId).AddAnimal(groupId, identifier, sex, weightGrams);
+        return FindBatch(batchId).AddAnimalToCage(cageId, identifier, sex, weightGrams, groupId);
+    }
+
+    /// <summary>
+    /// Assigns (or moves) an animal to a treatment group (SISLAB-03) after basal/induction — including redistributing a
+    /// discrepant cage across groups. Only valid while the batch's design is open (assignment locks once the leva
+    /// starts). The group must belong to the same batch as the animal.
+    /// </summary>
+    public void AssignAnimalToGroup(Guid batchId, Guid animalId, Guid groupId)
+    {
+        EnsureNotClosed();
+        FindBatch(batchId).AssignAnimalToGroup(animalId, groupId);
+    }
+
+    /// <summary>Removes an animal's group assignment (back to unassigned). Only valid while the batch's design is open.</summary>
+    public void UnassignAnimalFromGroup(Guid batchId, Guid animalId)
+    {
+        EnsureNotClosed();
+        FindBatch(batchId).UnassignAnimalFromGroup(animalId);
     }
 
     /// <summary>
@@ -189,7 +226,7 @@ public sealed class Project : AggregateRoot<Guid>, ITenantEntity
 
         int decided = 0;
 
-        IEnumerable<Animal> batchAnimals = batch.Groups.SelectMany(group => group.Animals);
+        IEnumerable<Animal> batchAnimals = batch.Animals;
 
         foreach (Animal animal in batchAnimals)
         {
@@ -295,9 +332,9 @@ public sealed class Project : AggregateRoot<Guid>, ITenantEntity
             throw new DomainException($"Project '{Name}' is closed and cannot be modified.");
     }
 
-    /// <summary>Every animal enrolled anywhere in the project (across its batches and groups).</summary>
+    /// <summary>Every animal enrolled anywhere in the project (across its batches and cages).</summary>
     private IEnumerable<Animal> AllAnimals =>
-        _batches.SelectMany(batch => batch.Groups).SelectMany(group => group.Animals);
+        _batches.SelectMany(batch => batch.Animals);
 
     private void EnsureAnimalBelongsToProject(Guid animalId)
     {
@@ -311,8 +348,7 @@ public sealed class Project : AggregateRoot<Guid>, ITenantEntity
         string trimmed = identifier?.Trim() ?? string.Empty;
 
         bool taken = _batches
-            .SelectMany(batch => batch.Groups)
-            .SelectMany(group => group.AnimalIdentifiers)
+            .SelectMany(batch => batch.AnimalIdentifiers)
             .Any(existing => string.Equals(existing, trimmed, StringComparison.OrdinalIgnoreCase));
 
         if (taken)

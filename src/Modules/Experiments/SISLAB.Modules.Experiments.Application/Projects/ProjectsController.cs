@@ -112,8 +112,29 @@ public sealed class ProjectsController : SislabControllerBase
         return Ok(new ApiResult<Guid>(true, "Group added.", id));
     }
 
-    /// <summary>Enrols an animal into a group of a batch. Returns the new id.</summary>
-    [HttpPost("{projectId:guid}/batches/{batchId:guid}/groups/{groupId:guid}/animals")]
+    /// <summary>Adds a cage (caixa) to a batch (SISLAB-03). Capacity (e.g. 4) is a parameter. Returns the new id.</summary>
+    [HttpPost("{projectId:guid}/batches/{batchId:guid}/cages")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult<Guid>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> AddCage(
+        Guid projectId,
+        Guid batchId,
+        [FromBody] AddCageRequest body,
+        CancellationToken ct)
+    {
+        Guid id = await _mediator.SendAsync(new AddCageCommand(projectId, batchId, body.Name, body.Capacity), ct);
+        return Ok(new ApiResult<Guid>(true, "Cage added.", id));
+    }
+
+    /// <summary>
+    /// Houses an animal in a cage of a batch (SISLAB-03). The treatment group is optional: omit it for the
+    /// pre-randomization flow (assign later), or supply it to assign at entry. Returns the new id.
+    /// </summary>
+    [HttpPost("{projectId:guid}/batches/{batchId:guid}/cages/{cageId:guid}/animals")]
     [RequirePermission]
     [ProducesResponseType(typeof(ApiResult<Guid>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -124,14 +145,39 @@ public sealed class ProjectsController : SislabControllerBase
     public async Task<IActionResult> AddAnimal(
         Guid projectId,
         Guid batchId,
-        Guid groupId,
+        Guid cageId,
         [FromBody] AddAnimalRequest body,
         CancellationToken ct)
     {
         Guid id = await _mediator.SendAsync(
-            new AddAnimalCommand(projectId, batchId, groupId, body.Identifier, body.Sex, body.WeightGrams), ct);
+            new AddAnimalCommand(projectId, batchId, cageId, body.Identifier, body.Sex, body.WeightGrams, body.GroupId),
+            ct);
 
-        return Ok(new ApiResult<Guid>(true, "Animal enrolled.", id));
+        return Ok(new ApiResult<Guid>(true, "Animal housed.", id));
+    }
+
+    /// <summary>
+    /// Assigns (or moves) an animal to a treatment group after basal/induction (SISLAB-03) — including redistributing a
+    /// discrepant cage. Locked once the batch starts (frozen design).
+    /// </summary>
+    [HttpPut("{projectId:guid}/batches/{batchId:guid}/animals/{animalId:guid}/group")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> AssignAnimalToGroup(
+        Guid projectId,
+        Guid batchId,
+        Guid animalId,
+        [FromBody] AssignAnimalToGroupRequest body,
+        CancellationToken ct)
+    {
+        await _mediator.SendAsync(
+            new AssignAnimalToGroupCommand(projectId, batchId, animalId, body.GroupId), ct);
+
+        return Ok(new ApiResult(true, "Animal assigned to group."));
     }
 
     /// <summary>
@@ -211,6 +257,46 @@ public sealed class ProjectsController : SislabControllerBase
     }
 
     /// <summary>
+    /// Summarizes a batch's readings of one parameter <b>by cage</b> (SISLAB-03) — the pre-randomization basal view the
+    /// researcher exports to Prism. Optionally narrowed to a single timepoint.
+    /// </summary>
+    [HttpGet("{projectId:guid}/batches/{batchId:guid}/baseline/by-cage")]
+    [ProducesResponseType(typeof(ApiResult<IReadOnlyList<CageBaselineItem>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> BaselineByCage(
+        Guid projectId,
+        Guid batchId,
+        [FromQuery] string parameterCode,
+        [FromQuery] string? timepointLabel = null,
+        CancellationToken ct = default)
+    {
+        IReadOnlyList<CageBaselineItem> baseline = await _mediator.SendAsync(
+            new ListBaselineByCageQuery(projectId, batchId, parameterCode) { TimepointLabel = timepointLabel }, ct);
+
+        return Ok(new ApiResult<IReadOnlyList<CageBaselineItem>>(true, "Baseline by cage retrieved.", baseline));
+    }
+
+    /// <summary>
+    /// Summarizes a batch's readings of one parameter <b>by treatment group</b> (SISLAB-03) — the post-randomization
+    /// balance-check view ("reordena o basal por grupo"). Optionally narrowed to a single timepoint.
+    /// </summary>
+    [HttpGet("{projectId:guid}/batches/{batchId:guid}/baseline/by-group")]
+    [ProducesResponseType(typeof(ApiResult<IReadOnlyList<GroupBaselineItem>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> BaselineByGroup(
+        Guid projectId,
+        Guid batchId,
+        [FromQuery] string parameterCode,
+        [FromQuery] string? timepointLabel = null,
+        CancellationToken ct = default)
+    {
+        IReadOnlyList<GroupBaselineItem> baseline = await _mediator.SendAsync(
+            new ListBaselineByGroupQuery(projectId, batchId, parameterCode) { TimepointLabel = timepointLabel }, ct);
+
+        return Ok(new ApiResult<IReadOnlyList<GroupBaselineItem>>(true, "Baseline by group retrieved.", baseline));
+    }
+
+    /// <summary>
     /// Binds a batch (leva) to an experimental model (SISLAB-04). The model is validated to exist for the active
     /// company through the Configuration Contracts port; the batch keeps only the model id, by value.
     /// </summary>
@@ -260,8 +346,17 @@ public sealed record BindBatchModelRequest(Guid ExperimentalModelId);
 /// <summary>Request body to add a dose group to a batch.</summary>
 public sealed record AddGroupRequest(string Name, decimal DoseAmount, string DoseUnit);
 
-/// <summary>Request body to enrol an animal into a group.</summary>
-public sealed record AddAnimalRequest(string Identifier, AnimalSex Sex, decimal? WeightGrams);
+/// <summary>Request body to add a cage (caixa) to a batch (SISLAB-03); capacity (e.g. 4) is a parameter.</summary>
+public sealed record AddCageRequest(string Name, int? Capacity);
+
+/// <summary>
+/// Request body to house an animal in a cage (SISLAB-03). <see cref="GroupId"/> is optional: null houses the animal
+/// unassigned (pre-randomization); a value assigns the group at entry.
+/// </summary>
+public sealed record AddAnimalRequest(string Identifier, AnimalSex Sex, decimal? WeightGrams, Guid? GroupId = null);
+
+/// <summary>Request body to assign/move an animal to a treatment group (SISLAB-03).</summary>
+public sealed record AssignAnimalToGroupRequest(Guid GroupId);
 
 /// <summary>Request body to record a physiological reading (SISLAB-02); author/instant come from the session/clock.</summary>
 public sealed record RecordReadingRequest(string ParameterCode, decimal Value, string Unit, string TimepointLabel);

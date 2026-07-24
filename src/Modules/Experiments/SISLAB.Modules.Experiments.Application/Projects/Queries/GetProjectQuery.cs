@@ -8,9 +8,10 @@ using SISLAB.SharedKernel.Multitenancy;
 namespace SISLAB.Modules.Experiments.Application.Projects.Queries;
 
 /// <summary>
-/// Read-side query (card [E11] #73) that returns a single project's full delineation for the active company: its
-/// header, its batches, and — nested per batch — the groups and their animals. Reads <c>experiments.*</c> via
-/// Dapper in one round-trip (four result sets), never the write DbContext.
+/// Read-side query (card [E11] #73, SISLAB-03) that returns a single project's full delineation for the active
+/// company: its header, its batches, and — nested per batch — the treatment groups (dose definitions) and the cages
+/// (caixas) with the animals they house. Each animal carries its optional group assignment (by value). Reads
+/// <c>experiments.*</c> via Dapper in one round-trip, never the write DbContext.
 /// </summary>
 /// <remarks>
 /// <b>Tenant scoping.</b> Every SELECT keeps <c>WHERE company_id = @CompanyId</c> (child tables scope by joining
@@ -19,7 +20,7 @@ namespace SISLAB.Modules.Experiments.Application.Projects.Queries;
 /// </remarks>
 public sealed record GetProjectQuery(Guid ProjectId) : IQuery<ProjectDetail>;
 
-/// <summary>Full detail of a project: header + batches (each with its groups and animals).</summary>
+/// <summary>Full detail of a project: header + batches (each with its groups and cages).</summary>
 public sealed record ProjectDetail(
     Guid Id,
     string Name,
@@ -29,29 +30,37 @@ public sealed record ProjectDetail(
     int CurrentDesignVersion,
     IReadOnlyList<BatchDetail> Batches);
 
-/// <summary>A batch on the project detail page, with its groups and its bound experimental model (SISLAB-04).</summary>
+/// <summary>A batch on the project detail page, with its groups, its cages and its bound experimental model (SISLAB-04).</summary>
 public sealed record BatchDetail(
     Guid Id,
     string Name,
     int DesignVersion,
     string Status,
     Guid? ExperimentalModelId,
-    IReadOnlyList<GroupDetail> Groups);
+    IReadOnlyList<GroupDetail> Groups,
+    IReadOnlyList<CageDetail> Cages);
 
-/// <summary>A dose group on the project detail page, with its animals.</summary>
+/// <summary>A dose group (treatment definition) on the project detail page.</summary>
 public sealed record GroupDetail(
     Guid Id,
     string Name,
     decimal DoseAmount,
-    string DoseUnit,
+    string DoseUnit);
+
+/// <summary>A cage (caixa) on the project detail page, with the animals it houses.</summary>
+public sealed record CageDetail(
+    Guid Id,
+    string Name,
+    int? Capacity,
     IReadOnlyList<AnimalDetail> Animals);
 
-/// <summary>An enrolled animal on the project detail page.</summary>
+/// <summary>An animal housed in a cage, with its optional treatment-group assignment (SISLAB-03).</summary>
 public sealed record AnimalDetail(
     Guid Id,
     string Identifier,
     string Sex,
-    decimal? WeightGrams);
+    decimal? WeightGrams,
+    Guid? GroupId);
 
 internal sealed class GetProjectQueryHandler
     : BaseDataAccess, IQueryHandler<GetProjectQuery, ProjectDetail>
@@ -101,17 +110,33 @@ internal sealed class GetProjectQueryHandler
         ORDER BY g.dose_amount ASC, g.name ASC;
         """;
 
+    private const string CagesSql =
+        """
+        SELECT
+            c.id,
+            c.batch_id AS batchid,
+            c.name,
+            c.capacity
+        FROM experiments.project_cages AS c
+        INNER JOIN experiments.project_batches AS b ON b.id = c.batch_id
+        INNER JOIN experiments.projects AS p ON p.id = b.project_id
+        WHERE p.company_id = @CompanyId
+          AND b.project_id = @ProjectId
+        ORDER BY c.name ASC;
+        """;
+
     private const string AnimalsSql =
         """
         SELECT
             a.id,
-            a.group_id     AS groupid,
+            a.cage_id      AS cageid,
             a.identifier,
             a.sex,
-            a.weight_grams AS weightgrams
+            a.weight_grams AS weightgrams,
+            a.group_id     AS groupid
         FROM experiments.project_animals AS a
-        INNER JOIN experiments.project_groups AS g ON g.id = a.group_id
-        INNER JOIN experiments.project_batches AS b ON b.id = g.batch_id
+        INNER JOIN experiments.project_cages AS c ON c.id = a.cage_id
+        INNER JOIN experiments.project_batches AS b ON b.id = c.batch_id
         INNER JOIN experiments.projects AS p ON p.id = b.project_id
         WHERE p.company_id = @CompanyId
           AND b.project_id = @ProjectId
@@ -140,34 +165,37 @@ internal sealed class GetProjectQueryHandler
         IReadOnlyList<GroupRow> groupRows = (await connection.QueryAsync<GroupRow>(
             new CommandDefinition(GroupsSql, parameters, cancellationToken: cancellationToken))).AsList();
 
+        IReadOnlyList<CageRow> cageRows = (await connection.QueryAsync<CageRow>(
+            new CommandDefinition(CagesSql, parameters, cancellationToken: cancellationToken))).AsList();
+
         IReadOnlyList<AnimalRow> animalRows = (await connection.QueryAsync<AnimalRow>(
             new CommandDefinition(AnimalsSql, parameters, cancellationToken: cancellationToken))).AsList();
 
-        return Assemble(header, batchRows, groupRows, animalRows);
+        return Assemble(header, batchRows, groupRows, cageRows, animalRows);
     }
 
     /// <summary>
-    /// Stitches the four flat result sets into the nested detail tree in memory (project → batches → groups →
-    /// animals). Kept as a pure static method so the shaping is unit-testable without a live database.
+    /// Stitches the five flat result sets into the nested detail tree in memory (project → batches → {groups, cages →
+    /// animals}). Kept as a pure static method so the shaping is unit-testable without a live database.
     /// </summary>
     internal static ProjectDetail Assemble(
         ProjectHeaderRow header,
         IReadOnlyList<BatchRow> batchRows,
         IReadOnlyList<GroupRow> groupRows,
+        IReadOnlyList<CageRow> cageRows,
         IReadOnlyList<AnimalRow> animalRows)
     {
-        ILookup<Guid, AnimalDetail> animalsByGroup = animalRows.ToLookup(
-            a => a.GroupId,
-            a => new AnimalDetail(a.Id, a.Identifier, a.Sex, a.WeightGrams));
+        ILookup<Guid, AnimalDetail> animalsByCage = animalRows.ToLookup(
+            a => a.CageId,
+            a => new AnimalDetail(a.Id, a.Identifier, a.Sex, a.WeightGrams, a.GroupId));
 
         ILookup<Guid, GroupDetail> groupsByBatch = groupRows.ToLookup(
             g => g.BatchId,
-            g => new GroupDetail(
-                g.Id,
-                g.Name,
-                g.DoseAmount,
-                g.DoseUnit,
-                animalsByGroup[g.Id].ToList()));
+            g => new GroupDetail(g.Id, g.Name, g.DoseAmount, g.DoseUnit));
+
+        ILookup<Guid, CageDetail> cagesByBatch = cageRows.ToLookup(
+            c => c.BatchId,
+            c => new CageDetail(c.Id, c.Name, c.Capacity, animalsByCage[c.Id].ToList()));
 
         IReadOnlyList<BatchDetail> batches = batchRows
             .Select(b => new BatchDetail(
@@ -176,7 +204,8 @@ internal sealed class GetProjectQueryHandler
                 b.DesignVersion,
                 b.Status,
                 b.ExperimentalModelId,
-                groupsByBatch[b.Id].ToList()))
+                groupsByBatch[b.Id].ToList(),
+                cagesByBatch[b.Id].ToList()))
             .ToList();
 
         return new ProjectDetail(
@@ -201,5 +230,7 @@ internal sealed class GetProjectQueryHandler
 
     internal sealed record GroupRow(Guid Id, Guid BatchId, string Name, decimal DoseAmount, string DoseUnit);
 
-    internal sealed record AnimalRow(Guid Id, Guid GroupId, string Identifier, string Sex, decimal? WeightGrams);
+    internal sealed record CageRow(Guid Id, Guid BatchId, string Name, int? Capacity);
+
+    internal sealed record AnimalRow(Guid Id, Guid CageId, string Identifier, string Sex, decimal? WeightGrams, Guid? GroupId);
 }

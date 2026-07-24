@@ -38,7 +38,8 @@ public sealed class AnimalSelectionTests
         Project project = Project.Create("Neuropatia diabética", "Rattus norvegicus");
         Batch batch = project.AddBatch("Leva 1");
         Group group = project.AddGroup(batch.Id, "Curva", Dose.Of(3m, "g/kg"));
-        Animal animal = project.AddAnimal(batch.Id, group.Id, "M1-01", AnimalSex.Male);
+        Cage cage = project.AddCage(batch.Id, "CX1", capacity: 4);
+        Animal animal = project.AddAnimalToCage(batch.Id, cage.Id, "M1-01", AnimalSex.Male, groupId: group.Id);
         return (project, batch.Id, animal);
     }
 

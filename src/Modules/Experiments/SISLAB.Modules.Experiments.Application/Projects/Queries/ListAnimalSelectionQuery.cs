@@ -24,12 +24,13 @@ public sealed record ListAnimalSelectionQuery(Guid ProjectId, Guid BatchId)
     public string? Status { get; init; }
 }
 
-/// <summary>Flat read row for the selection listing — an animal and (when applied) its inclusion decision.</summary>
+/// <summary>Flat read row for the selection listing — an animal, its cage, its (optional) group and its inclusion decision.</summary>
 public sealed record AnimalSelectionListItem(
     Guid Id,
     string Identifier,
     string Sex,
-    string GroupName,
+    string CageName,
+    string? GroupName,
     string? InclusionStatus,
     string? InclusionParameterCode,
     decimal? InclusionDecidingValue,
@@ -46,20 +47,22 @@ internal sealed class ListAnimalSelectionQueryHandler
             a.id,
             a.identifier,
             a.sex,
+            c.name                     AS cagename,
             g.name                     AS groupname,
             a.inclusion_status         AS inclusionstatus,
             a.inclusion_parameter_code AS inclusionparametercode,
             a.inclusion_deciding_value AS inclusiondecidingvalue,
             a.inclusion_reason         AS inclusionreason
         FROM experiments.project_animals AS a
-        INNER JOIN experiments.project_groups AS g ON g.id = a.group_id
-        INNER JOIN experiments.project_batches AS b ON b.id = g.batch_id
+        INNER JOIN experiments.project_cages AS c ON c.id = a.cage_id
+        INNER JOIN experiments.project_batches AS b ON b.id = c.batch_id
         INNER JOIN experiments.projects AS p ON p.id = b.project_id
+        LEFT JOIN experiments.project_groups AS g ON g.id = a.group_id
         WHERE p.company_id = @CompanyId
           AND b.project_id = @ProjectId
-          AND g.batch_id = @BatchId
+          AND c.batch_id = @BatchId
           AND (@Status IS NULL OR a.inclusion_status = @Status)
-        ORDER BY a.identifier ASC;
+        ORDER BY c.name ASC, a.identifier ASC;
         """;
 
     private readonly ITenantContext _tenantContext;

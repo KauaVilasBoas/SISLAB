@@ -10,8 +10,10 @@ namespace SISLAB.Modules.Experiments.Infrastructure.Persistence.Configurations;
 /// </summary>
 /// <remarks>
 /// The whole delineation is one aggregate persisted as nested owned collections, each in its own table under the
-/// <c>experiments</c> schema: <c>projects</c> → <c>project_batches</c> → <c>project_groups</c> →
-/// <c>project_animals</c>. Owned entity types name their columns explicitly in snake_case because the base
+/// <c>experiments</c> schema: <c>projects</c> → <c>project_batches</c> → {<c>project_groups</c>, <c>project_cages</c>
+/// → <c>project_animals</c>}. Since SISLAB-03 the animal is owned by the <b>cage</b> (its physical parent), not the
+/// group; the treatment group is an optional value reference on the animal (<c>group_id</c>, nullable, no FK — it is
+/// resolved within the aggregate). Owned entity types name their columns explicitly in snake_case because the base
 /// context skips the snake_case pass for owned types. The <see cref="Dose"/> value object is table-split into the
 /// group row (amount + unit columns).
 /// </remarks>
@@ -72,6 +74,13 @@ internal sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
         batches.OwnsMany(batch => batch.Groups, ConfigureGroups);
         batches.Navigation(batch => batch.Groups).AutoInclude();
 
+        batches.OwnsMany(batch => batch.Cages, ConfigureCages);
+        batches.Navigation(batch => batch.Cages).AutoInclude();
+
+        // Batch.Animals is a read-only projection over the cages' animals (not a stored navigation) — ignore it so EF
+        // does not try to map animals a second time under the batch.
+        batches.Ignore(batch => batch.Animals);
+
         batches.HasIndex("project_id").HasDatabaseName("ix_project_batches_project_id");
     }
 
@@ -94,20 +103,39 @@ internal sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
         });
         groups.Navigation(group => group.Dose).IsRequired();
 
-        groups.OwnsMany(group => group.Animals, ConfigureAnimals);
-        groups.Navigation(group => group.Animals).AutoInclude();
-
         groups.HasIndex("batch_id").HasDatabaseName("ix_project_groups_batch_id");
     }
 
-    private static void ConfigureAnimals(OwnedNavigationBuilder<Group, Animal> animals)
+    private static void ConfigureCages(OwnedNavigationBuilder<Batch, Cage> cages)
+    {
+        cages.ToTable("project_cages");
+
+        cages.WithOwner().HasForeignKey("batch_id");
+        cages.HasKey(cage => cage.Id);
+        cages.Property(cage => cage.Id).HasColumnName("id").ValueGeneratedNever();
+        cages.Property<Guid>("batch_id");
+
+        cages.Property(cage => cage.Name).HasColumnName("name").HasMaxLength(120).IsRequired();
+        cages.Property(cage => cage.Capacity).HasColumnName("capacity");
+
+        cages.OwnsMany(cage => cage.Animals, ConfigureAnimals);
+        cages.Navigation(cage => cage.Animals).AutoInclude();
+
+        cages.HasIndex("batch_id").HasDatabaseName("ix_project_cages_batch_id");
+    }
+
+    private static void ConfigureAnimals(OwnedNavigationBuilder<Cage, Animal> animals)
     {
         animals.ToTable("project_animals");
 
-        animals.WithOwner().HasForeignKey("group_id");
+        animals.WithOwner().HasForeignKey("cage_id");
         animals.HasKey(animal => animal.Id);
         animals.Property(animal => animal.Id).HasColumnName("id").ValueGeneratedNever();
-        animals.Property<Guid>("group_id");
+        animals.Property<Guid>("cage_id");
+
+        // The treatment group the animal is assigned to (SISLAB-03), held by value — nullable while unassigned. No FK:
+        // the group is a sibling owned entity of the same batch, resolved within the aggregate (ids-by-value rule).
+        animals.Property(animal => animal.GroupId).HasColumnName("group_id");
 
         animals.Property(animal => animal.Identifier).HasColumnName("identifier").HasMaxLength(60).IsRequired();
         animals.Property(animal => animal.Sex)
@@ -139,7 +167,8 @@ internal sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
                 .HasMaxLength(300);
         });
 
-        animals.HasIndex("group_id").HasDatabaseName("ix_project_animals_group_id");
+        animals.HasIndex("cage_id").HasDatabaseName("ix_project_animals_cage_id");
+        animals.HasIndex(animal => animal.GroupId).HasDatabaseName("ix_project_animals_group_id");
     }
 
     private static void ConfigureReadings(OwnedNavigationBuilder<Project, PhysiologicalReading> readings)
