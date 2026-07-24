@@ -132,6 +132,8 @@ export const Endpoints = {
       root: '/api/configuration/experimental-models',
       byId: (id: string) => `/api/configuration/experimental-models/${id}`,
     },
+    /** Per-tenant animal-inclusion criteria (SISLAB-02) — list + create (parameter, operator, threshold, unit). */
+    inclusionCriteria: '/api/configuration/inclusion-criteria',
   },
 
   /** Experiments module — in vitro cell-viability slice (card [E11] #68). */
@@ -211,6 +213,17 @@ export const Endpoints = {
       `/api/projects/${id}/batches/${batchId}/groups/${groupId}/preparations`,
     /** List a project's confirmed solution preparations, optionally filtered by batch/group (SISLAB-01). */
     listPreparations: (id: string) => `/api/projects/${id}/preparations`,
+    /** Record a physiological reading (glicemia/peso, …) on a project animal at a timepoint (SISLAB-02). */
+    animalReadings: (id: string, animalId: string) =>
+      `/api/projects/${id}/animals/${animalId}/readings`,
+    /** List a project's physiological readings, optionally filtered by parameter/animal (SISLAB-02). */
+    readings: (id: string) => `/api/projects/${id}/readings`,
+    /** Apply the inclusion criteria to a batch, marking each animal included/excluded (SISLAB-02). */
+    applySelection: (id: string, batchId: string) =>
+      `/api/projects/${id}/batches/${batchId}/apply-selection`,
+    /** List a batch's animals with their inclusion decision (deciding value + reason) — SISLAB-02. */
+    selection: (id: string, batchId: string) =>
+      `/api/projects/${id}/batches/${batchId}/selection`,
   },
 
   /** Experiments module — biobank: Sample → Analysis with a derived balance (card [E11] #89). */

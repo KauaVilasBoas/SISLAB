@@ -7,8 +7,16 @@ import { ItemCategoriesTab } from '@/modules/configuration/components/ItemCatego
 import { ReferenceRangesTab } from '@/modules/configuration/components/ReferenceRangesTab';
 import { ExpiryPolicyTab } from '@/modules/configuration/components/ExpiryPolicyTab';
 import { ExperimentalModelsTab } from '@/modules/configuration/components/ExperimentalModelsTab';
+import { InclusionCriteriaTab } from '@/modules/configuration/components/InclusionCriteriaTab';
 
-type TabKey = 'units' | 'rooms' | 'categories' | 'ranges' | 'expiry' | 'models';
+type TabKey =
+  | 'units'
+  | 'rooms'
+  | 'categories'
+  | 'ranges'
+  | 'expiry'
+  | 'models'
+  | 'inclusion';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'units', label: 'Unidades de medida' },
@@ -17,6 +25,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'ranges', label: 'Faixas de referência' },
   { key: 'expiry', label: 'Política de validade' },
   { key: 'models', label: 'Modelos experimentais' },
+  { key: 'inclusion', label: 'Critérios de inclusão' },
 ];
 
 /**
@@ -31,7 +40,7 @@ export function ConfigurationPage() {
     <div className="space-y-6">
       <PageHeader
         title="Configurações"
-        description="Catálogos do laboratório: unidades, salas, categorias, faixas de referência, política de validade e modelos experimentais."
+        description="Catálogos do laboratório: unidades, salas, categorias, faixas de referência, política de validade, modelos experimentais e critérios de inclusão."
       />
 
       <div
@@ -64,6 +73,7 @@ export function ConfigurationPage() {
       {tab === 'ranges' ? <ReferenceRangesTab /> : null}
       {tab === 'expiry' ? <ExpiryPolicyTab /> : null}
       {tab === 'models' ? <ExperimentalModelsTab /> : null}
+      {tab === 'inclusion' ? <InclusionCriteriaTab /> : null}
     </div>
   );
 }

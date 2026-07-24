@@ -3,12 +3,14 @@ import { api } from '@/shared/api/http';
 import { Endpoints } from '@/shared/api/endpoints';
 import type {
   CreateExperimentalModelRequest,
+  CreateInclusionCriterionRequest,
   CreateItemCategoryRequest,
   CreateReferenceRangeRequest,
   CreateRoomRequest,
   CreateUnitRequest,
   ExperimentalModelListItem,
   ExperimentalModelView,
+  InclusionCriterionListItem,
   ItemCategoryListItem,
   ReferenceRangeListItem,
   RoomListItem,
@@ -30,6 +32,7 @@ export const configurationKeys = {
   experimentalModels: () => [...configurationKeys.all, 'experimental-models'] as const,
   experimentalModel: (id: string) =>
     [...configurationKeys.experimentalModels(), id] as const,
+  inclusionCriteria: () => [...configurationKeys.all, 'inclusion-criteria'] as const,
 };
 
 // The catalogues change rarely; keep them fresh for a couple of minutes to avoid refetch churn.
@@ -99,6 +102,20 @@ export function useExperimentalModel(id: string | null) {
   });
 }
 
+/**
+ * The active company's animal-inclusion criteria (SISLAB-02), ordered by parameter. This is the same list the
+ * Experiments module consumes (through the backend port) to apply the selection, and the source for the
+ * "não aplicável" cross-check the selection board makes against a batch's model parameters.
+ */
+export function useInclusionCriteria() {
+  return useQuery({
+    queryKey: configurationKeys.inclusionCriteria(),
+    queryFn: () =>
+      api.get<InclusionCriterionListItem[]>(Endpoints.configuration.inclusionCriteria),
+    staleTime: CATALOGUE_STALE_TIME,
+  });
+}
+
 /** The active company's expiry warning window, in days before expiry (the default when unset). */
 export function useExpiryPolicy() {
   return useQuery({
@@ -162,6 +179,17 @@ export function useCreateExperimentalModel() {
       api.post<string>(Endpoints.configuration.experimentalModels.root, body),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: configurationKeys.experimentalModels() }),
+  });
+}
+
+/** Creates an inclusion criterion (SISLAB-02); returns the new id. Refreshes the criteria list. */
+export function useCreateInclusionCriterion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateInclusionCriterionRequest) =>
+      api.post<string>(Endpoints.configuration.inclusionCriteria, body),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: configurationKeys.inclusionCriteria() }),
   });
 }
 
