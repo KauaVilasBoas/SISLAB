@@ -72,6 +72,25 @@ public sealed class Plate
         well.RecordAbsorbance(rawAbsorbance);
     }
 
-    /// <summary>True once every designed well has an imported absorbance (ready to calculate).</summary>
-    public bool HasCompleteReading => _wells.Count > 0 && _wells.All(well => well.HasReading);
+    /// <summary>
+    /// Marks the well at <paramref name="coordinate"/> as an excluded outlier with the operator's reason and
+    /// author (SISLAB-06). The coordinate must belong to the design. Whether exclusion is still allowed (i.e. the
+    /// calculation has not been frozen) is the aggregate's invariant, guarded by <c>PlateExperiment</c>.
+    /// </summary>
+    public void ExcludeWell(string coordinate, string reason, string actor)
+        => RequireWell(coordinate).Exclude(reason, actor);
+
+    /// <summary>Brings the well at <paramref name="coordinate"/> back into the calculation (SISLAB-06).</summary>
+    public void IncludeWell(string coordinate)
+        => RequireWell(coordinate).Include();
+
+    /// <summary>True once every designed, non-excluded well has an imported absorbance (ready to calculate).</summary>
+    public bool HasCompleteReading =>
+        _wells.Count > 0 && _wells.Where(well => !well.IsExcluded).All(well => well.HasReading);
+
+    private Well RequireWell(string coordinate)
+        => _wells.FirstOrDefault(w =>
+               string.Equals(w.Coordinate, coordinate, StringComparison.OrdinalIgnoreCase))
+           ?? throw new DomainException(
+               $"Cannot exclude well '{coordinate}': it is not part of the plate design.");
 }

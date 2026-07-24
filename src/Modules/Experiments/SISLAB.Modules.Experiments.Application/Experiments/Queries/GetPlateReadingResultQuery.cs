@@ -37,7 +37,10 @@ public sealed record PlateWellResult(
     int Column,
     string Role,
     decimal? RawAbsorbance,
-    decimal? ComputedValue);
+    decimal? ComputedValue,
+    bool IsExcluded,
+    string? ExclusionReason,
+    string? ExcludedBy);
 
 internal sealed class GetPlateReadingResultQueryHandler
     : BaseDataAccess, IQueryHandler<GetPlateReadingResultQuery, PlateReadingResult>
@@ -55,10 +58,13 @@ internal sealed class GetPlateReadingResultQueryHandler
     private const string WellsSql =
         """
         SELECT
-            w.well_row       AS row,
-            w.well_column    AS column,
+            w.well_row         AS row,
+            w.well_column      AS column,
             w.role,
-            w.raw_absorbance AS rawabsorbance
+            w.raw_absorbance   AS rawabsorbance,
+            w.is_excluded      AS isexcluded,
+            w.exclusion_reason AS exclusionreason,
+            w.excluded_by      AS excludedby
         FROM experiments.wells AS w
         INNER JOIN experiments.experiments AS e
             ON e.id = w.experiment_id
@@ -100,7 +106,10 @@ internal sealed class GetPlateReadingResultQueryHandler
                 row.Column,
                 row.Role,
                 row.RawAbsorbance,
-                computedByWell.TryGetValue($"{row.Row}{row.Column}", out decimal value) ? value : null))
+                computedByWell.TryGetValue($"{row.Row}{row.Column}", out decimal value) ? value : null,
+                row.IsExcluded,
+                row.ExclusionReason,
+                row.ExcludedBy))
             .ToList();
 
         return new PlateReadingResult(experiment.Id, experiment.ResultJson is not null, wells);
@@ -143,7 +152,14 @@ internal sealed class GetPlateReadingResultQueryHandler
 
     private sealed record ExperimentResultRow(Guid Id, string? ResultJson);
 
-    private sealed record PlateWellRow(char Row, int Column, string Role, decimal? RawAbsorbance);
+    private sealed record PlateWellRow(
+        char Row,
+        int Column,
+        string Role,
+        decimal? RawAbsorbance,
+        bool IsExcluded,
+        string? ExclusionReason,
+        string? ExcludedBy);
 
     /// <summary>Shape of the snapshot JSON common to both strategies (only the per-well computed value is read).</summary>
     private sealed record SnapshotPayload(IReadOnlyList<SnapshotWell>? Wells);

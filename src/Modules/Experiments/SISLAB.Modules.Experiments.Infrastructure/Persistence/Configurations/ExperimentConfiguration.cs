@@ -187,6 +187,19 @@ internal sealed class PlateExperimentConfiguration
             .HasColumnName("raw_absorbance")
             .HasColumnType("numeric(12,4)");
 
+        // Outlier exclusion (SISLAB-06): the operator's human decision to drop a replicate before calculating,
+        // kept on the row for traceability (who / why). Defaults to not-excluded so existing wells migrate cleanly.
+        wells.Property(well => well.IsExcluded)
+            .HasColumnName("is_excluded")
+            .HasDefaultValue(false)
+            .IsRequired();
+        wells.Property(well => well.ExclusionReason)
+            .HasColumnName("exclusion_reason")
+            .HasMaxLength(500);
+        wells.Property(well => well.ExcludedBy)
+            .HasColumnName("excluded_by")
+            .HasMaxLength(200);
+
         wells.HasIndex("experiment_id").HasDatabaseName("ix_wells_experiment_id");
     }
 

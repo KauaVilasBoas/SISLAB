@@ -200,6 +200,42 @@ public sealed class ExperimentsController : SislabControllerBase
         return Ok(new ApiResult(true, "Plate reading imported."));
     }
 
+    /// <summary>
+    /// Marks a plate well as an excluded outlier before the calculation runs (SISLAB-06). The exclusion is
+    /// recorded with a reason and honoured by the strategies. Rejected once the snapshot is frozen (409).
+    /// </summary>
+    [HttpPost("{experimentId:guid}/wells/{coordinate}/exclude")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ExcludeWell(
+        Guid experimentId,
+        string coordinate,
+        [FromBody] ExcludeWellRequest body,
+        CancellationToken ct)
+    {
+        await _mediator.SendAsync(new ExcludeWellCommand(experimentId, coordinate, body.Reason), ct);
+        return Ok(new ApiResult(true, "Well excluded."));
+    }
+
+    /// <summary>Brings a previously excluded well back into the calculation (SISLAB-06). Rejected after freezing (409).</summary>
+    [HttpPost("{experimentId:guid}/wells/{coordinate}/include")]
+    [RequirePermission]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> IncludeWell(Guid experimentId, string coordinate, CancellationToken ct)
+    {
+        await _mediator.SendAsync(new IncludeWellCommand(experimentId, coordinate), ct);
+        return Ok(new ApiResult(true, "Well re-included."));
+    }
+
     /// <summary>Runs the versioned calculation (viability or nitric oxide) and freezes the result snapshot.</summary>
     [HttpPost("{experimentId:guid}/calculate")]
     [RequirePermission]
@@ -343,6 +379,9 @@ public sealed record DesignPlateWellRequest(
 
 /// <summary>Request body to import a plate reading — the canonical <c>well,absorbance</c> CSV as text.</summary>
 public sealed record ImportReadingRequest(string CsvContent);
+
+/// <summary>Request body to exclude a well as an outlier (SISLAB-06): the operator's reason.</summary>
+public sealed record ExcludeWellRequest(string Reason);
 
 /// <summary>
 /// Request body to create an in vivo behavioural experiment; the company comes from the session, never the payload.

@@ -53,7 +53,9 @@ internal sealed class ViabilityCalculationStrategy : IExperimentProtocol
         if (wells.Count == 0)
             throw new DomainException("The plate has no wells to calculate.");
 
-        if (wells.Any(well => !well.HasReading))
+        // Excluded outliers (SISLAB-06) are ignored everywhere below: a missing reading on an excluded well never
+        // blocks the calculation, and the means/results are computed only from the replicates that still count.
+        if (wells.Any(well => !well.HasReading && !well.IsExcluded))
             throw new DomainException(
                 "Every designed well must have an imported absorbance before calculating viability.");
 
@@ -69,7 +71,7 @@ internal sealed class ViabilityCalculationStrategy : IExperimentProtocol
                 "The control mean equals the blank mean (zero denominator): viability cannot be computed.");
 
         IReadOnlyList<WellViabilityResult> results = wells
-            .Where(well => well.Role is WellRole.Sample or WellRole.CurvePoint)
+            .Where(well => well.CountsTowardCalculation && well.Role is WellRole.Sample or WellRole.CurvePoint)
             .OrderBy(well => well.Row)
             .ThenBy(well => well.Column)
             .Select(well => new WellViabilityResult(
@@ -94,7 +96,7 @@ internal sealed class ViabilityCalculationStrategy : IExperimentProtocol
     private static decimal? Mean(IReadOnlyList<Well> wells, WellRole role)
     {
         List<decimal> values = wells
-            .Where(well => well.Role == role)
+            .Where(well => well.Role == role && well.CountsTowardCalculation)
             .Select(well => well.RawAbsorbance!.Value)
             .ToList();
 

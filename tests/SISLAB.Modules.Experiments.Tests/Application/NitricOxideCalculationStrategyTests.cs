@@ -127,6 +127,32 @@ public sealed class NitricOxideCalculationStrategyTests
     }
 
     [Fact]
+    public void Excluding_a_standard_outlier_drops_it_from_the_curve_fit()
+    {
+        NitricOxideExperiment experiment = ExperimentTestData.NewNitricOxideExperiment();
+        // A perfect line (slope 0.02) plus one wildly-off standard at 30 µM that would ruin the fit.
+        experiment.DesignPlate(
+        [
+            ExperimentTestData.MakeWell('A', 1, WellRole.Blank, absorbance: 0.05m),
+            ExperimentTestData.MakeWell('A', 2, WellRole.Standard, absorbance: 0.05m, concentrationUm: 0m),
+            ExperimentTestData.MakeWell('B', 2, WellRole.Standard, absorbance: 0.25m, concentrationUm: 10m),
+            ExperimentTestData.MakeWell('C', 2, WellRole.Standard, absorbance: 0.45m, concentrationUm: 20m),
+            ExperimentTestData.MakeWell('D', 2, WellRole.Standard, absorbance: 5.00m, concentrationUm: 30m), // outlier
+            ExperimentTestData.MakeWell('A', 3, WellRole.Sample, absorbance: 0.45m),
+        ], "alice", DateTime.UtcNow);
+        experiment.ExcludeWell("D2", "Padrão fora da curva", "bob");
+
+        FormulaSnapshot snapshot = new NitricOxideCalculationStrategy().Calculate(experiment);
+
+        NoPayload payload = Deserialize(snapshot.ResultJson);
+        // With the outlier gone the remaining three standards are the clean 0.02x line again.
+        Assert.Equal(0.02m, payload.Slope);
+        Assert.Equal(1m, payload.RSquared);
+        NoWell sample = Assert.Single(payload.Wells);
+        Assert.Equal(20m, sample.ConcentrationUm);
+    }
+
+    [Fact]
     public void Resolver_returns_the_nitric_oxide_strategy_for_the_nitric_oxide_type()
     {
         IExperimentProtocol protocol = TestProtocols.All().Resolve(ExperimentType.NitricOxide);
