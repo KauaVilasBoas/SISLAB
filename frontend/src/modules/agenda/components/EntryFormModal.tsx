@@ -10,7 +10,7 @@ import { EntryColorPicker } from '@/modules/agenda/components/EntryColorPicker';
 import { ExperimentSelect } from '@/modules/agenda/components/ExperimentSelect';
 import { EditRecurringDialog } from '@/modules/agenda/components/EditRecurringDialog';
 import { useCreateEntry, useUpdateEntry } from '@/modules/agenda/api/entries.queries';
-import { useRooms } from '@/modules/agenda/api/rooms.queries';
+import { useRooms } from '@/modules/configuration/api/configuration.queries';
 import type {
   AgendaActivityType,
   AgendaConflictWarning,
