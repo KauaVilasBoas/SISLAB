@@ -47,7 +47,7 @@ export function CalendarPage() {
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const view = (searchParams.get('view') as CalendarView) || 'week';
+  const view = (searchParams.get('view') as CalendarView) || 'month';
   const anchorDate = searchParams.get('date') || todayIso();
 
   const filters: CalendarFilters = useMemo(

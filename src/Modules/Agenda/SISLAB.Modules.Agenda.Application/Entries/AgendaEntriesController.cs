@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using SISLAB.Infrastructure.AspNetCore;
 using SISLAB.Modules.Agenda.Application.Entries.Commands;
 using SISLAB.Modules.Agenda.Application.Entries.Queries;
+using SISLAB.Modules.Agenda.Application.Rooms.Queries;
 using SISLAB.Modules.Agenda.Domain.Entries;
 using SISLAB.SharedKernel.Exceptions;
 using SISLAB.SharedKernel.Http;
@@ -121,6 +122,15 @@ public sealed class AgendaEntriesController : SislabControllerBase
     {
         await _mediator.SendAsync(new DeleteAgendaEntryCommand(id), ct);
         return Ok(new ApiResult(true, "Agenda entry deleted."));
+    }
+
+    /// <summary>Room-occupancy timeline for a single day — read model behind the Gantt view.</summary>
+    [HttpGet("/api/agenda/rooms/occupancy")]
+    [ProducesResponseType(typeof(ApiResult<IReadOnlyList<RoomOccupancySlot>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetRoomOccupancy([FromQuery] DateOnly date, CancellationToken ct)
+    {
+        IReadOnlyList<RoomOccupancySlot> slots = await _mediator.SendAsync(new GetRoomOccupancyQuery(date), ct);
+        return Ok(new ApiResult<IReadOnlyList<RoomOccupancySlot>>(true, "Room occupancy retrieved.", slots));
     }
 
     private Guid ResolveResponsible()

@@ -18,10 +18,6 @@ import { ProjectDetailPage } from '@/modules/in-vivo/pages/ProjectDetailPage';
 import { BiobankPage } from '@/modules/in-vivo/pages/BiobankPage';
 import { SampleDetailPage } from '@/modules/in-vivo/pages/SampleDetailPage';
 import { PendenciesPage } from '@/modules/in-vivo/pages/PendenciesPage';
-import { RoomBookingPage } from '@/modules/agenda/pages/RoomBookingPage';
-import { BioteriumPage } from '@/modules/agenda/pages/BioteriumPage';
-import { PresentationsPage } from '@/modules/agenda/pages/PresentationsPage';
-import { UnifiedCalendarPage } from '@/modules/agenda/pages/UnifiedCalendarPage';
 import { CalendarPage } from '@/modules/agenda/pages/CalendarPage';
 import { AuditPage } from '@/modules/audit/pages/AuditPage';
 import { NotificationsPage } from '@/modules/notifications/pages/NotificationsPage';
@@ -105,13 +101,6 @@ export const router = createBrowserRouter([
       { path: 'experiments/in-vivo/biobank', element: <BiobankPage /> },
       { path: 'experiments/in-vivo/biobank/:sampleId', element: <SampleDetailPage /> },
       { path: 'experiments/in-vivo/pendencies', element: <PendenciesPage /> },
-      // Agenda (cards [E10] #69/#70/#71) — room bookings, biotério and presentations.
-      { path: 'agenda/rooms', element: <RoomBookingPage /> },
-      { path: 'agenda/bioterium', element: <BioteriumPage /> },
-      { path: 'agenda/presentations', element: <PresentationsPage /> },
-      { path: 'agenda/calendar', element: <UnifiedCalendarPage /> },
-      // Improved calendar — unified AgendaEntry model with day/week/month views, recurrence and filters
-      // (cards [E10.5/6/7]). Reads are only [Authorize]-gated; write actions are permission-gated on the backend.
       { path: 'agenda/schedule', element: <CalendarPage /> },
       { path: 'audit', element: <AuditPage /> },
       { path: 'notifications', element: <NotificationsPage /> },
