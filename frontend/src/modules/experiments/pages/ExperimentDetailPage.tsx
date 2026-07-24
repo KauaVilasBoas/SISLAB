@@ -27,14 +27,20 @@ import {
   formatDate,
 } from '@/modules/experiments/components/experiment-presentation';
 import { PlateGrid } from '@/modules/experiments/components/PlateGrid';
+import { PlateConditionsTable } from '@/modules/experiments/components/PlateConditionsTable';
+import { WellExclusionModal } from '@/modules/experiments/components/WellExclusionModal';
 import { DesignPlateModal } from '@/modules/experiments/components/DesignPlateModal';
 import { ImportReadingModal } from '@/modules/experiments/components/ImportReadingModal';
 import { ApplyDilutionModal } from '@/modules/experiments/components/ApplyDilutionModal';
 import { ResponsibilityPanel } from '@/modules/experiments/components/ResponsibilityPanel';
-import { RequirePermission } from '@/modules/auth/PermissionsProvider';
+import { RequirePermission, useHasPermission } from '@/modules/auth/PermissionsProvider';
 import { Permissions } from '@/modules/auth/permissions';
 import { BehavioralExperimentDetail } from '@/modules/in-vivo/components/BehavioralExperimentDetail';
-import { isBehavioralType, type ExperimentStatus } from '@/modules/experiments/types';
+import {
+  isBehavioralType,
+  type ExperimentStatus,
+  type PlateWellResult,
+} from '@/modules/experiments/types';
 
 /**
  * Experiment detail (card [E11] #68). Shows the header + status, the ordered step flow, the 8×12 plate
@@ -55,6 +61,9 @@ export function ExperimentDetailPage() {
   const [designing, setDesigning] = useState(false);
   const [importing, setImporting] = useState(false);
   const [applyingDilution, setApplyingDilution] = useState(false);
+  const [excludingWell, setExcludingWell] = useState<PlateWellResult | null>(null);
+
+  const canExcludeWell = useHasPermission(Permissions.experiments.excludeWell);
 
   async function handleCalculate() {
     try {
@@ -198,11 +207,27 @@ export function ExperimentDetailPage() {
           </div>
 
           {hasPlate ? (
-            <PlateGrid
-              wells={plate!.wells}
-              isCalculated={isCalculated}
-              formatComputed={type.formatComputed}
-            />
+            <>
+              <PlateGrid
+                wells={plate!.wells}
+                isCalculated={isCalculated}
+                formatComputed={type.formatComputed}
+                // Exclusion is a curation of the replicate set BEFORE the snapshot is frozen: once calculated
+                // the grid is read-only (the backend also rejects a post-freeze exclusion with 409). Gated on
+                // the exclude permission so members without it get a plain read-only grid.
+                onWellClick={
+                  !isCalculated && canExcludeWell
+                    ? (well) => setExcludingWell(well)
+                    : undefined
+                }
+              />
+              {!isCalculated && canExcludeWell && (
+                <p className="text-xs text-muted-foreground">
+                  Clique em um poço para marcá-lo como outlier excluído antes do cálculo. Poços
+                  excluídos não entram nas médias, na curva-padrão nem no resultado.
+                </p>
+              )}
+            </>
           ) : (
             <p className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
               A placa ainda não foi desenhada. Use “Desenhar placa” para começar.
@@ -220,6 +245,19 @@ export function ExperimentDetailPage() {
                   {experiment.calculation!.formulaExpression}
                 </p>
               </div>
+            </div>
+          )}
+
+          {isCalculated && (
+            <div className="space-y-3 border-t pt-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                Resultado por condição (média ± desvio)
+              </h3>
+              <PlateConditionsTable
+                conditions={plate?.conditions ?? []}
+                wells={plate?.wells ?? []}
+                formatComputed={type.formatComputed}
+              />
             </div>
           )}
         </div>
@@ -291,6 +329,13 @@ export function ExperimentDetailPage() {
       )}
       {applyingDilution && (
         <ApplyDilutionModal experimentId={id} onClose={() => setApplyingDilution(false)} />
+      )}
+      {excludingWell && (
+        <WellExclusionModal
+          experimentId={id}
+          well={excludingWell}
+          onClose={() => setExcludingWell(null)}
+        />
       )}
     </div>
   );
