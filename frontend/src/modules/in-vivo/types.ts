@@ -24,18 +24,32 @@ export interface ProjectListItem {
   animalCount: number;
 }
 
+/**
+ * An animal housed in a cage (SISLAB-03). Its treatment group is an optional assignment made after
+ * basal/induction: `groupId` is null while the animal is still unassigned (pre-randomization).
+ */
 export interface AnimalDetail {
   id: string;
   identifier: string;
   sex: AnimalSex;
   weightGrams: number | null;
+  /** The assigned treatment group (dose), or null while unassigned (pre-randomization). */
+  groupId: string | null;
 }
 
+/** A dose group (treatment definition) of a batch — the arm an animal is assigned to after basal. */
 export interface GroupDetail {
   id: string;
   name: string;
   doseAmount: number;
   doseUnit: string;
+}
+
+/** A cage (caixa) housing animals in a batch (SISLAB-03). Capacity (e.g. 4) is a per-lab parameter. */
+export interface CageDetail {
+  id: string;
+  name: string;
+  capacity: number | null;
   animals: AnimalDetail[];
 }
 
@@ -46,7 +60,10 @@ export interface BatchDetail {
   status: BatchStatus;
   /** The bound experimental model / induction protocol (SISLAB-04), or null while unbound. */
   experimentalModelId: string | null;
+  /** The dose groups (treatment definitions) animals are assigned to after basal. */
   groups: GroupDetail[];
+  /** The cages (caixas) housing the batch's animals (SISLAB-03). */
+  cages: CageDetail[];
 }
 
 /** Request body to bind a batch (leva) to an experimental model (SISLAB-04). */
@@ -76,10 +93,56 @@ export interface AddGroupRequest {
   doseUnit: string;
 }
 
+/** Request body to add a cage (caixa) to a batch (SISLAB-03); capacity (e.g. 4) is optional. */
+export interface AddCageRequest {
+  name: string;
+  capacity: number | null;
+}
+
+/**
+ * Request body to house an animal in a cage (SISLAB-03). `groupId` is optional: omit it for the
+ * pre-randomization flow (assign later), or supply it to assign the group at entry.
+ */
 export interface AddAnimalRequest {
   identifier: string;
   sex: AnimalSex;
   weightGrams: number | null;
+  groupId?: string;
+}
+
+/** Request body to assign (or move) an animal to a treatment group after basal (SISLAB-03). */
+export interface AssignAnimalToGroupRequest {
+  groupId: string;
+}
+
+/**
+ * Per-cage baseline summary of one physiological parameter (SISLAB-03) — the pre-randomization view
+ * (mean/min/max the researcher exports to Prism). An unmeasured cage still appears with a zero count.
+ */
+export interface CageBaselineItem {
+  cageId: string;
+  cageName: string;
+  animalsWithReading: number;
+  meanValue: number | null;
+  minValue: number | null;
+  maxValue: number | null;
+  unit: string | null;
+}
+
+/**
+ * Per-group baseline summary of one physiological parameter (SISLAB-03) — the post-randomization
+ * balance-check view. Only assigned animals participate; an empty group still appears with a zero count.
+ */
+export interface GroupBaselineItem {
+  groupId: string;
+  groupName: string;
+  doseAmount: number;
+  doseUnit: string;
+  animalsWithReading: number;
+  meanValue: number | null;
+  minValue: number | null;
+  maxValue: number | null;
+  unit: string | null;
 }
 
 // ---------------------------------------------------------------------------

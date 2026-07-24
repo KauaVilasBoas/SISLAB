@@ -136,3 +136,21 @@ export function formatMicrolitres(value: number | null | undefined): string {
   if (value === null || value === undefined) return '—';
   return `${microlitreFormatter.format(value)} µL`;
 }
+
+/**
+ * Formats a baseline statistic (mean/min/max — SISLAB-03) for the researcher's pre/post-randomization
+ * views: pt-BR grouping, up to 2 decimals, with the reading unit when known. Null (unmeasured) renders "—".
+ */
+const measurementFormatter = new Intl.NumberFormat('pt-BR', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
+export function formatMeasurement(
+  value: number | null | undefined,
+  unit: string | null | undefined,
+): string {
+  if (value === null || value === undefined) return '—';
+  const formatted = measurementFormatter.format(value);
+  return unit ? `${formatted} ${unit}` : formatted;
+}

@@ -4,14 +4,17 @@ import { Modal } from '@/shared/components/ui/modal';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
+import { SingleSelect } from '@/shared/components/ui/single-select';
 import { useToast } from '@/shared/components/ui/toast';
 import type { ApiError } from '@/shared/types/api';
-import type { AnimalSex } from '@/modules/in-vivo/types';
-import { animalSexLabel } from '@/modules/in-vivo/presentation';
+import type { AnimalSex, GroupDetail } from '@/modules/in-vivo/types';
+import { animalSexLabel, formatAmount } from '@/modules/in-vivo/presentation';
 import {
   useAddAnimal,
   useAddBatch,
+  useAddCage,
   useAddGroup,
+  useAssignAnimalToGroup,
 } from '@/modules/in-vivo/api/projects.queries';
 
 /** Add-a-batch (leva) form. */
@@ -163,22 +166,106 @@ export function AddGroupModal({
   );
 }
 
-const SEXES: AnimalSex[] = ['Male', 'Female'];
-
-/** Enrol-an-animal form. */
-export function AddAnimalModal({
+/** Add-a-cage (caixa) form (SISLAB-03) — identifier + optional capacity (e.g. 4). */
+export function AddCageModal({
   projectId,
   batchId,
-  groupId,
   onClose,
 }: {
   projectId: string;
   batchId: string;
-  groupId: string;
   onClose: () => void;
 }) {
   const toast = useToast();
-  const addAnimal = useAddAnimal(projectId, batchId, groupId);
+  const addCage = useAddCage(projectId, batchId);
+  const [name, setName] = useState('');
+  const [capacity, setCapacity] = useState('4');
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    try {
+      await addCage.mutateAsync({
+        name: name.trim(),
+        capacity: capacity.trim() === '' ? null : Number(capacity),
+      });
+      toast('success', 'Caixa adicionada.');
+      onClose();
+    } catch (err) {
+      toast('error', (err as ApiError)?.message ?? 'Não foi possível adicionar a caixa.');
+    }
+  }
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Nova caixa"
+      description="Unidade de alojamento pré-randomização. A capacidade (ex.: 4) é opcional."
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose} disabled={addCage.isPending}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="add-cage-form" disabled={addCage.isPending}>
+            {addCage.isPending && <Loader2 className="size-4 animate-spin" />}
+            Adicionar caixa
+          </Button>
+        </>
+      }
+    >
+      <form id="add-cage-form" className="space-y-4" onSubmit={handleSubmit} noValidate>
+        <div className="space-y-1.5">
+          <Label htmlFor="cage-name">Identificador</Label>
+          <Input
+            id="cage-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ex.: CX1"
+            maxLength={60}
+            required
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="cage-capacity">Capacidade — opcional</Label>
+          <Input
+            id="cage-capacity"
+            type="number"
+            min={1}
+            step={1}
+            value={capacity}
+            onChange={(e) => setCapacity(e.target.value)}
+            placeholder="Ex.: 4"
+          />
+          <p className="text-xs text-muted-foreground">
+            Nº máximo de animais na caixa. Deixe em branco para não limitar.
+          </p>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+const SEXES: AnimalSex[] = ['Male', 'Female'];
+
+/**
+ * House-an-animal form (SISLAB-03) — the new flow: an animal enters a CAGE, its treatment group is an
+ * optional assignment made later (after basal). The cage identifier is shown for context.
+ */
+export function AddAnimalModal({
+  projectId,
+  batchId,
+  cageId,
+  cageName,
+  onClose,
+}: {
+  projectId: string;
+  batchId: string;
+  cageId: string;
+  cageName: string;
+  onClose: () => void;
+}) {
+  const toast = useToast();
+  const addAnimal = useAddAnimal(projectId, batchId, cageId);
   const [identifier, setIdentifier] = useState('');
   const [sex, setSex] = useState<AnimalSex>('Male');
   const [weight, setWeight] = useState('');
@@ -191,7 +278,7 @@ export function AddAnimalModal({
         sex,
         weightGrams: weight.trim() === '' ? null : Number(weight),
       });
-      toast('success', 'Animal cadastrado.');
+      toast('success', 'Animal cadastrado na caixa.');
       onClose();
     } catch (err) {
       toast(
@@ -205,8 +292,8 @@ export function AddAnimalModal({
     <Modal
       open
       onClose={onClose}
-      title="Cadastrar animal"
-      description="Identificador único no projeto (brinco / código de gaiola)."
+      title={`Cadastrar animal — ${cageName}`}
+      description="O animal entra na caixa sem grupo. A dose é atribuída depois do basal."
       footer={
         <>
           <Button variant="outline" onClick={onClose} disabled={addAnimal.isPending}>
@@ -226,7 +313,7 @@ export function AddAnimalModal({
             id="animal-id"
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
-            placeholder="Ex.: M1-07"
+            placeholder="Ex.: A1"
             maxLength={60}
             required
           />
@@ -266,6 +353,98 @@ export function AddAnimalModal({
             placeholder="Ex.: 250"
           />
         </div>
+      </form>
+    </Modal>
+  );
+}
+
+/**
+ * Assign-or-move-to-a-group form (SISLAB-03) — the randomization step run after basal/induction, and the
+ * way a discrepant cage is redistributed. Picks among the batch's dose groups; the currently assigned group
+ * (if any) is pre-selected so a move is one click. Locked once the leva starts (the caller hides it then).
+ */
+export function AssignAnimalToGroupModal({
+  projectId,
+  batchId,
+  animalId,
+  animalIdentifier,
+  currentGroupId,
+  groups,
+  onClose,
+}: {
+  projectId: string;
+  batchId: string;
+  animalId: string;
+  animalIdentifier: string;
+  currentGroupId: string | null;
+  groups: GroupDetail[];
+  onClose: () => void;
+}) {
+  const toast = useToast();
+  const assign = useAssignAnimalToGroup(projectId, batchId);
+  const [groupId, setGroupId] = useState<string | null>(currentGroupId);
+
+  const options = groups.map((group) => ({
+    value: group.id,
+    label: group.name,
+    hint: formatAmount(group.doseAmount, group.doseUnit),
+  }));
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!groupId) {
+      toast('error', 'Escolha um grupo.');
+      return;
+    }
+    try {
+      await assign.mutateAsync({ animalId, body: { groupId } });
+      toast('success', 'Animal atribuído ao grupo.');
+      onClose();
+    } catch (err) {
+      toast('error', (err as ApiError)?.message ?? 'Não foi possível atribuir o animal.');
+    }
+  }
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={`Atribuir a grupo — ${animalIdentifier}`}
+      description="Randomização pós-basal: mova o animal para o braço de dose. Redistribui caixas discrepantes."
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose} disabled={assign.isPending}>
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            form="assign-group-form"
+            disabled={assign.isPending || !groupId}
+          >
+            {assign.isPending && <Loader2 className="size-4 animate-spin" />}
+            {currentGroupId ? 'Mover animal' : 'Atribuir animal'}
+          </Button>
+        </>
+      }
+    >
+      <form id="assign-group-form" className="space-y-4" onSubmit={handleSubmit} noValidate>
+        {groups.length === 0 ? (
+          <p className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+            Nenhum grupo cadastrado nesta leva. Adicione braços de dose antes de atribuir.
+          </p>
+        ) : (
+          <div className="space-y-1.5">
+            <Label>Grupo (dose)</Label>
+            <SingleSelect
+              label="Grupo de dose"
+              options={options}
+              value={groupId}
+              onChange={setGroupId}
+              placeholder="Escolher grupo…"
+              className="w-full"
+            />
+          </div>
+        )}
       </form>
     </Modal>
   );

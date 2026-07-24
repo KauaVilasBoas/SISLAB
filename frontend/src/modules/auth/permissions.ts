@@ -86,7 +86,11 @@ export const Permissions = {
     create: 'Projects.Create',
     addBatch: 'Projects.AddBatch',
     addGroup: 'Projects.AddGroup',
+    /** Add a cage (caixa) to a batch (SISLAB-03). */
+    addCage: 'Projects.AddCage',
     addAnimal: 'Projects.AddAnimal',
+    /** Assign (or move) an animal to a treatment group after basal (SISLAB-03). */
+    assignAnimalToGroup: 'Projects.AssignAnimalToGroup',
     startBatch: 'Projects.StartBatch',
     /** Confirm an in vivo solution preparation for a dose group (SISLAB-01). */
     prepareGroupSolution: 'Projects.PrepareGroupSolution',

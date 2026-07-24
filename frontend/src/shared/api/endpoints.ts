@@ -174,20 +174,32 @@ export const Endpoints = {
       `/api/experiments/${id}/steps/${stepId}/responsibles/${userId}`,
   },
 
-  /** Experiments module — in vivo experimental design: Project → Batch → Group → Animal (card [E11] #73). */
+  /** Experiments module — in vivo experimental design: Project → Batch → Cage → Animal (cards [E11] #73, SISLAB-03). */
   projects: {
     /** Paginated list + create. */
     root: '/api/projects',
-    /** Single project detail (batches, groups, animals). */
+    /** Single project detail (batches, groups, cages, animals). */
     byId: (id: string) => `/api/projects/${id}`,
     /** Add a batch (leva) to the project. */
     batches: (id: string) => `/api/projects/${id}/batches`,
     /** Add a dose group to a batch. */
     groups: (id: string, batchId: string) =>
       `/api/projects/${id}/batches/${batchId}/groups`,
-    /** Enrol an animal into a group. */
-    animals: (id: string, batchId: string, groupId: string) =>
-      `/api/projects/${id}/batches/${batchId}/groups/${groupId}/animals`,
+    /** Add a cage (caixa) to a batch (SISLAB-03). */
+    cages: (id: string, batchId: string) =>
+      `/api/projects/${id}/batches/${batchId}/cages`,
+    /** House an animal in a cage (SISLAB-03). Group assignment is optional at entry. */
+    cageAnimals: (id: string, batchId: string, cageId: string) =>
+      `/api/projects/${id}/batches/${batchId}/cages/${cageId}/animals`,
+    /** Assign (or move) an animal to a treatment group after basal (SISLAB-03). */
+    animalGroup: (id: string, batchId: string, animalId: string) =>
+      `/api/projects/${id}/batches/${batchId}/animals/${animalId}/group`,
+    /** Baseline of one parameter summarized by cage (pre-randomization view) — SISLAB-03. */
+    baselineByCage: (id: string, batchId: string) =>
+      `/api/projects/${id}/batches/${batchId}/baseline/by-cage`,
+    /** Baseline of one parameter summarized by treatment group (post-randomization view) — SISLAB-03. */
+    baselineByGroup: (id: string, batchId: string) =>
+      `/api/projects/${id}/batches/${batchId}/baseline/by-group`,
     /** Start a batch (freezes its design). */
     startBatch: (id: string, batchId: string) =>
       `/api/projects/${id}/batches/${batchId}/start`,
