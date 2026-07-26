@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A new push to a PR cancels the run still in flight for that same ref.
+# main is never cancelled: every commit there must have a full, green run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  backend:
+    name: Backend (.NET 8)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # Cache the NuGet http cache keyed by the project files. There is no
+      # packages.lock.json in the repo, so the csproj set is the closest stable
+      # proxy for "the dependency graph changed".
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', 'Directory.Build.props') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: dotnet restore SISLAB.sln
+
+      # Directory.Build.props sets TreatWarningsAsErrors=true for every project,
+      # so a warning anywhere fails this step.
+      - name: Build
+        run: dotnet build SISLAB.sln --configuration Release --no-restore
+
+      # Architecture boundaries first, as a fast fail: these need no Docker and
+      # no database, and a violation here means the change is structurally wrong
+      # regardless of whether the behavioural tests pass.
+      - name: Architecture tests
+        run: >-
+          dotnet test tests/SISLAB.ArchitectureTests
+          --configuration Release --no-build
+          --logger 'trx;LogFileName=architecture.trx'
+          --results-directory artifacts/test-results
+
+      # The full suite. Two projects (Inventory, Notifications) start a real
+      # postgres:16-alpine via Testcontainers — the ubuntu-latest runner ships a
+      # working Docker daemon, so no service container is needed here.
+      - name: Tests
+        run: >-
+          dotnet test SISLAB.sln
+          --configuration Release --no-build
+          --logger 'trx;LogFileName=tests.trx'
+          --results-directory artifacts/test-results
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: artifacts/test-results
+          retention-days: 14
+
+  frontend:
+    name: Frontend (React 18)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      # eslint fails the build on errors only. The repo currently carries 7
+      # react-refresh/only-export-components warnings from the shadcn/ui
+      # variant-export pattern; --max-warnings 0 would gate on those.
+      - name: Lint
+        run: npm run lint
+
+      # `npm run build` is `tsc --noEmit && vite build`, so this covers the
+      # type check and the production bundle in one step.
+      - name: Typecheck and build
+        run: npm run build
+
+  # Terraform is not applied here — this only proves the HCL parses and is
+  # canonically formatted, so a malformed plan never reaches a deploy job.
+  infra:
+    name: Infra (Terraform)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          # infra/envs/staging/versions.tf requires >= 1.11.
+          terraform_version: '1.15.7'
+
+      - name: Format check
+        run: terraform fmt -check -recursive
+        working-directory: infra
+
+      # -backend=false: validation must not need S3 credentials or touch state.
+      - name: Validate staging
+        run: |
+          terraform init -backend=false
+          terraform validate
+        working-directory: infra/envs/staging
