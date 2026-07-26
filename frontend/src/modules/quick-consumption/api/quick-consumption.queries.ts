@@ -13,7 +13,8 @@ import type { StockItemDetail } from '@/modules/quick-consumption/types';
  */
 export const quickConsumptionKeys = {
   all: ['quick-consumption'] as const,
-  item: (stockItemId: string) => [...quickConsumptionKeys.all, 'item', stockItemId] as const,
+  item: (stockItemId: string) =>
+    [...quickConsumptionKeys.all, 'item', stockItemId] as const,
   locationItems: (storageLocationId: string) =>
     [...quickConsumptionKeys.all, 'location-items', storageLocationId] as const,
 };
@@ -34,7 +35,10 @@ const LOCATION_ITEMS_LIMIT = 200;
 export function useStockItemDetail(stockItemId: string | null) {
   return useQuery({
     queryKey: quickConsumptionKeys.item(stockItemId ?? ''),
-    queryFn: () => api.get<StockItemDetail>(Endpoints.inventory.stockItems.byId(stockItemId as string)),
+    queryFn: () =>
+      api.get<StockItemDetail>(
+        Endpoints.inventory.stockItems.byId(stockItemId as string),
+      ),
     enabled: Boolean(stockItemId),
     retry: false,
     staleTime: 15_000,

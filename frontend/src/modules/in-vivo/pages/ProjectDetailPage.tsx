@@ -189,9 +189,7 @@ export function ProjectDetailPage() {
                       {batch.cages.length} caixa(s) · {animalCount} animal(is)
                     </span>
                     {unassignedCount > 0 && (
-                      <Badge variant="secondary">
-                        {unassignedCount} sem grupo
-                      </Badge>
+                      <Badge variant="secondary">{unassignedCount} sem grupo</Badge>
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -273,7 +271,11 @@ export function ProjectDetailPage() {
                   isPlanned={isPlanned}
                   onAddAnimal={(cage) => setAddingAnimalTo({ batchId: batch.id, cage })}
                   onAssign={(animal) =>
-                    setAssigningAnimal({ batchId: batch.id, animal, groups: batch.groups })
+                    setAssigningAnimal({
+                      batchId: batch.id,
+                      animal,
+                      groups: batch.groups,
+                    })
                   }
                 />
 
@@ -377,7 +379,10 @@ function GroupsSection({
   for (const cage of batch.cages) {
     for (const animal of cage.animals) {
       if (animal.groupId) {
-        assignedCountByGroup.set(animal.groupId, (assignedCountByGroup.get(animal.groupId) ?? 0) + 1);
+        assignedCountByGroup.set(
+          animal.groupId,
+          (assignedCountByGroup.get(animal.groupId) ?? 0) + 1,
+        );
       }
     }
   }
@@ -461,7 +466,9 @@ function CagesSection({
                       variant="ghost"
                       size="sm"
                       onClick={() => onAddAnimal(cage)}
-                      disabled={cage.capacity != null && cage.animals.length >= cage.capacity}
+                      disabled={
+                        cage.capacity != null && cage.animals.length >= cage.capacity
+                      }
                     >
                       <Plus className="size-4" />
                       Animal
@@ -495,7 +502,9 @@ function CagesSection({
                         )}
                       </div>
                       {isPlanned && (
-                        <RequirePermission code={Permissions.projects.assignAnimalToGroup}>
+                        <RequirePermission
+                          code={Permissions.projects.assignAnimalToGroup}
+                        >
                           <Button
                             variant="ghost"
                             size="sm"

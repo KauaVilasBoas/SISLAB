@@ -46,7 +46,9 @@ function brl(value: number): string {
  * Vertical bar option for "Custo por mês". The backend returns newest-first; the chart reads
  * chronologically (oldest → newest, left → right), so the series is reversed here.
  */
-export function buildCostByMonthOption(items: readonly MonthlyCostItem[]): EChartsCoreOption {
+export function buildCostByMonthOption(
+  items: readonly MonthlyCostItem[],
+): EChartsCoreOption {
   const chronological = [...items].reverse();
   return {
     tooltip: {

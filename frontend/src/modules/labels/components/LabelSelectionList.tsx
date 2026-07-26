@@ -33,13 +33,15 @@ export function LabelSelectionList({
   isLoading = false,
   emptyMessage = 'Nada para etiquetar aqui.',
 }: LabelSelectionListProps) {
-  const allSelected = candidates.length > 0 && candidates.every((c) => selected.has(c.selectionKey));
+  const allSelected =
+    candidates.length > 0 && candidates.every((c) => selected.has(c.selectionKey));
 
   return (
     <div className="flex flex-col rounded-lg border">
       <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-3 py-2">
         <span className="text-sm text-muted-foreground">
-          {selected.size} de {candidates.length} selecionado{selected.size === 1 ? '' : 's'}
+          {selected.size} de {candidates.length} selecionado
+          {selected.size === 1 ? '' : 's'}
         </span>
         <div className="flex gap-1">
           <Button
@@ -57,9 +59,13 @@ export function LabelSelectionList({
 
       <div className="max-h-96 overflow-y-auto">
         {isLoading ? (
-          <p className="px-3 py-6 text-center text-sm text-muted-foreground">Carregando…</p>
+          <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+            Carregando…
+          </p>
         ) : candidates.length === 0 ? (
-          <p className="px-3 py-6 text-center text-sm text-muted-foreground">{emptyMessage}</p>
+          <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+            {emptyMessage}
+          </p>
         ) : (
           <ul>
             {candidates.map((candidate) => {
@@ -79,7 +85,9 @@ export function LabelSelectionList({
                       className="size-4 rounded border-input"
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium">{candidate.title}</span>
+                      <span className="block truncate font-medium">
+                        {candidate.title}
+                      </span>
                       {candidate.subtitle ? (
                         <span className="block truncate text-xs text-muted-foreground">
                           {candidate.subtitle}

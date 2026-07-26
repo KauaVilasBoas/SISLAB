@@ -33,7 +33,9 @@ const percentFormatter = new Intl.NumberFormat('pt-BR', {
 });
 
 function ul(value: number | null | undefined): string {
-  return value === null || value === undefined ? '—' : `${microlitreFormatter.format(value)} µL`;
+  return value === null || value === undefined
+    ? '—'
+    : `${microlitreFormatter.format(value)} µL`;
 }
 
 /**
@@ -76,8 +78,12 @@ export function DilutionCalculatorPage() {
       doubleForHalfInWell,
       stockMolarMassGramsPerMole: showStock ? toNumber(molarMass) : undefined,
       stockMassMilligrams: showStock ? toNumber(stockMass) : undefined,
-      stockTargetMolarityMicromolar: showStock ? toNumber(stockTargetMolarity) : undefined,
-      stockConcentrationMilligramsPerMillilitre: showStock ? toNumber(stockMgPerMl) : undefined,
+      stockTargetMolarityMicromolar: showStock
+        ? toNumber(stockTargetMolarity)
+        : undefined,
+      stockConcentrationMilligramsPerMillilitre: showStock
+        ? toNumber(stockMgPerMl)
+        : undefined,
       stockVolumeMillilitres: showStock ? toNumber(stockVolumeMl) : undefined,
       dmsoMicrolitres: showDmso ? toNumber(dmsoMicrolitres) : undefined,
       dmsoSolutionMicrolitres: showDmso ? toNumber(dmsoSolution) : undefined,
@@ -112,7 +118,11 @@ export function DilutionCalculatorPage() {
     debouncedParams.numberOfPoints >= 1 &&
     debouncedParams.finalVolumeMicrolitres > 0;
 
-  const { data: scheme, isFetching, isError } = useDilutionScheme(debouncedParams, isValid);
+  const {
+    data: scheme,
+    isFetching,
+    isError,
+  } = useDilutionScheme(debouncedParams, isValid);
 
   return (
     <div className="space-y-6">
@@ -189,7 +199,8 @@ export function DilutionCalculatorPage() {
             {showStock && (
               <div className="space-y-4">
                 <p className="text-xs text-muted-foreground">
-                  Com massa molar: V = m × M / MM. Sem massa molar: informe mg/mL e o volume.
+                  Com massa molar: V = m × M / MM. Sem massa molar: informe mg/mL e o
+                  volume.
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <Field
@@ -279,7 +290,8 @@ export function DilutionCalculatorPage() {
           {!isValid ? (
             <div className="flex items-start gap-2 rounded-lg border border-dashed bg-card p-8 text-sm text-muted-foreground">
               <AlertCircle className="mt-0.5 size-4 shrink-0" />
-              Preencha a série (concentração &gt; 0, fator &gt; 1, pontos ≥ 1 e volume &gt; 0) para ver o esquema.
+              Preencha a série (concentração &gt; 0, fator &gt; 1, pontos ≥ 1 e volume
+              &gt; 0) para ver o esquema.
             </div>
           ) : isError ? (
             <p className="rounded-lg border bg-card p-8 text-center text-sm text-destructive">
@@ -299,11 +311,17 @@ export function DilutionCalculatorPage() {
                     <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                       Série
                     </h2>
-                    {isFetching && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
+                    {isFetching && (
+                      <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary">fator {microMolarFormatter.format(scheme.factor)}</Badge>
-                    <Badge variant="outline">{ul(scheme.finalVolumeMicrolitres)} final</Badge>
+                    <Badge variant="secondary">
+                      fator {microMolarFormatter.format(scheme.factor)}
+                    </Badge>
+                    <Badge variant="outline">
+                      {ul(scheme.finalVolumeMicrolitres)} final
+                    </Badge>
                   </div>
                 </div>
                 <table className="w-full text-sm">
@@ -319,12 +337,18 @@ export function DilutionCalculatorPage() {
                   <tbody>
                     {scheme.steps.map((step) => (
                       <tr key={step.index} className="border-b last:border-0">
-                        <td className="px-4 py-2.5 text-muted-foreground">{step.index + 1}</td>
+                        <td className="px-4 py-2.5 text-muted-foreground">
+                          {step.index + 1}
+                        </td>
                         <td className="px-4 py-2.5 font-medium tabular-nums">
                           {microMolarFormatter.format(step.concentrationMicromolar)} µM
                         </td>
-                        <td className="px-4 py-2.5 tabular-nums">{ul(step.transferMicrolitres)}</td>
-                        <td className="px-4 py-2.5 tabular-nums">{ul(step.diluentMicrolitres)}</td>
+                        <td className="px-4 py-2.5 tabular-nums">
+                          {ul(step.transferMicrolitres)}
+                        </td>
+                        <td className="px-4 py-2.5 tabular-nums">
+                          {ul(step.diluentMicrolitres)}
+                        </td>
                         <td className="px-4 py-2.5 tabular-nums text-muted-foreground">
                           {ul(step.finalVolumeMicrolitres)}
                         </td>
@@ -340,14 +364,19 @@ export function DilutionCalculatorPage() {
                     Solução estoque
                   </h2>
                   <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
-                    <Metric label="Massa" value={`${microMolarFormatter.format(scheme.stock.massMilligrams)} mg`} />
+                    <Metric
+                      label="Massa"
+                      value={`${microMolarFormatter.format(scheme.stock.massMilligrams)} mg`}
+                    />
                     <Metric
                       label="Volume"
                       value={`${microMolarFormatter.format(scheme.stock.volumeMillilitres)} mL`}
                     />
                     <Metric
                       label="mg/mL"
-                      value={microMolarFormatter.format(scheme.stock.concentrationMilligramsPerMillilitre)}
+                      value={microMolarFormatter.format(
+                        scheme.stock.concentrationMilligramsPerMillilitre,
+                      )}
                     />
                     {scheme.stock.molarMassGramsPerMole != null && (
                       <Metric
@@ -373,8 +402,14 @@ export function DilutionCalculatorPage() {
                   <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
                     <Metric label="DMSO puro" value={ul(scheme.dmso.dmsoMicrolitres)} />
                     <Metric label="Solução" value={ul(scheme.dmso.solutionMicrolitres)} />
-                    <Metric label="Fração na solução" value={percentFormatter.format(scheme.dmso.solutionFraction)} />
-                    <Metric label="Fração no poço" value={percentFormatter.format(scheme.dmso.wellFraction)} />
+                    <Metric
+                      label="Fração na solução"
+                      value={percentFormatter.format(scheme.dmso.solutionFraction)}
+                    />
+                    <Metric
+                      label="Fração no poço"
+                      value={percentFormatter.format(scheme.dmso.wellFraction)}
+                    />
                   </dl>
                 </section>
               )}

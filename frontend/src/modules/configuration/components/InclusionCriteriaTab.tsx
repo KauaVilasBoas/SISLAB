@@ -76,7 +76,8 @@ export function InclusionCriteriaTab() {
                   <tr key={criterion.id} className="border-b last:border-0">
                     <td className="px-5 py-3 font-medium">{criterion.parameterCode}</td>
                     <td className="px-5 py-3 text-muted-foreground">
-                      {operatorSymbol(criterion.operator)} {criterion.threshold} {criterion.unit}
+                      {operatorSymbol(criterion.operator)} {criterion.threshold}{' '}
+                      {criterion.unit}
                     </td>
                   </tr>
                 ))}
@@ -91,7 +92,9 @@ export function InclusionCriteriaTab() {
         />
       )}
 
-      {createOpen ? <CreateInclusionCriterionModal onClose={() => setCreateOpen(false)} /> : null}
+      {createOpen ? (
+        <CreateInclusionCriterionModal onClose={() => setCreateOpen(false)} />
+      ) : null}
     </div>
   );
 }
@@ -162,7 +165,8 @@ function CreateInclusionCriterionModal({ onClose }: { onClose: () => void }) {
             autoFocus
           />
           <p className="text-xs text-muted-foreground">
-            Código do parâmetro medido (ex.: glicemia). Só se aplica às levas cujo modelo o inclui.
+            Código do parâmetro medido (ex.: glicemia). Só se aplica às levas cujo modelo
+            o inclui.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-4">

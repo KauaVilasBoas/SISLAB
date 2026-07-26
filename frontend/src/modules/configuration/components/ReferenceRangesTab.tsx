@@ -62,7 +62,9 @@ export function ReferenceRangesTab() {
                   <tr key={range.id} className="border-b last:border-0">
                     <td className="px-5 py-3 font-medium">{range.analyte}</td>
                     <td className="px-5 py-3 text-muted-foreground">{range.species}</td>
-                    <td className="px-5 py-3 text-muted-foreground">{formatBounds(range)}</td>
+                    <td className="px-5 py-3 text-muted-foreground">
+                      {formatBounds(range)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -76,7 +78,9 @@ export function ReferenceRangesTab() {
         />
       )}
 
-      {createOpen ? <CreateReferenceRangeModal onClose={() => setCreateOpen(false)} /> : null}
+      {createOpen ? (
+        <CreateReferenceRangeModal onClose={() => setCreateOpen(false)} />
+      ) : null}
     </div>
   );
 }
@@ -111,7 +115,10 @@ function CreateReferenceRangeModal({ onClose }: { onClose: () => void }) {
       toast('success', 'Faixa de referência criada com sucesso.');
       onClose();
     } catch (err) {
-      toast('error', (err as ApiError)?.message ?? 'Não foi possível criar a faixa de referência.');
+      toast(
+        'error',
+        (err as ApiError)?.message ?? 'Não foi possível criar a faixa de referência.',
+      );
     }
   }
 
@@ -133,7 +140,12 @@ function CreateReferenceRangeModal({ onClose }: { onClose: () => void }) {
         </>
       }
     >
-      <form id="create-range-form" className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
+      <form
+        id="create-range-form"
+        className="flex flex-col gap-4"
+        onSubmit={handleSubmit}
+        noValidate
+      >
         <div className="flex flex-col gap-2">
           <Label htmlFor="range-analyte">Parâmetro</Label>
           <Input

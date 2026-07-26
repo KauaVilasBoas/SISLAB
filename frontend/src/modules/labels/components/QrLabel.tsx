@@ -38,7 +38,10 @@ export function QrLabel({ label }: QrLabelProps) {
         <span className="inline-block rounded-sm bg-neutral-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-neutral-500">
           {KIND_TAG[label.kind]}
         </span>
-        <p className="mt-1 truncate text-sm font-semibold leading-tight" title={label.title}>
+        <p
+          className="mt-1 truncate text-sm font-semibold leading-tight"
+          title={label.title}
+        >
           {label.title}
         </p>
         {label.subtitle ? (

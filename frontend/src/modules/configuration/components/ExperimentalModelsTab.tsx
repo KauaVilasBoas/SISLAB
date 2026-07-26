@@ -72,12 +72,16 @@ export function ExperimentalModelsTab() {
                     <td className="px-5 py-3">
                       <div className="font-medium">{model.name}</div>
                       {model.description ? (
-                        <div className="text-xs text-muted-foreground">{model.description}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {model.description}
+                        </div>
                       ) : null}
                     </td>
                     <td className="px-5 py-3 text-muted-foreground">
                       {model.inductionAdministrations}{' '}
-                      {model.inductionAdministrations === 1 ? 'administração' : 'administrações'}
+                      {model.inductionAdministrations === 1
+                        ? 'administração'
+                        : 'administrações'}
                     </td>
                     <td className="px-5 py-3 text-muted-foreground">
                       D+{model.referenceDayAfterInduction}
@@ -95,7 +99,9 @@ export function ExperimentalModelsTab() {
         />
       )}
 
-      {createOpen ? <CreateExperimentalModelModal onClose={() => setCreateOpen(false)} /> : null}
+      {createOpen ? (
+        <CreateExperimentalModelModal onClose={() => setCreateOpen(false)} />
+      ) : null}
     </div>
   );
 }
@@ -171,8 +177,7 @@ function CreateExperimentalModelModal({ onClose }: { onClose: () => void }) {
       .map((group) => ({
         name: group.name.trim(),
         kind: group.kind,
-        doseAmount:
-          group.kind === 'Dose' ? parseNumber(group.doseAmount) : null,
+        doseAmount: group.kind === 'Dose' ? parseNumber(group.doseAmount) : null,
         doseUnit: group.kind === 'Dose' ? group.doseUnit.trim() || null : null,
       }))
       .filter((group) => group.name.length > 0);
@@ -238,7 +243,12 @@ function CreateExperimentalModelModal({ onClose }: { onClose: () => void }) {
         </>
       }
     >
-      <form id="create-model-form" className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
+      <form
+        id="create-model-form"
+        className="flex flex-col gap-5"
+        onSubmit={handleSubmit}
+        noValidate
+      >
         <div className="flex flex-col gap-2">
           <Label htmlFor="model-name">Nome</Label>
           <Input
@@ -326,7 +336,8 @@ function CreateExperimentalModelModal({ onClose }: { onClose: () => void }) {
             ))}
           </div>
           <p className="text-xs text-muted-foreground">
-            Os parâmetros marcados serão oferecidos nas leituras da leva; os demais ficam ocultos.
+            Os parâmetros marcados serão oferecidos nas leituras da leva; os demais ficam
+            ocultos.
           </p>
         </div>
 
@@ -376,7 +387,9 @@ function CreateExperimentalModelModal({ onClose }: { onClose: () => void }) {
                         inputMode="decimal"
                         placeholder="3"
                         value={group.doseAmount}
-                        onChange={(e) => updateGroup(index, { doseAmount: e.target.value })}
+                        onChange={(e) =>
+                          updateGroup(index, { doseAmount: e.target.value })
+                        }
                       />
                     </div>
                     <div className="flex w-24 flex-col gap-1.5">
@@ -439,7 +452,8 @@ function CreateExperimentalModelModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            Ex.: 1 g de animal : 5 µL de solução. Usado como padrão no preparo in vivo (SISLAB-01).
+            Ex.: 1 g de animal : 5 µL de solução. Usado como padrão no preparo in vivo
+            (SISLAB-01).
           </p>
         </fieldset>
       </form>

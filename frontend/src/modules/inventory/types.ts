@@ -51,11 +51,7 @@ export interface LocationSummaryItem {
  * carry a target temperature range; `Controlled` is the only one allowed to hold controlled items.
  */
 export type StorageLocationType =
-  | 'GeneralStorage'
-  | 'ReagentCabinet'
-  | 'Refrigerated'
-  | 'Controlled'
-  | 'Partner';
+  'GeneralStorage' | 'ReagentCabinet' | 'Refrigerated' | 'Controlled' | 'Partner';
 
 /**
  * A storage location row for the management screen (GET /api/inventory/storage-locations). Flat by design:

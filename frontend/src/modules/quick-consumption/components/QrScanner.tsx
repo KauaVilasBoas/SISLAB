@@ -2,7 +2,10 @@ import { useState, type FormEvent } from 'react';
 import { CameraOff, Keyboard, Loader2, ScanLine } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
-import { useQrScanner, type ScannerError } from '@/modules/quick-consumption/hooks/useQrScanner';
+import {
+  useQrScanner,
+  type ScannerError,
+} from '@/modules/quick-consumption/hooks/useQrScanner';
 
 interface QrScannerProps {
   /** Whether the camera should be decoding — paused by the parent once an item is loaded. */
@@ -16,7 +19,8 @@ interface QrScannerProps {
 const CAMERA_ERROR_COPY: Record<ScannerError, string> = {
   'permission-denied':
     'Acesso à câmera negado. Autorize a câmera nas permissões do navegador ou informe o código manualmente.',
-  'no-camera': 'Nenhuma câmera disponível neste dispositivo. Informe o código manualmente.',
+  'no-camera':
+    'Nenhuma câmera disponível neste dispositivo. Informe o código manualmente.',
   'insecure-context':
     'A câmera exige uma conexão segura (HTTPS). Informe o código manualmente por enquanto.',
   unknown: 'Não foi possível iniciar a câmera. Informe o código manualmente.',
@@ -109,7 +113,11 @@ function ManualEntry({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-2 rounded-lg border bg-muted/30 p-3">
+    <form
+      onSubmit={handleSubmit}
+      noValidate
+      className="space-y-2 rounded-lg border bg-muted/30 p-3"
+    >
       <label htmlFor="manual-qr" className="text-sm font-medium leading-none">
         Código do item
       </label>

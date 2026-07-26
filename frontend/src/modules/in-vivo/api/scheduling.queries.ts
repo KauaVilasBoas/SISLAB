@@ -21,7 +21,10 @@ export function useGenerateSchedule(experimentId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: GenerateScheduleRequest) =>
-      api.post<GenerateScheduleResult>(Endpoints.experiments.schedule(experimentId), body),
+      api.post<GenerateScheduleResult>(
+        Endpoints.experiments.schedule(experimentId),
+        body,
+      ),
     onSuccess: () => {
       // The new entries appear on the calendar/agenda views — refresh any cached calendar window.
       void queryClient.invalidateQueries({ queryKey: entryKeys.all });

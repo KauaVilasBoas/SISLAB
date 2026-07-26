@@ -63,7 +63,9 @@ export function ExperimentSelect({ value, valueLabel, onChange }: ExperimentSele
                     <Loader2 className="size-4 animate-spin" /> Carregando…
                   </div>
                 ) : options.length === 0 ? (
-                  <p className="px-2 py-3 text-sm text-muted-foreground">Nenhum experimento.</p>
+                  <p className="px-2 py-3 text-sm text-muted-foreground">
+                    Nenhum experimento.
+                  </p>
                 ) : (
                   options.map((option) => (
                     <button

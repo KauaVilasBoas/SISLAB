@@ -50,7 +50,9 @@ export function BatchSelect({
   // When no lot is chosen (automatic FEFO), still warn if the lot the backend WOULD draw is expired.
   const effectiveStatus =
     selectedStatus ??
-    (fefoDefault ? batchExpiryStatus(fefoDefault.expiryYear, fefoDefault.expiryMonth) : null);
+    (fefoDefault
+      ? batchExpiryStatus(fefoDefault.expiryYear, fefoDefault.expiryMonth)
+      : null);
 
   return (
     <Field label="Lote (opcional)" htmlFor={id}>
@@ -113,7 +115,9 @@ function ExpiryHint({
   const state = status === 'Expired' ? 'está vencido' : 'vence em breve';
 
   return (
-    <p className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs ${tone}`}>
+    <p
+      className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs ${tone}`}
+    >
       <Badge variant={presentation.variant} className="shrink-0">
         {presentation.label}
       </Badge>

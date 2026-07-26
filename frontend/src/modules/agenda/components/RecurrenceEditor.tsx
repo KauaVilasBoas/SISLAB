@@ -30,7 +30,8 @@ interface RecurrenceEditorProps {
   onChange: (rrule: string | null) => void;
 }
 
-type PresetKey = 'none' | 'daily' | 'weekly' | 'weekday' | 'monthly' | 'annually' | 'custom';
+type PresetKey =
+  'none' | 'daily' | 'weekly' | 'weekday' | 'monthly' | 'annually' | 'custom';
 
 export function RecurrenceEditor({ anchorDate, value, onChange }: RecurrenceEditorProps) {
   const [customOpen, setCustomOpen] = useState(false);
@@ -47,7 +48,8 @@ export function RecurrenceEditor({ anchorDate, value, onChange }: RecurrenceEdit
   const activePreset: PresetKey =
     value === null
       ? 'none'
-      : (Object.keys(presets) as PresetKey[]).find((key) => presets[key] === value) ?? 'custom';
+      : ((Object.keys(presets) as PresetKey[]).find((key) => presets[key] === value) ??
+        'custom');
 
   function handleSelect(key: PresetKey) {
     if (key === 'custom') {
@@ -97,7 +99,10 @@ export function RecurrenceEditor({ anchorDate, value, onChange }: RecurrenceEdit
 // Preset RRULEs
 // ---------------------------------------------------------------------------
 
-function buildPresetRRules(weekday: Weekday, monthDay: number): Record<PresetKey, string> {
+function buildPresetRRules(
+  weekday: Weekday,
+  monthDay: number,
+): Record<PresetKey, string> {
   return {
     none: '',
     daily: 'FREQ=DAILY',

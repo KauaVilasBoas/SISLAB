@@ -113,7 +113,8 @@ export function StockItemFormModal({ item, onClose }: StockItemFormModalProps) {
   useEffect(() => {
     if (!item || !categories.data) return;
     const match = categories.data.find((c) => c.name === item.category);
-    if (match) setForm((prev) => (prev.categoryId ? prev : { ...prev, categoryId: match.id }));
+    if (match)
+      setForm((prev) => (prev.categoryId ? prev : { ...prev, categoryId: match.id }));
   }, [item, categories.data]);
 
   const expiryError = useMemo(() => {
@@ -182,7 +183,11 @@ export function StockItemFormModal({ item, onClose }: StockItemFormModalProps) {
           <Button variant="outline" onClick={onClose} disabled={pending}>
             Cancelar
           </Button>
-          <Button type="submit" form="stock-item-form" disabled={pending || referenceLoading}>
+          <Button
+            type="submit"
+            form="stock-item-form"
+            disabled={pending || referenceLoading}
+          >
             {pending && <Loader2 className="size-4 animate-spin" />}
             {isEdit ? 'Salvar alterações' : 'Cadastrar item'}
           </Button>

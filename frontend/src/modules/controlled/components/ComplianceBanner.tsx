@@ -50,8 +50,8 @@ export function ComplianceBanner({
               : `Compliance em dia — nenhum dos ${totalCount} controlados vencido.`}
           </p>
           <p className="text-xs text-muted-foreground">
-            Fármacos controlados exigem registro formal de descarte. Trilha de auditoria append-only
-            ativa.
+            Fármacos controlados exigem registro formal de descarte. Trilha de auditoria
+            append-only ativa.
           </p>
         </div>
       </div>

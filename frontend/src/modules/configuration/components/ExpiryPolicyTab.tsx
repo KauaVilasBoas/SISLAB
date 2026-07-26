@@ -42,19 +42,26 @@ export function ExpiryPolicyTab() {
       await save.mutateAsync({ warningWindowDays: parsed });
       toast('success', 'Política de validade atualizada com sucesso.');
     } catch (err) {
-      toast('error', (err as ApiError)?.message ?? 'Não foi possível salvar a política de validade.');
+      toast(
+        'error',
+        (err as ApiError)?.message ?? 'Não foi possível salvar a política de validade.',
+      );
     }
   }
 
-  if (policy.isLoading) return <CatalogueLoading label="Carregando política de validade…" />;
-  if (policy.isError) return <CatalogueError label="Não foi possível carregar a política de validade." />;
+  if (policy.isLoading)
+    return <CatalogueLoading label="Carregando política de validade…" />;
+  if (policy.isError)
+    return <CatalogueError label="Não foi possível carregar a política de validade." />;
 
   return (
     <Card>
       <CardContent className="p-5">
         <form className="flex max-w-md flex-col gap-4" onSubmit={handleSubmit} noValidate>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="expiry-window">Janela de alerta (dias antes do vencimento)</Label>
+            <Label htmlFor="expiry-window">
+              Janela de alerta (dias antes do vencimento)
+            </Label>
             <Input
               id="expiry-window"
               type="number"
@@ -66,8 +73,8 @@ export function ExpiryPolicyTab() {
               required
             />
             <p className="text-xs text-muted-foreground">
-              Itens serão sinalizados como "vencendo em breve" quando faltarem até esta quantidade de
-              dias para o vencimento.
+              Itens serão sinalizados como "vencendo em breve" quando faltarem até esta
+              quantidade de dias para o vencimento.
             </p>
           </div>
           <div className="flex justify-end">

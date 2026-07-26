@@ -87,7 +87,9 @@ export function AttachmentsPanel({
           Carregando anexos…
         </div>
       ) : attachments.isError ? (
-        <p className="py-2 text-sm text-destructive">Não foi possível carregar os anexos.</p>
+        <p className="py-2 text-sm text-destructive">
+          Não foi possível carregar os anexos.
+        </p>
       ) : attachments.data && attachments.data.length > 0 ? (
         <ul className="divide-y">
           {attachments.data.map((attachment) => (
@@ -117,9 +119,7 @@ export function AttachmentsPanel({
           ))}
         </ul>
       ) : (
-        <p className="py-2 text-sm text-muted-foreground">
-          Nenhuma evidência anexada.
-        </p>
+        <p className="py-2 text-sm text-muted-foreground">Nenhuma evidência anexada.</p>
       )}
 
       {uploading && (
@@ -170,7 +170,10 @@ function UploadEvidenceModal({
       toast('success', 'Evidência anexada com sucesso.');
       onClose();
     } catch (err) {
-      toast('error', (err as ApiError)?.message ?? 'Não foi possível anexar a evidência.');
+      toast(
+        'error',
+        (err as ApiError)?.message ?? 'Não foi possível anexar a evidência.',
+      );
     }
   }
 
@@ -185,7 +188,11 @@ function UploadEvidenceModal({
           <Button variant="outline" onClick={onClose} disabled={attach.isPending}>
             Cancelar
           </Button>
-          <Button type="submit" form="upload-evidence-form" disabled={attach.isPending || !file}>
+          <Button
+            type="submit"
+            form="upload-evidence-form"
+            disabled={attach.isPending || !file}
+          >
             {attach.isPending && <Loader2 className="size-4 animate-spin" />}
             Anexar
           </Button>
@@ -209,7 +216,9 @@ function UploadEvidenceModal({
             className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border file:border-input file:bg-transparent file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-muted"
             required
           />
-          <p className="text-xs text-muted-foreground">Imagens ou PDF do laudo/leitura.</p>
+          <p className="text-xs text-muted-foreground">
+            Imagens ou PDF do laudo/leitura.
+          </p>
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="evidence-origin">Origem (opcional)</Label>

@@ -22,7 +22,13 @@ interface QuantityStepperProps {
  * conversion) stays on the backend; this only prevents the operator from submitting a plainly invalid
  * amount. The middle field stays editable so large amounts can be typed instead of tapped.
  */
-export function QuantityStepper({ value, unit, max, step = 1, onChange }: QuantityStepperProps) {
+export function QuantityStepper({
+  value,
+  unit,
+  max,
+  step = 1,
+  onChange,
+}: QuantityStepperProps) {
   const clamp = (next: number) => Math.min(Math.max(next, 0), max);
 
   function handleType(raw: string) {

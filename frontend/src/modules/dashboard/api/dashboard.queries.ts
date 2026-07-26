@@ -78,10 +78,13 @@ export function useBelowMinimumItems() {
   return useQuery({
     queryKey: dashboardKeys.belowMinimumItems(),
     queryFn: () =>
-      api.get<PagedResult<BelowMinimumItem>>(Endpoints.inventory.stockItems.belowMinimum, {
-        page: 1,
-        pageSize: ALERTS_PAGE_SIZE,
-      }),
+      api.get<PagedResult<BelowMinimumItem>>(
+        Endpoints.inventory.stockItems.belowMinimum,
+        {
+          page: 1,
+          pageSize: ALERTS_PAGE_SIZE,
+        },
+      ),
   });
 }
 

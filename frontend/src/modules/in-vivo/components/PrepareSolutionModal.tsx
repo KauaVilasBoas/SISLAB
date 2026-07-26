@@ -45,7 +45,8 @@ export function PrepareSolutionModal({
         .reduce((total, animal) => total + (animal.weightGrams ?? 0), 0),
     [batch.cages, group.id],
   );
-  const defaultWeight = animalWeightSum > 0 ? String(Number(animalWeightSum.toFixed(2))) : '';
+  const defaultWeight =
+    animalWeightSum > 0 ? String(Number(animalWeightSum.toFixed(2))) : '';
 
   const [isVehicleOnly, setIsVehicleOnly] = useState(group.doseAmount === 0);
   const [relation, setRelation] = useState('5');
@@ -73,7 +74,10 @@ export function PrepareSolutionModal({
       toast('success', 'Preparo confirmado.');
       onClose();
     } catch (err) {
-      toast('error', (err as ApiError)?.message ?? 'Não foi possível confirmar o preparo.');
+      toast(
+        'error',
+        (err as ApiError)?.message ?? 'Não foi possível confirmar o preparo.',
+      );
     }
   }
 

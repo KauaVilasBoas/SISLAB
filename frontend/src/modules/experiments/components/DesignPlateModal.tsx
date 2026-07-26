@@ -28,7 +28,11 @@ const ROWS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
  * This is enough to exercise the whole design → import → calculate → export flow; a rich editor can replace it
  * later without touching the backend contract.
  */
-export function DesignPlateModal({ experimentId, experimentType, onClose }: DesignPlateModalProps) {
+export function DesignPlateModal({
+  experimentId,
+  experimentType,
+  onClose,
+}: DesignPlateModalProps) {
   const toast = useToast();
   const design = useDesignPlate(experimentId);
   const isNitricOxide = (experimentType as ExperimentType) === 'NitricOxide';
@@ -116,7 +120,12 @@ export function DesignPlateModal({ experimentId, experimentType, onClose }: Desi
         </>
       }
     >
-      <form id="design-plate-form" className="space-y-4" onSubmit={handleSubmit} noValidate>
+      <form
+        id="design-plate-form"
+        className="space-y-4"
+        onSubmit={handleSubmit}
+        noValidate
+      >
         <div className="grid grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="blanks">Brancos</Label>

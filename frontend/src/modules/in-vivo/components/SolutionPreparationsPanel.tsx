@@ -67,7 +67,10 @@ function PreparationCard({ preparation }: { preparation: SolutionPreparationList
 
       <dl className="space-y-1.5 text-sm">
         {!preparation.isVehicleOnly && (
-          <Row label="Massa do composto" value={`${Number(preparation.compoundMassGrams)} g`} />
+          <Row
+            label="Massa do composto"
+            value={`${Number(preparation.compoundMassGrams)} g`}
+          />
         )}
         {preparation.compoundVolumeMicrolitres != null && (
           <Row

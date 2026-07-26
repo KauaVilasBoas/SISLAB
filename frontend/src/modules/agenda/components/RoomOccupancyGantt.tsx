@@ -99,7 +99,9 @@ export function RoomOccupancyGantt({ date }: RoomOccupancyGanttProps) {
     return slots.map((slot) => {
       const key = slot.roomId ?? '__no_room__';
       const lane = laneIndex.get(key) ?? 0;
-      const isConflict = slots.some((other) => other !== slot && hasConflict(slot, other));
+      const isConflict = slots.some(
+        (other) => other !== slot && hasConflict(slot, other),
+      );
       // The entry's own colour override (card [E10.12]) wins; otherwise the lane keeps its stable per-room hue.
       const fill = slot.color ?? LANE_PALETTE[lane % LANE_PALETTE.length];
       return {
@@ -133,7 +135,9 @@ export function RoomOccupancyGantt({ date }: RoomOccupancyGanttProps) {
           return [
             `<strong>${escapeHtml(slot.title)}</strong>`,
             `Sala: ${escapeHtml(datum.laneLabel)}`,
-            slot.responsibleName ? `Responsável: ${escapeHtml(slot.responsibleName)}` : null,
+            slot.responsibleName
+              ? `Responsável: ${escapeHtml(slot.responsibleName)}`
+              : null,
             `${localTime(slot.startUtc)} – ${localTime(slot.endUtc)}`,
           ]
             .filter(Boolean)
@@ -146,7 +150,9 @@ export function RoomOccupancyGantt({ date }: RoomOccupancyGanttProps) {
         min: dayStart,
         max: dayEnd,
         interval: 3 * 60 * MS_PER_MINUTE, // a gridline every 3h keeps a full day legible
-        axisLabel: { formatter: (value: number) => localTime(new Date(value).toISOString()) },
+        axisLabel: {
+          formatter: (value: number) => localTime(new Date(value).toISOString()),
+        },
         splitLine: { show: true, lineStyle: { color: 'rgba(148, 163, 184, 0.2)' } },
       },
       yAxis: {
@@ -168,7 +174,11 @@ export function RoomOccupancyGantt({ date }: RoomOccupancyGanttProps) {
                   silent: true,
                   symbol: 'none',
                   lineStyle: { color: CONFLICT_STROKE, width: 1, type: 'solid' },
-                  label: { formatter: 'Agora', position: 'insideEndTop', color: CONFLICT_STROKE },
+                  label: {
+                    formatter: 'Agora',
+                    position: 'insideEndTop',
+                    color: CONFLICT_STROKE,
+                  },
                   data: [{ xAxis: Date.now() }],
                 },
               }

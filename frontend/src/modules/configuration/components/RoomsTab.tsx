@@ -10,7 +10,10 @@ import { useToast } from '@/shared/components/ui/toast';
 import type { ApiError } from '@/shared/types/api';
 import { RequirePermission } from '@/modules/auth/PermissionsProvider';
 import { Permissions } from '@/modules/auth/permissions';
-import { useCreateRoom, useRooms } from '@/modules/configuration/api/configuration.queries';
+import {
+  useCreateRoom,
+  useRooms,
+} from '@/modules/configuration/api/configuration.queries';
 import {
   CatalogueEmpty,
   CatalogueError,
@@ -111,7 +114,12 @@ function CreateRoomModal({ onClose }: { onClose: () => void }) {
         </>
       }
     >
-      <form id="create-room-form" className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
+      <form
+        id="create-room-form"
+        className="flex flex-col gap-4"
+        onSubmit={handleSubmit}
+        noValidate
+      >
         <div className="flex flex-col gap-2">
           <Label htmlFor="room-name">Nome</Label>
           <Input

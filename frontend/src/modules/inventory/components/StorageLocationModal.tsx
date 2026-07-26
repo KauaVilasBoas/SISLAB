@@ -120,7 +120,11 @@ function LocationList({
       ) : (
         <ul className="divide-y rounded-md border">
           {locations.map((location) => (
-            <LocationRow key={location.id} location={location} onEdit={() => onEdit(location)} />
+            <LocationRow
+              key={location.id}
+              location={location}
+              onEdit={() => onEdit(location)}
+            />
           ))}
         </ul>
       )}
@@ -189,7 +193,12 @@ function LocationRow({
       </div>
 
       <RequirePermission code={Permissions.storageLocations.update}>
-        <Button variant="ghost" size="icon" onClick={onEdit} aria-label={`Editar ${location.name}`}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onEdit}
+          aria-label={`Editar ${location.name}`}
+        >
           <Pencil className="size-4" />
         </Button>
       </RequirePermission>
@@ -223,11 +232,13 @@ function initialFormState(location?: StorageLocationListItem): FormState {
     type: location?.type ?? 'GeneralStorage',
     description: location?.description ?? '',
     temperatureMin:
-      location?.temperatureMinCelsius !== null && location?.temperatureMinCelsius !== undefined
+      location?.temperatureMinCelsius !== null &&
+      location?.temperatureMinCelsius !== undefined
         ? String(location.temperatureMinCelsius)
         : '',
     temperatureMax:
-      location?.temperatureMaxCelsius !== null && location?.temperatureMaxCelsius !== undefined
+      location?.temperatureMaxCelsius !== null &&
+      location?.temperatureMaxCelsius !== undefined
         ? String(location.temperatureMaxCelsius)
         : '',
   };
@@ -359,7 +370,11 @@ function LocationForm({
         ) : null}
       </Field>
 
-      <Field label="Descrição (opcional)" htmlFor="location-description" className="sm:col-span-2">
+      <Field
+        label="Descrição (opcional)"
+        htmlFor="location-description"
+        className="sm:col-span-2"
+      >
         <Input
           id="location-description"
           value={form.description}

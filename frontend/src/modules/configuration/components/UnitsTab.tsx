@@ -9,7 +9,10 @@ import { useToast } from '@/shared/components/ui/toast';
 import type { ApiError } from '@/shared/types/api';
 import { RequirePermission } from '@/modules/auth/PermissionsProvider';
 import { Permissions } from '@/modules/auth/permissions';
-import { useCreateUnit, useUnits } from '@/modules/configuration/api/configuration.queries';
+import {
+  useCreateUnit,
+  useUnits,
+} from '@/modules/configuration/api/configuration.queries';
 import {
   CatalogueEmpty,
   CatalogueError,
@@ -104,7 +107,12 @@ function CreateUnitModal({ onClose }: { onClose: () => void }) {
         </>
       }
     >
-      <form id="create-unit-form" className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
+      <form
+        id="create-unit-form"
+        className="flex flex-col gap-4"
+        onSubmit={handleSubmit}
+        noValidate
+      >
         <div className="flex flex-col gap-2">
           <Label htmlFor="unit-symbol">Símbolo</Label>
           <Input

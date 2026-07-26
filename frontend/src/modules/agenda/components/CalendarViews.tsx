@@ -68,7 +68,9 @@ function EventChip({
         style={custom ? { backgroundColor: custom } : undefined}
       />
       {!item.isAllDay && !compact && (
-        <span className="shrink-0 tabular-nums opacity-80">{localTime(item.startDateUtc)}</span>
+        <span className="shrink-0 tabular-nums opacity-80">
+          {localTime(item.startDateUtc)}
+        </span>
       )}
       <span className="truncate font-medium">{item.title}</span>
     </button>
@@ -87,7 +89,13 @@ function dayHeaderLabel(isoDate: string): { weekday: string; day: string } {
 // Day view — a chronological list with a visual time rail
 // ---------------------------------------------------------------------------
 
-export function DayView({ items, anchorDate, onSelect, selectedId, onCreateOn }: CalendarViewProps) {
+export function DayView({
+  items,
+  anchorDate,
+  onSelect,
+  selectedId,
+  onCreateOn,
+}: CalendarViewProps) {
   const dayItems = itemsOn(items, anchorDate);
   const allDay = dayItems.filter((i) => i.isAllDay);
   const timed = dayItems.filter((i) => !i.isAllDay);
@@ -118,14 +126,21 @@ export function DayView({ items, anchorDate, onSelect, selectedId, onCreateOn }:
       ) : (
         <ul className="divide-y">
           {timed.map((item) => (
-            <li key={`${item.id}-${item.occurrenceDate}`} className="flex items-stretch gap-3 p-3">
+            <li
+              key={`${item.id}-${item.occurrenceDate}`}
+              className="flex items-stretch gap-3 p-3"
+            >
               <div className="w-16 shrink-0 pt-0.5 text-right text-xs tabular-nums text-muted-foreground">
                 {localTime(item.startDateUtc)}
                 <br />
                 {localTime(item.endDateUtc)}
               </div>
               <div className="flex-1">
-                <EventChip item={item} onSelect={onSelect} selected={selectedId === item.id} />
+                <EventChip
+                  item={item}
+                  onSelect={onSelect}
+                  selected={selectedId === item.id}
+                />
               </div>
             </li>
           ))}
@@ -139,7 +154,13 @@ export function DayView({ items, anchorDate, onSelect, selectedId, onCreateOn }:
 // Week view — seven day columns
 // ---------------------------------------------------------------------------
 
-export function WeekView({ items, anchorDate, onSelect, selectedId, onCreateOn }: CalendarViewProps) {
+export function WeekView({
+  items,
+  anchorDate,
+  onSelect,
+  selectedId,
+  onCreateOn,
+}: CalendarViewProps) {
   const days = weekDays(anchorDate);
   const today = todayIso();
 
@@ -192,7 +213,13 @@ export function WeekView({ items, anchorDate, onSelect, selectedId, onCreateOn }
 // Month view — a classic 7-column grid padded to whole weeks
 // ---------------------------------------------------------------------------
 
-export function MonthView({ items, anchorDate, onSelect, selectedId, onCreateOn }: CalendarViewProps) {
+export function MonthView({
+  items,
+  anchorDate,
+  onSelect,
+  selectedId,
+  onCreateOn,
+}: CalendarViewProps) {
   const anchorMonth = parseIsoDate(anchorDate).getMonth();
   const today = todayIso();
 
@@ -276,5 +303,8 @@ function monthRange(anchorDate: string): { start: string; end: string } {
     d.setDate(d.getDate() - mondayFirst);
     return toIso(d);
   };
-  return { start: mondayOf(toIso(firstOfMonth)), end: addDays(mondayOf(toIso(lastOfMonth)), 6) };
+  return {
+    start: mondayOf(toIso(firstOfMonth)),
+    end: addDays(mondayOf(toIso(lastOfMonth)), 6),
+  };
 }

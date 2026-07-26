@@ -8,7 +8,9 @@ interface ItemCardProps {
 
 /** Formats an on-hand balance with its unit, trimming trailing zeros (e.g. 12.50 → "12,5 mg"). */
 function formatBalance(quantity: number, unit: string): string {
-  const amount = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 3 }).format(quantity);
+  const amount = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 3 }).format(
+    quantity,
+  );
   return `${amount} ${unit}`;
 }
 

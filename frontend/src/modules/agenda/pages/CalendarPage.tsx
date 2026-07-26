@@ -5,10 +5,7 @@ import { PageHeader } from '@/shared/components/PageHeader';
 import { Button } from '@/shared/components/ui/button';
 import { useToast } from '@/shared/components/ui/toast';
 import { cn } from '@/shared/lib/utils';
-import {
-  ACTIVITY_TYPE_COLOR,
-  ACTIVITY_TYPE_LABEL,
-} from '@/modules/agenda/presentation';
+import { ACTIVITY_TYPE_COLOR, ACTIVITY_TYPE_LABEL } from '@/modules/agenda/presentation';
 import {
   type CalendarView,
   addDays,
@@ -102,14 +99,17 @@ export function CalendarPage() {
 
   function navigate(direction: -1 | 1) {
     const nextDate =
-      view === 'month' ? addMonths(anchorDate, direction) : addDays(anchorDate, direction * stepDays(view));
+      view === 'month'
+        ? addMonths(anchorDate, direction)
+        : addDays(anchorDate, direction * stepDays(view));
     patchParams({ date: nextDate });
   }
 
   function updateFilters(patch: Partial<CalendarFilters>) {
     patchParams({
       activityType: 'activityType' in patch ? patch.activityType : filters.activityType,
-      responsibleId: 'responsibleId' in patch ? patch.responsibleId : filters.responsibleId,
+      responsibleId:
+        'responsibleId' in patch ? patch.responsibleId : filters.responsibleId,
       experimentId: 'experimentId' in patch ? patch.experimentId : filters.experimentId,
       onlyMine:
         'onlyMine' in patch
@@ -155,7 +155,10 @@ export function CalendarPage() {
     const onError = () => toast('error', 'Não foi possível excluir.');
 
     if (item.isRecurring) {
-      cancelOccurrence.mutate({ id: item.id, date: item.occurrenceDate }, { onSuccess, onError });
+      cancelOccurrence.mutate(
+        { id: item.id, date: item.occurrenceDate },
+        { onSuccess, onError },
+      );
     } else {
       deleteEntry.mutate(item.id, { onSuccess, onError });
     }
@@ -172,7 +175,12 @@ export function CalendarPage() {
     });
   }
 
-  const ViewComponent = { day: DayView, week: WeekView, month: MonthView, rooms: DayView }[view];
+  const ViewComponent = {
+    day: DayView,
+    week: WeekView,
+    month: MonthView,
+    rooms: DayView,
+  }[view];
 
   return (
     <div className="space-y-5">
@@ -181,7 +189,11 @@ export function CalendarPage() {
         description="Eventos, reservas e experimentos em uma agenda unificada."
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleSubscribe} disabled={subscribeIcal.isPending}>
+            <Button
+              variant="outline"
+              onClick={handleSubscribe}
+              disabled={subscribeIcal.isPending}
+            >
               <Rss className="size-4" /> Feed iCal
             </Button>
             <Button onClick={() => openCreate(anchorDate)}>
@@ -194,18 +206,34 @@ export function CalendarPage() {
       {/* Toolbar: navigation + view toggle */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon" aria-label="Anterior" onClick={() => navigate(-1)}>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Anterior"
+            onClick={() => navigate(-1)}
+          >
             <ChevronLeft className="size-4" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => patchParams({ date: todayIso() })}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => patchParams({ date: todayIso() })}
+          >
             Hoje
           </Button>
-          <Button variant="outline" size="icon" aria-label="Próximo" onClick={() => navigate(1)}>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Próximo"
+            onClick={() => navigate(1)}
+          >
             <ChevronRight className="size-4" />
           </Button>
         </div>
 
-        <span className="text-sm font-medium capitalize">{viewTitle(view, anchorDate)}</span>
+        <span className="text-sm font-medium capitalize">
+          {viewTitle(view, anchorDate)}
+        </span>
 
         <div role="tablist" className="ml-auto inline-flex gap-1 rounded-lg bg-muted p-1">
           {VIEWS.map(({ key, label }) => (
@@ -243,7 +271,9 @@ export function CalendarPage() {
       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
         {(Object.keys(ACTIVITY_TYPE_LABEL) as AgendaActivityType[]).map((type) => (
           <span key={type} className="inline-flex items-center gap-1.5">
-            <span className={cn('size-2.5 rounded-full', ACTIVITY_TYPE_COLOR[type].dot)} />
+            <span
+              className={cn('size-2.5 rounded-full', ACTIVITY_TYPE_COLOR[type].dot)}
+            />
             {ACTIVITY_TYPE_LABEL[type]}
           </span>
         ))}

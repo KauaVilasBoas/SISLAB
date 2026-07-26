@@ -166,11 +166,7 @@ export interface CreateExperimentalModelRequest {
  * as a stable string mirroring the backend `ComparisonOperator` enum (serialized by name).
  */
 export type ComparisonOperator =
-  | 'GreaterThanOrEqual'
-  | 'GreaterThan'
-  | 'LessThanOrEqual'
-  | 'LessThan'
-  | 'Equal';
+  'GreaterThanOrEqual' | 'GreaterThan' | 'LessThanOrEqual' | 'LessThan' | 'Equal';
 
 /** A row on the "Critérios de inclusão" listing — one configurable selection rule (SISLAB-02). */
 export interface InclusionCriterionListItem {

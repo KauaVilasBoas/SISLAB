@@ -18,7 +18,9 @@ export function CatalogueLoading({ label }: { label: string }) {
 export function CatalogueError({ label }: { label: string }) {
   return (
     <Card>
-      <CardContent className="py-16 text-center text-sm text-destructive">{label}</CardContent>
+      <CardContent className="py-16 text-center text-sm text-destructive">
+        {label}
+      </CardContent>
     </Card>
   );
 }

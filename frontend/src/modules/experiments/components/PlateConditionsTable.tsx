@@ -53,9 +53,13 @@ export function PlateConditionsTable({
               >
                 <td className="py-2 pr-3 font-medium">{condition.sampleId ?? '—'}</td>
                 <td className="py-2 pr-3">
-                  {condition.concentrationUm != null ? `${condition.concentrationUm} µM` : '—'}
+                  {condition.concentrationUm != null
+                    ? `${condition.concentrationUm} µM`
+                    : '—'}
                 </td>
-                <td className="py-2 pr-3 text-center tabular-nums">{condition.replicateCount}</td>
+                <td className="py-2 pr-3 text-center tabular-nums">
+                  {condition.replicateCount}
+                </td>
                 <td className="py-2 pr-3 text-right tabular-nums">
                   {formatComputed(condition.mean)}
                 </td>

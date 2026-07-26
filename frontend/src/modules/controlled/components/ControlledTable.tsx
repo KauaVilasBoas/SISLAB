@@ -85,7 +85,10 @@ export function ControlledTable({ query, onConference, onAudit }: ControlledTabl
             {items.map((item) => {
               const expiry = expiryStatusPresentation(item.expiryStatus);
               return (
-                <tr key={item.id} className="border-b transition-colors last:border-0 hover:bg-accent/50">
+                <tr
+                  key={item.id}
+                  className="border-b transition-colors last:border-0 hover:bg-accent/50"
+                >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 font-medium">
                       {item.name}
@@ -99,9 +102,17 @@ export function ControlledTable({ query, onConference, onAudit }: ControlledTabl
                       </span>
                     ) : null}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{item.lotCode ?? '—'}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {item.lotCode ?? '—'}
+                  </td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <span className={item.isBelowMinimum ? 'font-medium text-destructive' : 'font-medium'}>
+                    <span
+                      className={
+                        item.isBelowMinimum
+                          ? 'font-medium text-destructive'
+                          : 'font-medium'
+                      }
+                    >
                       {formatQuantity(item.quantity, item.unit)}
                     </span>
                   </td>

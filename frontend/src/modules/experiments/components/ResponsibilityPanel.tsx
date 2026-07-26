@@ -42,7 +42,9 @@ export function ResponsibilityPanel({ experiment }: { experiment: ExperimentDeta
   const toast = useToast();
   const { data: members, isLoading: membersLoading } = useMembers();
 
-  const canAssignLead = useHasPermission(Permissions.experimentResponsibility.assignResponsible);
+  const canAssignLead = useHasPermission(
+    Permissions.experimentResponsibility.assignResponsible,
+  );
   const canAssignStep = useHasPermission(
     Permissions.experimentResponsibility.assignStepResponsible,
   );
@@ -92,7 +94,10 @@ export function ResponsibilityPanel({ experiment }: { experiment: ExperimentDeta
 
     try {
       for (const userId of toAdd) {
-        await assignStep.mutateAsync({ stepId: step.id, body: { responsibleUserId: userId } });
+        await assignStep.mutateAsync({
+          stepId: step.id,
+          body: { responsibleUserId: userId },
+        });
       }
       for (const userId of toRemove) {
         await removeStep.mutateAsync({ stepId: step.id, userId });
@@ -101,7 +106,10 @@ export function ResponsibilityPanel({ experiment }: { experiment: ExperimentDeta
         toast('success', 'Responsáveis da etapa atualizados.');
       }
     } catch (err) {
-      toast('error', responsibilityError(err, 'Não foi possível atualizar os responsáveis.'));
+      toast(
+        'error',
+        responsibilityError(err, 'Não foi possível atualizar os responsáveis.'),
+      );
     }
   }
 
@@ -142,7 +150,10 @@ export function ResponsibilityPanel({ experiment }: { experiment: ExperimentDeta
               disabled={membersLoading || assignLead.isPending}
             />
             {assignLead.isPending && (
-              <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden="true" />
+              <Loader2
+                className="size-4 animate-spin text-muted-foreground"
+                aria-hidden="true"
+              />
             )}
           </div>
         ) : (
@@ -152,9 +163,13 @@ export function ResponsibilityPanel({ experiment }: { experiment: ExperimentDeta
 
       {/* Step responsibles */}
       <div className="mt-5 space-y-3">
-        <p className="text-xs font-medium text-muted-foreground">Responsáveis por etapa</p>
+        <p className="text-xs font-medium text-muted-foreground">
+          Responsáveis por etapa
+        </p>
         {experiment.steps.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Este experimento não tem etapas.</p>
+          <p className="text-xs text-muted-foreground">
+            Este experimento não tem etapas.
+          </p>
         ) : (
           <ul className="space-y-3">
             {experiment.steps.map((step) => (
@@ -196,7 +211,9 @@ export function ResponsibilityPanel({ experiment }: { experiment: ExperimentDeta
                     ))}
                   </div>
                 ) : (
-                  <p className="mt-2 text-xs text-muted-foreground">Sem responsável designado.</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Sem responsável designado.
+                  </p>
                 )}
               </li>
             ))}

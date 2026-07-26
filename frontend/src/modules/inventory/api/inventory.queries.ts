@@ -53,7 +53,8 @@ export const inventoryKeys = {
   categories: () => [...inventoryKeys.all, 'categories'] as const,
   units: () => [...inventoryKeys.all, 'units'] as const,
   // Cost reports (gestão-sensitive, Inventory.Cost.Read) — card [E4] #109.
-  costByMonth: (months: number) => [...inventoryKeys.all, 'cost-by-month', months] as const,
+  costByMonth: (months: number) =>
+    [...inventoryKeys.all, 'cost-by-month', months] as const,
   costByExperiment: (top: number) =>
     [...inventoryKeys.all, 'cost-by-experiment', top] as const,
 };
@@ -132,7 +133,9 @@ export function useStockBatches(stockItemId: string | undefined, enabled = true)
   return useQuery({
     queryKey: inventoryKeys.batches(stockItemId ?? ''),
     queryFn: () =>
-      api.get<StockBatchItem[]>(Endpoints.inventory.stockBatches.byItem(stockItemId as string)),
+      api.get<StockBatchItem[]>(
+        Endpoints.inventory.stockBatches.byItem(stockItemId as string),
+      ),
     enabled: Boolean(stockItemId) && enabled,
     staleTime: 30_000,
   });
@@ -163,7 +166,9 @@ export function useCostByExperiment(top = 10, enabled = true) {
   return useQuery({
     queryKey: inventoryKeys.costByExperiment(top),
     queryFn: () =>
-      api.get<ExperimentCostItem[]>(Endpoints.inventory.reports.costByExperiment, { top }),
+      api.get<ExperimentCostItem[]>(Endpoints.inventory.reports.costByExperiment, {
+        top,
+      }),
     enabled,
     staleTime: 5 * 60_000,
   });

@@ -427,7 +427,12 @@ export function AssignAnimalToGroupModal({
         </>
       }
     >
-      <form id="assign-group-form" className="space-y-4" onSubmit={handleSubmit} noValidate>
+      <form
+        id="assign-group-form"
+        className="space-y-4"
+        onSubmit={handleSubmit}
+        noValidate
+      >
         {groups.length === 0 ? (
           <p className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
             Nenhum grupo cadastrado nesta leva. Adicione braços de dose antes de atribuir.

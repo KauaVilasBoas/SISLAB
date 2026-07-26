@@ -49,7 +49,11 @@ function buildDonutOption(summary: ExpirySummary): EChartsCoreOption {
           formatter: () => `{total|${formatNumber(summary.total)}}\n{sub|com validade}`,
           rich: {
             total: { fontSize: 26, fontWeight: 'bold', color: 'hsl(var(--foreground))' },
-            sub: { fontSize: 12, color: 'hsl(var(--muted-foreground))', padding: [4, 0, 0, 0] },
+            sub: {
+              fontSize: 12,
+              color: 'hsl(var(--muted-foreground))',
+              padding: [4, 0, 0, 0],
+            },
           },
         },
         emphasis: { label: { show: true } },
@@ -106,7 +110,9 @@ export function ExpiryDonutChart({ summary, loading }: ExpiryDonutChartProps) {
           Ver estoque
         </Link>
       }
-      footer={summary && summary.total > 0 ? <DonutLegend summary={summary} /> : undefined}
+      footer={
+        summary && summary.total > 0 ? <DonutLegend summary={summary} /> : undefined
+      }
     />
   );
 }

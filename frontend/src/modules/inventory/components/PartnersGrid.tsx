@@ -139,7 +139,11 @@ function PartnerCard({
           </RequirePermission>
           {/* Toggle gated by the action it will call: deactivate when active, reactivate when inactive. */}
           <RequirePermission
-            code={partner.isActive ? Permissions.partners.deactivate : Permissions.partners.reactivate}
+            code={
+              partner.isActive
+                ? Permissions.partners.deactivate
+                : Permissions.partners.reactivate
+            }
           >
             <Button variant="outline" size="sm" disabled={pending} onClick={toggleActive}>
               {pending ? (

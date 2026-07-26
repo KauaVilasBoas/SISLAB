@@ -53,7 +53,10 @@ export function weekDays(iso: string): string[] {
  * The inclusive [start, end] 'YYYY-MM-DD' range to request from GET /api/agenda/calendar for a view anchored on
  * `iso`. Month view is padded to whole weeks so the grid's leading/trailing days are populated.
  */
-export function rangeForView(view: CalendarView, iso: string): { start: string; end: string } {
+export function rangeForView(
+  view: CalendarView,
+  iso: string,
+): { start: string; end: string } {
   // 'rooms' is a single-day occupancy view fed by its own query; a day-range keeps callers total.
   if (view === 'day' || view === 'rooms') return { start: iso, end: iso };
   if (view === 'week') {
@@ -82,7 +85,10 @@ export function localDateOf(isoUtc: string): string {
 
 /** Local 'HH:mm' of a UTC ISO instant. */
 export function localTime(isoUtc: string): string {
-  return new Date(isoUtc).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return new Date(isoUtc).toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 /** Minutes since local midnight for a UTC ISO instant — used to place an event on the day/week time grid. */
@@ -95,13 +101,20 @@ export function minutesSinceMidnight(isoUtc: string): number {
 export function viewTitle(view: CalendarView, iso: string): string {
   const date = parseIsoDate(iso);
   if (view === 'day' || view === 'rooms') {
-    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
   }
   if (view === 'week') {
     const days = weekDays(iso);
     const from = parseIsoDate(days[0]);
     const to = parseIsoDate(days[6]);
-    const fromLabel = from.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+    const fromLabel = from.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+    });
     const toLabel = to.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
     return `${fromLabel} – ${toLabel}`;
   }

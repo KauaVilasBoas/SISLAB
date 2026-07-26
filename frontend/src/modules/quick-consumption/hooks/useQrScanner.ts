@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { BrowserQRCodeReader, type IScannerControls } from '@zxing/browser';
 
 /** Why the camera preview is not running, so the UI can show the right message and fallback. */
-export type ScannerError = 'permission-denied' | 'no-camera' | 'insecure-context' | 'unknown';
+export type ScannerError =
+  'permission-denied' | 'no-camera' | 'insecure-context' | 'unknown';
 
 interface UseQrScannerOptions {
   /** Whether the scanner should be actively decoding (paused once an item is loaded / on success). */
@@ -33,7 +34,10 @@ interface UseQrScannerResult {
  * ignore. Only a successful decode (a `Result`) reaches `onDecode`. The callback is read through a ref so a
  * changing handler identity does not tear down and restart the camera.
  */
-export function useQrScanner({ active, onDecode }: UseQrScannerOptions): UseQrScannerResult {
+export function useQrScanner({
+  active,
+  onDecode,
+}: UseQrScannerOptions): UseQrScannerResult {
   const videoRef = useRef<HTMLVideoElement>(null);
   const onDecodeRef = useRef(onDecode);
   onDecodeRef.current = onDecode;
@@ -95,7 +99,11 @@ export function useQrScanner({ active, onDecode }: UseQrScannerOptions): UseQrSc
 function classifyCameraError(err: unknown): ScannerError {
   const name = err instanceof Error ? err.name : '';
   if (name === 'NotAllowedError' || name === 'SecurityError') return 'permission-denied';
-  if (name === 'NotFoundError' || name === 'OverconstrainedError' || name === 'NotReadableError') {
+  if (
+    name === 'NotFoundError' ||
+    name === 'OverconstrainedError' ||
+    name === 'NotReadableError'
+  ) {
     return 'no-camera';
   }
   return 'unknown';

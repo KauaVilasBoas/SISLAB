@@ -95,7 +95,6 @@ export function InviteMemberModal({ profiles, onClose }: InviteMemberModalProps)
             )}
           </select>
         </div>
-
       </form>
     </Modal>
   );
