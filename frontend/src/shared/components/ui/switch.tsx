@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { cn } from '@/shared/lib/utils';
 
-export interface SwitchProps
-  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onChange' | 'type'> {
+export interface SwitchProps extends Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  'onChange' | 'type'
+> {
   /** Controlled on/off state. */
   checked: boolean;
   /** Fired with the next state when the user toggles the switch. */

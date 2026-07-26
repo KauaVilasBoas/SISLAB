@@ -20,7 +20,10 @@ import { cn } from '@/shared/lib/utils';
 import type { ApiError } from '@/shared/types/api';
 import { RequirePermission } from '@/modules/auth/PermissionsProvider';
 import { Permissions } from '@/modules/auth/permissions';
-import { useRooms, useCollectionRoles } from '@/modules/configuration/api/configuration.queries';
+import {
+  useRooms,
+  useCollectionRoles,
+} from '@/modules/configuration/api/configuration.queries';
 import { useMembers } from '@/modules/identity/api/identity.queries';
 import { sampleTypeLabel } from '@/modules/in-vivo/presentation';
 import {
@@ -160,7 +163,10 @@ function RoutingMatrix({ plan, batchId }: { plan: CollectionPlanView; batchId: s
       await removeRouting.mutateAsync(sampleType);
       toast('success', 'Roteamento removido.');
     } catch (err) {
-      toast('error', (err as ApiError)?.message ?? 'Não foi possível remover o roteamento.');
+      toast(
+        'error',
+        (err as ApiError)?.message ?? 'Não foi possível remover o roteamento.',
+      );
     }
   }
 
@@ -203,12 +209,16 @@ function RoutingMatrix({ plan, batchId }: { plan: CollectionPlanView; batchId: s
                       } °C`
                     : null;
                 const room = routing.storageRoomId
-                  ? roomNameById.get(routing.storageRoomId) ?? 'Sala'
+                  ? (roomNameById.get(routing.storageRoomId) ?? 'Sala')
                   : null;
                 return (
-                  <tr key={routing.sampleType} className="border-b last:border-0 align-top">
+                  <tr
+                    key={routing.sampleType}
+                    className="border-b last:border-0 align-top"
+                  >
                     <td className="px-4 py-3 font-medium">
-                      {sampleTypeLabel[routing.sampleType as SampleType] ?? routing.sampleType}
+                      {sampleTypeLabel[routing.sampleType as SampleType] ??
+                        routing.sampleType}
                     </td>
                     <td className="px-4 py-3">
                       {routing.plannedAnalyses.length > 0 ? (
@@ -234,7 +244,9 @@ function RoutingMatrix({ plan, batchId }: { plan: CollectionPlanView; batchId: s
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-1">
-                        <RequirePermission code={Permissions.collectionPlans.defineRouting}>
+                        <RequirePermission
+                          code={Permissions.collectionPlans.defineRouting}
+                        >
                           <Button
                             variant="ghost"
                             size="sm"
@@ -243,7 +255,9 @@ function RoutingMatrix({ plan, batchId }: { plan: CollectionPlanView; batchId: s
                             Editar
                           </Button>
                         </RequirePermission>
-                        <RequirePermission code={Permissions.collectionPlans.removeRouting}>
+                        <RequirePermission
+                          code={Permissions.collectionPlans.removeRouting}
+                        >
                           <Button
                             variant="ghost"
                             size="sm"
@@ -296,7 +310,9 @@ function DefineRoutingModal({
   const rooms = useRooms();
   const toast = useToast();
 
-  const [sampleType, setSampleType] = useState<string | null>(existing?.sampleType ?? null);
+  const [sampleType, setSampleType] = useState<string | null>(
+    existing?.sampleType ?? null,
+  );
   const [analysesText, setAnalysesText] = useState(
     (existing?.plannedAnalyses ?? []).join(', '),
   );
@@ -316,7 +332,10 @@ function DefineRoutingModal({
     (type) => type === existing?.sampleType || !usedTypes.includes(type),
   ).map((type) => ({ value: type, label: sampleTypeLabel[type] }));
 
-  const roomOptions = (rooms.data ?? []).map((room) => ({ value: room.id, label: room.name }));
+  const roomOptions = (rooms.data ?? []).map((room) => ({
+    value: room.id,
+    label: room.name,
+  }));
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -357,7 +376,10 @@ function DefineRoutingModal({
       toast('success', 'Roteamento definido.');
       onClose();
     } catch (err) {
-      toast('error', (err as ApiError)?.message ?? 'Não foi possível definir o roteamento.');
+      toast(
+        'error',
+        (err as ApiError)?.message ?? 'Não foi possível definir o roteamento.',
+      );
     }
   }
 
@@ -408,7 +430,9 @@ function DefineRoutingModal({
           <p className="text-xs text-muted-foreground">Separe as análises por vírgula.</p>
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="routing-storage-label">Rótulo de armazenamento (opcional)</Label>
+          <Label htmlFor="routing-storage-label">
+            Rótulo de armazenamento (opcional)
+          </Label>
           <Input
             id="routing-storage-label"
             placeholder="Fiocruz / −20 °C"
@@ -482,7 +506,10 @@ function RoleRoster({ plan, batchId }: { plan: CollectionPlanView; batchId: stri
       await removeRole.mutateAsync(roleId);
       toast('success', 'Atribuição removida.');
     } catch (err) {
-      toast('error', (err as ApiError)?.message ?? 'Não foi possível remover a atribuição.');
+      toast(
+        'error',
+        (err as ApiError)?.message ?? 'Não foi possível remover a atribuição.',
+      );
     }
   }
 
@@ -535,7 +562,11 @@ function RoleRoster({ plan, batchId }: { plan: CollectionPlanView; batchId: stri
       )}
 
       {assigning && (
-        <AssignRoleModal planId={plan.id} batchId={batchId} onClose={() => setAssigning(false)} />
+        <AssignRoleModal
+          planId={plan.id}
+          batchId={batchId}
+          onClose={() => setAssigning(false)}
+        />
       )}
     </section>
   );
@@ -594,7 +625,10 @@ function AssignRoleModal({
           <Button variant="outline" onClick={onClose} disabled={assign.isPending}>
             Cancelar
           </Button>
-          <Button onClick={handleConfirm} disabled={assign.isPending || !roleId || !userId}>
+          <Button
+            onClick={handleConfirm}
+            disabled={assign.isPending || !roleId || !userId}
+          >
             {assign.isPending && <Loader2 className="size-4 animate-spin" />}
             Atribuir
           </Button>
@@ -697,10 +731,12 @@ function StatusBoard({
                   <td className="px-4 py-3">{row.analysisName}</td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {row.responsibleUserId
-                      ? memberNameById.get(row.responsibleUserId) ?? '—'
+                      ? (memberNameById.get(row.responsibleUserId) ?? '—')
                       : '—'}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{row.collectedSamples}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {row.collectedSamples}
+                  </td>
                   <td
                     className={cn(
                       'px-4 py-3',
@@ -711,7 +747,9 @@ function StatusBoard({
                   >
                     {row.pendingAnalyses}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{row.completedAnalyses}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {row.completedAnalyses}
+                  </td>
                   <td className="px-4 py-3">
                     {row.isDone ? (
                       <Badge variant="default">

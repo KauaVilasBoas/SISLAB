@@ -79,7 +79,9 @@ export function EntryColorPicker({ value, onChange }: EntryColorPickerProps) {
             )}
           >
             <span className="flex size-5 items-center justify-center rounded-full border border-input bg-muted">
-              {value === null && <Check className="size-3 text-foreground" strokeWidth={3} />}
+              {value === null && (
+                <Check className="size-3 text-foreground" strokeWidth={3} />
+              )}
             </span>
             Padrão (por tipo)
           </button>

@@ -23,7 +23,10 @@ export function ProfileEditorModal({ onClose }: ProfileEditorModalProps) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     try {
-      await createProfile.mutateAsync({ name: name.trim(), description: description.trim() });
+      await createProfile.mutateAsync({
+        name: name.trim(),
+        description: description.trim(),
+      });
       toast('success', 'Perfil criado com sucesso.');
       onClose();
     } catch (err) {

@@ -223,8 +223,8 @@ export function ExperimentDetailPage() {
               />
               {!isCalculated && canExcludeWell && (
                 <p className="text-xs text-muted-foreground">
-                  Clique em um poço para marcá-lo como outlier excluído antes do cálculo. Poços
-                  excluídos não entram nas médias, na curva-padrão nem no resultado.
+                  Clique em um poço para marcá-lo como outlier excluído antes do cálculo.
+                  Poços excluídos não entram nas médias, na curva-padrão nem no resultado.
                 </p>
               )}
             </>
@@ -328,7 +328,10 @@ export function ExperimentDetailPage() {
         <ImportReadingModal experimentId={id} onClose={() => setImporting(false)} />
       )}
       {applyingDilution && (
-        <ApplyDilutionModal experimentId={id} onClose={() => setApplyingDilution(false)} />
+        <ApplyDilutionModal
+          experimentId={id}
+          onClose={() => setApplyingDilution(false)}
+        />
       )}
       {excludingWell && (
         <WellExclusionModal

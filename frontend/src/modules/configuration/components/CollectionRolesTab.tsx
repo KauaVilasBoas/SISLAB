@@ -73,7 +73,9 @@ export function CollectionRolesTab() {
         />
       )}
 
-      {createOpen ? <CreateCollectionRoleModal onClose={() => setCreateOpen(false)} /> : null}
+      {createOpen ? (
+        <CreateCollectionRoleModal onClose={() => setCreateOpen(false)} />
+      ) : null}
     </div>
   );
 }
@@ -116,7 +118,11 @@ function CreateCollectionRoleModal({ onClose }: { onClose: () => void }) {
           <Button variant="outline" onClick={onClose} disabled={create.isPending}>
             Cancelar
           </Button>
-          <Button type="submit" form="create-collection-role-form" disabled={create.isPending}>
+          <Button
+            type="submit"
+            form="create-collection-role-form"
+            disabled={create.isPending}
+          >
             {create.isPending && <Loader2 className="size-4 animate-spin" />}
             Criar função
           </Button>

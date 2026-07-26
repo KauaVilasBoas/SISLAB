@@ -37,10 +37,30 @@ const MOVEMENTS: {
   /** Permission code of the endpoint this movement calls — the button only shows if the user holds it. */
   permission: string;
 }[] = [
-  { kind: 'entry', label: 'Entrada', icon: PackagePlus, permission: Permissions.stock.registerEntry },
-  { kind: 'consumption', label: 'Consumo', icon: TrendingDown, permission: Permissions.stock.registerConsumption },
-  { kind: 'transfer', label: 'Transferir', icon: ArrowRightLeft, permission: Permissions.stock.transfer },
-  { kind: 'disposal', label: 'Descartar', icon: Trash2, permission: Permissions.stock.dispose },
+  {
+    kind: 'entry',
+    label: 'Entrada',
+    icon: PackagePlus,
+    permission: Permissions.stock.registerEntry,
+  },
+  {
+    kind: 'consumption',
+    label: 'Consumo',
+    icon: TrendingDown,
+    permission: Permissions.stock.registerConsumption,
+  },
+  {
+    kind: 'transfer',
+    label: 'Transferir',
+    icon: ArrowRightLeft,
+    permission: Permissions.stock.transfer,
+  },
+  {
+    kind: 'disposal',
+    label: 'Descartar',
+    icon: Trash2,
+    permission: Permissions.stock.dispose,
+  },
 ];
 
 /**
@@ -50,7 +70,11 @@ const MOVEMENTS: {
  * the balance. Each movement action expands an inline form; a successful movement invalidates the item
  * list so the sheet's caller re-renders with the new balance.
  */
-export function StockItemDetailSheet({ item, onEdit, onClose }: StockItemDetailSheetProps) {
+export function StockItemDetailSheet({
+  item,
+  onEdit,
+  onClose,
+}: StockItemDetailSheetProps) {
   const [movement, setMovement] = useState<MovementKind | null>(null);
   const { hasPermission } = usePermissions();
   const expiry = expiryStatusPresentation(item.expiryStatus);

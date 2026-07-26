@@ -78,7 +78,9 @@ export function ItemCategoriesTab() {
         />
       )}
 
-      {createOpen ? <CreateItemCategoryModal onClose={() => setCreateOpen(false)} /> : null}
+      {createOpen ? (
+        <CreateItemCategoryModal onClose={() => setCreateOpen(false)} />
+      ) : null}
     </div>
   );
 }

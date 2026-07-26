@@ -20,10 +20,18 @@ function ComplianceRow({ item }: { item: NotificationListItem }) {
         className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-accent"
       >
         <ShieldAlert
-          className={cn('size-5 shrink-0', SEVERITY_CLASS[item.severity] ?? 'text-muted-foreground')}
+          className={cn(
+            'size-5 shrink-0',
+            SEVERITY_CLASS[item.severity] ?? 'text-muted-foreground',
+          )}
         />
         <div className="min-w-0 flex-1">
-          <p className={cn('truncate text-sm font-medium', !item.isRead && 'font-semibold')}>
+          <p
+            className={cn(
+              'truncate text-sm font-medium',
+              !item.isRead && 'font-semibold',
+            )}
+          >
             {item.title}
           </p>
           <p className="truncate text-xs text-muted-foreground">{item.description}</p>
@@ -62,9 +70,7 @@ export function ControlledComplianceWidget() {
       <CardHeader className="flex flex-row items-center gap-2 space-y-0">
         <ShieldAlert className="size-4 text-status-expired" />
         <CardTitle className="flex-1">Controlados — conformidade</CardTitle>
-        {unreadCount > 0 && (
-          <Badge variant="default">{unreadCount}</Badge>
-        )}
+        {unreadCount > 0 && <Badge variant="default">{unreadCount}</Badge>}
       </CardHeader>
       <CardContent>
         <ul className="space-y-2">

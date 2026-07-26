@@ -17,7 +17,12 @@ interface EventDetailPanelProps {
   onDelete: () => void;
 }
 
-export function EventDetailPanel({ item, onClose, onEdit, onDelete }: EventDetailPanelProps) {
+export function EventDetailPanel({
+  item,
+  onClose,
+  onEdit,
+  onDelete,
+}: EventDetailPanelProps) {
   const color = ACTIVITY_TYPE_COLOR[item.activityType];
 
   return (

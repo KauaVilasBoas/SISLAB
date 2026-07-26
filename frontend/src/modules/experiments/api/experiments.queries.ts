@@ -18,7 +18,8 @@ import type {
  */
 export const experimentKeys = {
   all: ['experiments'] as const,
-  list: (params: ListExperimentsParams) => [...experimentKeys.all, 'list', params] as const,
+  list: (params: ListExperimentsParams) =>
+    [...experimentKeys.all, 'list', params] as const,
   detail: (id: string) => [...experimentKeys.all, 'detail', id] as const,
   plateResult: (id: string) => [...experimentKeys.all, 'plate-result', id] as const,
 };
@@ -121,8 +122,13 @@ export function useImportReading(id: string) {
 export function useExcludeWell(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ coordinate, body }: { coordinate: string; body: ExcludeWellRequest }) =>
-      api.post<void>(Endpoints.experiments.excludeWell(id, coordinate), body),
+    mutationFn: ({
+      coordinate,
+      body,
+    }: {
+      coordinate: string;
+      body: ExcludeWellRequest;
+    }) => api.post<void>(Endpoints.experiments.excludeWell(id, coordinate), body),
     onSuccess: () => invalidateExperiment(queryClient, id),
   });
 }

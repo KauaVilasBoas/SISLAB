@@ -84,7 +84,9 @@ export function MembersTab({ profiles }: MembersTabProps) {
                           Permissions.profiles.assignProfile,
                           Permissions.profiles.removeProfile,
                         ]}
-                        fallback={<span className="text-xs text-muted-foreground">—</span>}
+                        fallback={
+                          <span className="text-xs text-muted-foreground">—</span>
+                        }
                       >
                         <Button
                           variant="outline"

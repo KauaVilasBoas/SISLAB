@@ -7,7 +7,10 @@ import { cn } from '@/shared/lib/utils';
 import { Select } from '@/modules/inventory/components/form-controls';
 import { useStorageLocations } from '@/modules/inventory/api/inventory.queries';
 import type { StockItemFilters } from '@/modules/inventory/types';
-import { useLabelStockItems, LABEL_ITEMS_LIMIT } from '@/modules/labels/api/labels.queries';
+import {
+  useLabelStockItems,
+  LABEL_ITEMS_LIMIT,
+} from '@/modules/labels/api/labels.queries';
 import { LabelSelectionList } from '@/modules/labels/components/LabelSelectionList';
 import { LabelSheet } from '@/modules/labels/components/LabelSheet';
 import {
@@ -54,7 +57,10 @@ export function LabelsPage() {
 
   // The sheet is every selected label across BOTH sources, so switching the source never drops a pick.
   const selectedLabels = useMemo<LabelSpec[]>(
-    () => [...itemLabels, ...locationLabels].filter((label) => selected.has(label.selectionKey)),
+    () =>
+      [...itemLabels, ...locationLabels].filter((label) =>
+        selected.has(label.selectionKey),
+      ),
     [itemLabels, locationLabels, selected],
   );
 
@@ -105,11 +111,18 @@ export function LabelsPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,26rem)_1fr]">
         {/* Left: source picker + filters + selection list */}
         <div className="space-y-4">
-          <div role="tablist" aria-label="Origem das etiquetas" className="flex gap-1 border-b">
+          <div
+            role="tablist"
+            aria-label="Origem das etiquetas"
+            className="flex gap-1 border-b"
+          >
             <SourceTab active={source === 'items'} onClick={() => setSource('items')}>
               Itens
             </SourceTab>
-            <SourceTab active={source === 'locations'} onClick={() => setSource('locations')}>
+            <SourceTab
+              active={source === 'locations'}
+              onClick={() => setSource('locations')}
+            >
               Locais
             </SourceTab>
           </div>
@@ -130,7 +143,9 @@ export function LabelsPage() {
               <Select
                 className="sm:w-48"
                 value={filters.storageLocationId ?? ''}
-                onChange={(e) => patchFilters({ storageLocationId: e.target.value || undefined })}
+                onChange={(e) =>
+                  patchFilters({ storageLocationId: e.target.value || undefined })
+                }
                 aria-label="Filtrar por local"
               >
                 <option value="">Todos os locais</option>
@@ -145,8 +160,8 @@ export function LabelsPage() {
 
           {overItemLimit ? (
             <p className="rounded-md border border-status-warning/40 bg-status-warning/10 px-3 py-2 text-xs text-foreground">
-              Mostrando os primeiros {LABEL_ITEMS_LIMIT} itens. Refine a busca ou o local para etiquetar o
-              restante.
+              Mostrando os primeiros {LABEL_ITEMS_LIMIT} itens. Refine a busca ou o local
+              para etiquetar o restante.
             </p>
           ) : null}
 
@@ -176,8 +191,8 @@ export function LabelsPage() {
 
           {selectedLabels.length === 0 ? (
             <div className="flex min-h-64 flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground print:hidden">
-              <QrCode className="size-8 opacity-40" />
-              A folha aparece aqui conforme você seleciona.
+              <QrCode className="size-8 opacity-40" />A folha aparece aqui conforme você
+              seleciona.
             </div>
           ) : (
             <LabelSheet labels={selectedLabels} />

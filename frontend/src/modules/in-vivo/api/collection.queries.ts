@@ -26,7 +26,8 @@ export const collectionKeys = {
 export function useCollectionPlan(batchId: string, enabled = true) {
   return useQuery({
     queryKey: collectionKeys.plan(batchId),
-    queryFn: () => api.get<CollectionPlanView>(Endpoints.collectionPlans.byBatch(batchId)),
+    queryFn: () =>
+      api.get<CollectionPlanView>(Endpoints.collectionPlans.byBatch(batchId)),
     enabled: enabled && Boolean(batchId),
     retry: false,
   });

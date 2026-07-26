@@ -58,17 +58,21 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       isLoading,
       isReady: !isLoading,
       hasPermission: (code: string) => permissions.has(code),
-      hasAnyPermission: (codes: readonly string[]) => codes.some((code) => permissions.has(code)),
+      hasAnyPermission: (codes: readonly string[]) =>
+        codes.some((code) => permissions.has(code)),
     };
   }, [query.data, query.isLoading, query.fetchStatus]);
 
-  return <PermissionsContext.Provider value={value}>{children}</PermissionsContext.Provider>;
+  return (
+    <PermissionsContext.Provider value={value}>{children}</PermissionsContext.Provider>
+  );
 }
 
 /** Access the permission context. Throws when used outside <PermissionsProvider>. */
 export function usePermissions(): PermissionsContextValue {
   const ctx = useContext(PermissionsContext);
-  if (!ctx) throw new Error('usePermissions deve ser usado dentro de <PermissionsProvider>.');
+  if (!ctx)
+    throw new Error('usePermissions deve ser usado dentro de <PermissionsProvider>.');
   return ctx;
 }
 
@@ -91,7 +95,11 @@ interface RequirePermissionProps {
  * permission set is still loading nothing is rendered, so a gated control never flashes before the gate
  * resolves. UX-only — the backend still enforces the permission on every call.
  */
-export function RequirePermission({ code, children, fallback = null }: RequirePermissionProps) {
+export function RequirePermission({
+  code,
+  children,
+  fallback = null,
+}: RequirePermissionProps) {
   const { hasPermission, isReady } = usePermissions();
   if (!isReady) return <>{fallback}</>;
   return <>{hasPermission(code) ? children : fallback}</>;
@@ -110,7 +118,11 @@ interface RequireAnyPermissionProps {
  * when the user holds any of {@link RequireAnyPermissionProps.codes}, otherwise the fallback; nothing
  * while the set is still resolving.
  */
-export function RequireAnyPermission({ codes, children, fallback = null }: RequireAnyPermissionProps) {
+export function RequireAnyPermission({
+  codes,
+  children,
+  fallback = null,
+}: RequireAnyPermissionProps) {
   const { hasAnyPermission, isReady } = usePermissions();
   if (!isReady) return <>{fallback}</>;
   return <>{hasAnyPermission(codes) ? children : fallback}</>;

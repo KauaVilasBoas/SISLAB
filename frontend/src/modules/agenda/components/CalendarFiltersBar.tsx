@@ -38,13 +38,19 @@ export function CalendarFiltersBar({
 }: CalendarFiltersBarProps) {
   const onlyMineId = useId();
   const hasActiveFilters =
-    !!filters.activityType || !!filters.responsibleId || !!filters.experimentId || !!filters.onlyMine;
+    !!filters.activityType ||
+    !!filters.responsibleId ||
+    !!filters.experimentId ||
+    !!filters.onlyMine;
 
   return (
     <div className="space-y-3 rounded-lg border bg-card p-4">
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1.5">
-          <label htmlFor="filter-type" className="text-xs font-medium text-muted-foreground">
+          <label
+            htmlFor="filter-type"
+            className="text-xs font-medium text-muted-foreground"
+          >
             Tipo
           </label>
           <select
@@ -77,7 +83,10 @@ export function CalendarFiltersBar({
               checked={filters.onlyMine ?? false}
               onCheckedChange={(checked) => onChange({ onlyMine: checked })}
             />
-            <label htmlFor={onlyMineId} className="cursor-pointer select-none text-sm font-medium">
+            <label
+              htmlFor={onlyMineId}
+              className="cursor-pointer select-none text-sm font-medium"
+            >
               Somente eu
             </label>
           </div>
@@ -111,7 +120,10 @@ export function CalendarFiltersBar({
             />
           )}
           {filters.onlyMine && (
-            <FilterChip label="Somente eu" onRemove={() => onChange({ onlyMine: false })} />
+            <FilterChip
+              label="Somente eu"
+              onRemove={() => onChange({ onlyMine: false })}
+            />
           )}
         </div>
       )}

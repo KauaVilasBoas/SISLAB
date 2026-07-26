@@ -29,7 +29,12 @@ interface PlateGridProps {
  * badge; its tooltip carries the reason and author. When {@link PlateGridProps.onWellClick} is provided the
  * designed wells are clickable to toggle the exclusion (before calculation only).
  */
-export function PlateGrid({ wells, isCalculated, formatComputed, onWellClick }: PlateGridProps) {
+export function PlateGrid({
+  wells,
+  isCalculated,
+  formatComputed,
+  onWellClick,
+}: PlateGridProps) {
   const byCoordinate = new Map(wells.map((well) => [`${well.row}${well.column}`, well]));
   const interactive = Boolean(onWellClick);
 
@@ -40,7 +45,10 @@ export function PlateGrid({ wells, isCalculated, formatComputed, onWellClick }: 
           <tr>
             <th className="w-6" aria-hidden />
             {COLUMNS.map((col) => (
-              <th key={col} className="w-14 text-center text-xs font-medium text-muted-foreground">
+              <th
+                key={col}
+                className="w-14 text-center text-xs font-medium text-muted-foreground"
+              >
                 {col}
               </th>
             ))}
@@ -49,7 +57,9 @@ export function PlateGrid({ wells, isCalculated, formatComputed, onWellClick }: 
         <tbody>
           {ROWS.map((row) => (
             <tr key={row}>
-              <th className="pr-1 text-right text-xs font-medium text-muted-foreground">{row}</th>
+              <th className="pr-1 text-right text-xs font-medium text-muted-foreground">
+                {row}
+              </th>
               {COLUMNS.map((col) => {
                 const well = byCoordinate.get(`${row}${col}`);
                 if (!well) {
@@ -70,7 +80,8 @@ export function PlateGrid({ wells, isCalculated, formatComputed, onWellClick }: 
                     className={cn(
                       'relative flex h-12 w-14 flex-col items-center justify-center rounded border text-[10px] leading-tight',
                       presentation.cellClass,
-                      well.isExcluded && 'opacity-70 ring-1 ring-destructive/60 excluded-hatch',
+                      well.isExcluded &&
+                        'opacity-70 ring-1 ring-destructive/60 excluded-hatch',
                       interactive &&
                         'cursor-pointer transition-shadow hover:ring-2 hover:ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     )}
@@ -114,12 +125,19 @@ export function PlateGrid({ wells, isCalculated, formatComputed, onWellClick }: 
       </table>
 
       <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
-        {(Object.keys(wellRolePresentation) as (keyof typeof wellRolePresentation)[]).map((role) => (
-          <span key={role} className="inline-flex items-center gap-1.5">
-            <span className={cn('inline-block size-3 rounded border', wellRolePresentation[role].cellClass)} />
-            {wellRolePresentation[role].label}
-          </span>
-        ))}
+        {(Object.keys(wellRolePresentation) as (keyof typeof wellRolePresentation)[]).map(
+          (role) => (
+            <span key={role} className="inline-flex items-center gap-1.5">
+              <span
+                className={cn(
+                  'inline-block size-3 rounded border',
+                  wellRolePresentation[role].cellClass,
+                )}
+              />
+              {wellRolePresentation[role].label}
+            </span>
+          ),
+        )}
         <span className="inline-flex items-center gap-1.5">
           <span className="excluded-hatch inline-block size-3 rounded border border-destructive/60" />
           Excluído (outlier)

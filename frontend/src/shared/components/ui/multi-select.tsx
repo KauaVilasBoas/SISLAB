@@ -79,9 +79,17 @@ export function MultiSelect({
       }
     >
       {() => (
-        <ul id={listboxId} role="listbox" aria-label={label} aria-multiselectable="true" className="max-h-64 overflow-auto">
+        <ul
+          id={listboxId}
+          role="listbox"
+          aria-label={label}
+          aria-multiselectable="true"
+          className="max-h-64 overflow-auto"
+        >
           {options.length === 0 ? (
-            <li className="px-2 py-3 text-center text-xs text-muted-foreground">Nenhuma opção.</li>
+            <li className="px-2 py-3 text-center text-xs text-muted-foreground">
+              Nenhuma opção.
+            </li>
           ) : (
             options.map((option) => {
               const isSelected = selectedSet.has(option.value);
@@ -97,7 +105,9 @@ export function MultiSelect({
                     <span
                       className={cn(
                         'mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border',
-                        isSelected ? 'border-primary bg-primary text-primary-foreground' : 'border-input',
+                        isSelected
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-input',
                       )}
                       aria-hidden="true"
                     >
@@ -106,7 +116,9 @@ export function MultiSelect({
                     <span className="min-w-0">
                       <span className="block truncate">{option.label}</span>
                       {option.hint && (
-                        <span className="block truncate text-xs text-muted-foreground">{option.hint}</span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {option.hint}
+                        </span>
                       )}
                     </span>
                   </button>

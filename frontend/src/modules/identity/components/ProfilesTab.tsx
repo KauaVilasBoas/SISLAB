@@ -84,9 +84,7 @@ export function ProfilesTab() {
         </Card>
       )}
 
-      {createOpen ? (
-        <ProfileEditorModal onClose={() => setCreateOpen(false)} />
-      ) : null}
+      {createOpen ? <ProfileEditorModal onClose={() => setCreateOpen(false)} /> : null}
     </div>
   );
 }

@@ -11,7 +11,8 @@ import { experimentKeys } from '@/modules/experiments/api/experiments.queries';
 /** Serial-dilution query keys (SISLAB-05), namespaced under the experiments module. */
 export const dilutionKeys = {
   all: ['experiments', 'dilution'] as const,
-  scheme: (params: DilutionSchemeParams) => [...dilutionKeys.all, 'scheme', params] as const,
+  scheme: (params: DilutionSchemeParams) =>
+    [...dilutionKeys.all, 'scheme', params] as const,
 };
 
 /**
@@ -20,11 +21,13 @@ export const dilutionKeys = {
  */
 function buildSchemeQuery(params: DilutionSchemeParams): Record<string, unknown> {
   const query: Record<string, unknown> = {};
-  (Object.entries(params) as [keyof DilutionSchemeParams, unknown][]).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
-      query[key] = value;
-    }
-  });
+  (Object.entries(params) as [keyof DilutionSchemeParams, unknown][]).forEach(
+    ([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        query[key] = value;
+      }
+    },
+  );
   return query;
 }
 
@@ -37,7 +40,10 @@ export function useDilutionScheme(params: DilutionSchemeParams, enabled: boolean
   return useQuery({
     queryKey: dilutionKeys.scheme(params),
     queryFn: () =>
-      api.get<DilutionScheme>(Endpoints.experiments.dilutionScheme, buildSchemeQuery(params)),
+      api.get<DilutionScheme>(
+        Endpoints.experiments.dilutionScheme,
+        buildSchemeQuery(params),
+      ),
     enabled,
   });
 }
@@ -52,8 +58,12 @@ export function useApplyDilutionScheme(experimentId: string) {
     mutationFn: (body: ApplyDilutionSchemeRequest) =>
       api.post<void>(Endpoints.experiments.applyDilutionScheme(experimentId), body),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: experimentKeys.detail(experimentId) });
-      void queryClient.invalidateQueries({ queryKey: experimentKeys.plateResult(experimentId) });
+      void queryClient.invalidateQueries({
+        queryKey: experimentKeys.detail(experimentId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: experimentKeys.plateResult(experimentId),
+      });
     },
   });
 }

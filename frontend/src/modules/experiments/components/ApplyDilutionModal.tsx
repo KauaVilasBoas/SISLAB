@@ -8,7 +8,10 @@ import { Switch } from '@/shared/components/ui/switch';
 import { useToast } from '@/shared/components/ui/toast';
 import type { ApiError } from '@/shared/types/api';
 import type { DilutionSchemeParams } from '@/modules/experiments/types';
-import { useApplyDilutionScheme, useDilutionScheme } from '@/modules/experiments/api/dilution.queries';
+import {
+  useApplyDilutionScheme,
+  useDilutionScheme,
+} from '@/modules/experiments/api/dilution.queries';
 
 const microMolarFormatter = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 4 });
 
@@ -49,12 +52,22 @@ export function ApplyDilutionModal({
       finalVolumeMicrolitres,
       doubleForHalfInWell,
     }),
-    [topConcentrationMicromolar, factorValue, numberOfPoints, finalVolumeMicrolitres, doubleForHalfInWell],
+    [
+      topConcentrationMicromolar,
+      factorValue,
+      numberOfPoints,
+      finalVolumeMicrolitres,
+      doubleForHalfInWell,
+    ],
   );
 
   const seriesValid =
-    topConcentrationMicromolar > 0 && factorValue > 1 && numberOfPoints >= 1 && finalVolumeMicrolitres > 0;
-  const columnValid = Number.isInteger(columnValue) && columnValue >= 1 && columnValue <= 12;
+    topConcentrationMicromolar > 0 &&
+    factorValue > 1 &&
+    numberOfPoints >= 1 &&
+    finalVolumeMicrolitres > 0;
+  const columnValid =
+    Number.isInteger(columnValue) && columnValue >= 1 && columnValue <= 12;
 
   const { data: preview } = useDilutionScheme(previewParams, seriesValid);
 
@@ -72,7 +85,10 @@ export function ApplyDilutionModal({
       toast('success', `Coluna ${columnValue} preenchida a partir do esquema.`);
       onClose();
     } catch (err) {
-      toast('error', (err as ApiError)?.message ?? 'Não foi possível aplicar o esquema à placa.');
+      toast(
+        'error',
+        (err as ApiError)?.message ?? 'Não foi possível aplicar o esquema à placa.',
+      );
     }
   }
 
@@ -99,7 +115,12 @@ export function ApplyDilutionModal({
         </>
       }
     >
-      <form id="apply-dilution-form" className="space-y-5" onSubmit={handleSubmit} noValidate>
+      <form
+        id="apply-dilution-form"
+        className="space-y-5"
+        onSubmit={handleSubmit}
+        noValidate
+      >
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="apply-column">Coluna (1–12)</Label>

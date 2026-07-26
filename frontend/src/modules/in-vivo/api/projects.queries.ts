@@ -27,11 +27,31 @@ export const projectKeys = {
   detail: (id: string) => [...projectKeys.all, 'detail', id] as const,
   preparations: (id: string) => [...projectKeys.all, 'preparations', id] as const,
   baselineByCage: (projectId: string, batchId: string, parameterCode: string) =>
-    [...projectKeys.all, 'baseline', 'by-cage', projectId, batchId, parameterCode] as const,
+    [
+      ...projectKeys.all,
+      'baseline',
+      'by-cage',
+      projectId,
+      batchId,
+      parameterCode,
+    ] as const,
   baselineByGroup: (projectId: string, batchId: string, parameterCode: string) =>
-    [...projectKeys.all, 'baseline', 'by-group', projectId, batchId, parameterCode] as const,
+    [
+      ...projectKeys.all,
+      'baseline',
+      'by-group',
+      projectId,
+      batchId,
+      parameterCode,
+    ] as const,
   readings: (projectId: string, parameterCode: string | null, animalId: string | null) =>
-    [...projectKeys.all, 'readings', projectId, parameterCode ?? null, animalId ?? null] as const,
+    [
+      ...projectKeys.all,
+      'readings',
+      projectId,
+      parameterCode ?? null,
+      animalId ?? null,
+    ] as const,
   selection: (projectId: string, batchId: string, status: string | null) =>
     [...projectKeys.all, 'selection', projectId, batchId, status ?? null] as const,
 };
@@ -125,7 +145,13 @@ export function useAddAnimal(projectId: string, batchId: string, cageId: string)
 export function useAssignAnimalToGroup(projectId: string, batchId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ animalId, body }: { animalId: string; body: AssignAnimalToGroupRequest }) =>
+    mutationFn: ({
+      animalId,
+      body,
+    }: {
+      animalId: string;
+      body: AssignAnimalToGroupRequest;
+    }) =>
       api.put<void>(Endpoints.projects.animalGroup(projectId, batchId, animalId), body),
     onSuccess: () => invalidateProject(queryClient, projectId),
   });
@@ -160,7 +186,9 @@ export function usePreparations(projectId: string) {
   return useQuery({
     queryKey: projectKeys.preparations(projectId),
     queryFn: () =>
-      api.get<SolutionPreparationListItem[]>(Endpoints.projects.listPreparations(projectId)),
+      api.get<SolutionPreparationListItem[]>(
+        Endpoints.projects.listPreparations(projectId),
+      ),
     enabled: Boolean(projectId),
   });
 }
@@ -177,7 +205,10 @@ export function usePrepareGroupSolution(
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: PrepareGroupSolutionRequest) =>
-      api.post<string>(Endpoints.projects.preparations(projectId, batchId, groupId), body),
+      api.post<string>(
+        Endpoints.projects.preparations(projectId, batchId, groupId),
+        body,
+      ),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: projectKeys.preparations(projectId) }),
   });
@@ -194,7 +225,10 @@ export function useBaselineByCage(
   timepointLabel?: string,
 ) {
   return useQuery({
-    queryKey: [...projectKeys.baselineByCage(projectId, batchId, parameterCode), timepointLabel ?? null],
+    queryKey: [
+      ...projectKeys.baselineByCage(projectId, batchId, parameterCode),
+      timepointLabel ?? null,
+    ],
     queryFn: () =>
       api.get<CageBaselineItem[]>(Endpoints.projects.baselineByCage(projectId, batchId), {
         parameterCode,
@@ -215,12 +249,18 @@ export function useBaselineByGroup(
   timepointLabel?: string,
 ) {
   return useQuery({
-    queryKey: [...projectKeys.baselineByGroup(projectId, batchId, parameterCode), timepointLabel ?? null],
+    queryKey: [
+      ...projectKeys.baselineByGroup(projectId, batchId, parameterCode),
+      timepointLabel ?? null,
+    ],
     queryFn: () =>
-      api.get<GroupBaselineItem[]>(Endpoints.projects.baselineByGroup(projectId, batchId), {
-        parameterCode,
-        timepointLabel: timepointLabel || undefined,
-      }),
+      api.get<GroupBaselineItem[]>(
+        Endpoints.projects.baselineByGroup(projectId, batchId),
+        {
+          parameterCode,
+          timepointLabel: timepointLabel || undefined,
+        },
+      ),
     enabled: Boolean(projectId) && Boolean(batchId) && parameterCode.trim().length > 0,
   });
 }
@@ -236,8 +276,12 @@ export function useRecordReading(projectId: string) {
     mutationFn: ({ animalId, body }: { animalId: string; body: RecordReadingRequest }) =>
       api.post<string>(Endpoints.projects.animalReadings(projectId, animalId), body),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [...projectKeys.all, 'readings', projectId] });
-      void queryClient.invalidateQueries({ queryKey: [...projectKeys.all, 'selection', projectId] });
+      void queryClient.invalidateQueries({
+        queryKey: [...projectKeys.all, 'readings', projectId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: [...projectKeys.all, 'selection', projectId],
+      });
       void queryClient.invalidateQueries({ queryKey: [...projectKeys.all, 'baseline'] });
     },
   });
@@ -273,9 +317,12 @@ export function useReadings(
 export function useApplySelection(projectId: string, batchId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => api.post<number>(Endpoints.projects.applySelection(projectId, batchId), {}),
+    mutationFn: () =>
+      api.post<number>(Endpoints.projects.applySelection(projectId, batchId), {}),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: [...projectKeys.all, 'selection', projectId, batchId] }),
+      queryClient.invalidateQueries({
+        queryKey: [...projectKeys.all, 'selection', projectId, batchId],
+      }),
   });
 }
 
@@ -288,9 +335,12 @@ export function useSelection(projectId: string, batchId: string, status?: string
   return useQuery({
     queryKey: projectKeys.selection(projectId, batchId, normalized),
     queryFn: () =>
-      api.get<AnimalSelectionListItem[]>(Endpoints.projects.selection(projectId, batchId), {
-        status: normalized || undefined,
-      }),
+      api.get<AnimalSelectionListItem[]>(
+        Endpoints.projects.selection(projectId, batchId),
+        {
+          status: normalized || undefined,
+        },
+      ),
     enabled: Boolean(projectId) && Boolean(batchId),
   });
 }

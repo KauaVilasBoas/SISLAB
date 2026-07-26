@@ -77,9 +77,7 @@ export function ExperimentPendenciesWidget() {
       <CardHeader className="flex flex-row items-center gap-2 space-y-0">
         <ClipboardList className="size-4 text-muted-foreground" />
         <CardTitle className="flex-1">Pendências de experimento</CardTitle>
-        {!isLoading && total > 0 && (
-          <Badge variant="secondary">{total}</Badge>
-        )}
+        {!isLoading && total > 0 && <Badge variant="secondary">{total}</Badge>}
       </CardHeader>
       <CardContent>
         {isLoading ? (

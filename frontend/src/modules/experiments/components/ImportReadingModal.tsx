@@ -37,7 +37,10 @@ export function ImportReadingModal({ experimentId, onClose }: ImportReadingModal
       toast('success', 'Leitura importada.');
       onClose();
     } catch (err) {
-      toast('error', (err as ApiError)?.message ?? 'Não foi possível importar a leitura.');
+      toast(
+        'error',
+        (err as ApiError)?.message ?? 'Não foi possível importar a leitura.',
+      );
     }
   }
 
@@ -64,7 +67,12 @@ export function ImportReadingModal({ experimentId, onClose }: ImportReadingModal
         </>
       }
     >
-      <form id="import-reading-form" className="space-y-4" onSubmit={handleSubmit} noValidate>
+      <form
+        id="import-reading-form"
+        className="space-y-4"
+        onSubmit={handleSubmit}
+        noValidate
+      >
         <div className="space-y-1.5">
           <Label htmlFor="csv-file">Arquivo (opcional)</Label>
           <input

@@ -49,7 +49,9 @@ function expiringToAlert(item: ExpiringItem): AlertEntry {
     id: `expiry-${item.id}`,
     icon: CalendarX2,
     tone: expired ? 'critical' : 'warning',
-    title: expired ? `Vencido: ${item.name}${controlled}` : `A vencer: ${item.name}${controlled}`,
+    title: expired
+      ? `Vencido: ${item.name}${controlled}`
+      : `A vencer: ${item.name}${controlled}`,
     description: expired
       ? `Vencido há ${formatNumber(Math.abs(item.daysRemaining))} dia(s) · ${location}`
       : `Vence em ${formatNumber(item.daysRemaining)} dia(s) · ${location}`,
@@ -141,10 +143,14 @@ export function ActiveAlerts(props: ActiveAlertsProps) {
                   to={alert.to}
                   className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-accent"
                 >
-                  <alert.icon className={cn('size-5 shrink-0', TONE_CLASSES[alert.tone])} />
+                  <alert.icon
+                    className={cn('size-5 shrink-0', TONE_CLASSES[alert.tone])}
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{alert.title}</p>
-                    <p className="truncate text-xs text-muted-foreground">{alert.description}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {alert.description}
+                    </p>
                   </div>
                   <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
                 </Link>

@@ -65,12 +65,20 @@ function dayStartUtc(isoDate: string): string {
   return new Date(y, m - 1, d, 0, 0, 0).toISOString();
 }
 
-export function EntryFormModal({ open, onClose, editing, defaultDate }: EntryFormModalProps) {
+export function EntryFormModal({
+  open,
+  onClose,
+  editing,
+  defaultDate,
+}: EntryFormModalProps) {
   const toast = useToast();
   const createEntry = useCreateEntry();
   const updateEntry = useUpdateEntry();
 
-  const initial = useMemo(() => buildInitialState(editing, defaultDate), [editing, defaultDate]);
+  const initial = useMemo(
+    () => buildInitialState(editing, defaultDate),
+    [editing, defaultDate],
+  );
 
   const [title, setTitle] = useState(initial.title);
   const [description, setDescription] = useState(initial.description);
@@ -79,11 +87,17 @@ export function EntryFormModal({ open, onClose, editing, defaultDate }: EntryFor
   const [endDate, setEndDate] = useState(initial.endDate);
   const [startDateTime, setStartDateTime] = useState(initial.startDateTime);
   const [endDateTime, setEndDateTime] = useState(initial.endDateTime);
-  const [activityType, setActivityType] = useState<AgendaActivityType>(initial.activityType);
+  const [activityType, setActivityType] = useState<AgendaActivityType>(
+    initial.activityType,
+  );
   const [experimentId, setExperimentId] = useState<string | null>(initial.experimentId);
-  const [experimentLabel, setExperimentLabel] = useState<string | null>(initial.experimentLabel);
+  const [experimentLabel, setExperimentLabel] = useState<string | null>(
+    initial.experimentLabel,
+  );
   const [roomId, setRoomId] = useState<string | null>(initial.roomId);
-  const [recurrenceRule, setRecurrenceRule] = useState<string | null>(initial.recurrenceRule);
+  const [recurrenceRule, setRecurrenceRule] = useState<string | null>(
+    initial.recurrenceRule,
+  );
   const [color, setColor] = useState<string | null>(initial.color);
 
   // Rooms only matter for a RoomBooking; load them lazily and let the operator pick which room the entry occupies.

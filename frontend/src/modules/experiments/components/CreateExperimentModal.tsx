@@ -23,7 +23,10 @@ interface CreateExperimentModalProps {
  * type (cell viability or nitric oxide) — both plate assays share the same create flow. On success it
  * invalidates the list and hands the new id back so the caller can open its detail.
  */
-export function CreateExperimentModal({ onClose, onCreated }: CreateExperimentModalProps) {
+export function CreateExperimentModal({
+  onClose,
+  onCreated,
+}: CreateExperimentModalProps) {
   const toast = useToast();
   const create = useCreateExperiment();
 
@@ -44,7 +47,10 @@ export function CreateExperimentModal({ onClose, onCreated }: CreateExperimentMo
       toast('success', 'Experimento criado.');
       onCreated(id);
     } catch (err) {
-      toast('error', (err as ApiError)?.message ?? 'Não foi possível criar o experimento.');
+      toast(
+        'error',
+        (err as ApiError)?.message ?? 'Não foi possível criar o experimento.',
+      );
     }
   }
 
@@ -66,7 +72,12 @@ export function CreateExperimentModal({ onClose, onCreated }: CreateExperimentMo
         </>
       }
     >
-      <form id="create-experiment-form" className="space-y-4" onSubmit={handleSubmit} noValidate>
+      <form
+        id="create-experiment-form"
+        className="space-y-4"
+        onSubmit={handleSubmit}
+        noValidate
+      >
         <div className="space-y-1.5">
           <Label>Tipo de ensaio</Label>
           <div className="grid grid-cols-2 gap-2">

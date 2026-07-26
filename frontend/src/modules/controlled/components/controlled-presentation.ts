@@ -62,7 +62,10 @@ export function parseAuditPayload(entry: AuditTrailEntry): AuditPayloadSummary {
   let source: Record<string, unknown>;
   try {
     const parsed: unknown = JSON.parse(entry.payload);
-    source = typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : {};
+    source =
+      typeof parsed === 'object' && parsed !== null
+        ? (parsed as Record<string, unknown>)
+        : {};
   } catch {
     return { quantity: null, unit: null, divergence: null, reason: null };
   }

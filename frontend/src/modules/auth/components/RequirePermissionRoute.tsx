@@ -25,7 +25,10 @@ export function RequirePermissionRoute({ codes, children }: RequirePermissionRou
   if (!isReady) {
     return (
       <div className="flex h-full items-center justify-center py-16">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" aria-label="Carregando" />
+        <Loader2
+          className="size-6 animate-spin text-muted-foreground"
+          aria-label="Carregando"
+        />
       </div>
     );
   }

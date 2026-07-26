@@ -1,4 +1,11 @@
-import { Activity, CalendarClock, CalendarX2, PackageMinus, TrendingDown, TrendingUp } from 'lucide-react';
+import {
+  Activity,
+  CalendarClock,
+  CalendarX2,
+  PackageMinus,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { formatNumber } from '@/shared/lib/format';
@@ -54,7 +61,9 @@ function summarizeConsumption(series: ConsumptionSeries | undefined): {
   if (!series || series.totals.length === 0) return { total: 0, delta: null };
 
   const total = series.totals.reduce((sum, t) => sum + t.currentTotal, 0);
-  const dominant = series.totals.reduce((a, b) => (b.currentTotal > a.currentTotal ? b : a));
+  const dominant = series.totals.reduce((a, b) =>
+    b.currentTotal > a.currentTotal ? b : a,
+  );
   return { total, delta: dominant.deltaPercentage };
 }
 
@@ -69,7 +78,11 @@ function TrendBadge({ trend }: { trend: KpiTrend }) {
     <span
       className={cn(
         'inline-flex items-center gap-1 text-xs font-medium',
-        isFlat ? 'text-muted-foreground' : isBad ? 'text-status-expired' : 'text-status-ok',
+        isFlat
+          ? 'text-muted-foreground'
+          : isBad
+            ? 'text-status-expired'
+            : 'text-status-ok',
       )}
     >
       {isFlat ? null : <Icon className="size-3.5" />}

@@ -114,7 +114,8 @@ function EntryForm({ item, onDone }: { item: StockItemListItem; onDone: () => vo
   const costError = useMemo(() => {
     if (unitCost === '') return null;
     const parsed = Number(unitCost);
-    if (Number.isNaN(parsed) || parsed < 0) return 'Informe um custo válido (maior ou igual a zero).';
+    if (Number.isNaN(parsed) || parsed < 0)
+      return 'Informe um custo válido (maior ou igual a zero).';
     return null;
   }, [unitCost]);
 

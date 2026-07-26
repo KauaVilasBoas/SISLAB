@@ -114,7 +114,11 @@ export function ControlledPage() {
           </div>
         </div>
 
-        <ControlledTable query={itemsQuery} onConference={setConferencing} onAudit={auditByItem} />
+        <ControlledTable
+          query={itemsQuery}
+          onConference={setConferencing}
+          onAudit={auditByItem}
+        />
 
         <Pagination
           page={itemsPage}
@@ -137,7 +141,8 @@ export function ControlledPage() {
             </Badge>
           </h2>
           <p className="text-xs text-muted-foreground">
-            Consumos, descartes e conferências de fármacos controlados, do mais recente ao mais antigo.
+            Consumos, descartes e conferências de fármacos controlados, do mais recente ao
+            mais antigo.
           </p>
           {auditItem ? (
             <div className="mt-1 flex items-center gap-2">
@@ -200,10 +205,16 @@ function Pagination({
   return (
     <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
       <span>
-        {totalCount} {totalCount === 1 ? singular : plural} · página {page} de {totalPages}
+        {totalCount} {totalCount === 1 ? singular : plural} · página {page} de{' '}
+        {totalPages}
       </span>
       <div className="flex gap-2">
-        <Button variant="outline" size="sm" disabled={page <= 1 || fetching} onClick={onPrev}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page <= 1 || fetching}
+          onClick={onPrev}
+        >
           Anterior
         </Button>
         <Button

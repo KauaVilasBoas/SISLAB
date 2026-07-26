@@ -11,8 +11,16 @@ import {
   useInclusionCriteria,
 } from '@/modules/configuration/api/configuration.queries';
 import { useApplySelection, useSelection } from '@/modules/in-vivo/api/projects.queries';
-import { animalSexLabel, formatMeasurement, inclusionStatusPresentation } from '@/modules/in-vivo/presentation';
-import type { AnimalSelectionListItem, BatchDetail, InclusionStatus } from '@/modules/in-vivo/types';
+import {
+  animalSexLabel,
+  formatMeasurement,
+  inclusionStatusPresentation,
+} from '@/modules/in-vivo/presentation';
+import type {
+  AnimalSelectionListItem,
+  BatchDetail,
+  InclusionStatus,
+} from '@/modules/in-vivo/types';
 
 /**
  * Animal selection panel for one batch (SISLAB-02): the "Aplicar seleção" action (POST apply-selection) plus the
@@ -175,7 +183,9 @@ function SelectionRow({ row }: { row: AnimalSelectionListItem }) {
           ? formatMeasurement(row.inclusionDecidingValue, null)
           : '—'}
         {row.inclusionParameterCode ? (
-          <span className="ml-1 text-xs text-muted-foreground">{row.inclusionParameterCode}</span>
+          <span className="ml-1 text-xs text-muted-foreground">
+            {row.inclusionParameterCode}
+          </span>
         ) : null}
       </td>
       <td className="py-2 text-xs text-muted-foreground">{row.inclusionReason ?? '—'}</td>

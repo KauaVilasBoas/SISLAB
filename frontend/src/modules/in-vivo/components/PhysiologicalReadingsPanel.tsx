@@ -89,7 +89,9 @@ export function PhysiologicalReadingsPanel({
       </div>
 
       {hasModel && model.isLoading ? (
-        <p className="py-3 text-center text-xs text-muted-foreground">Carregando modelo…</p>
+        <p className="py-3 text-center text-xs text-muted-foreground">
+          Carregando modelo…
+        </p>
       ) : null}
 
       {animals.length === 0 ? (
@@ -128,7 +130,9 @@ export function PhysiologicalReadingsPanel({
                   <td className="py-2 pr-3 text-muted-foreground">
                     {parameterLabel[reading.parameterCode] ?? reading.parameterCode}
                   </td>
-                  <td className="py-2 pr-3 text-muted-foreground">{reading.timepointLabel}</td>
+                  <td className="py-2 pr-3 text-muted-foreground">
+                    {reading.timepointLabel}
+                  </td>
                   <td className="py-2 pr-3 text-right tabular-nums">
                     {formatMeasurement(reading.value, reading.unit)}
                   </td>
@@ -245,12 +249,20 @@ function RecordReadingModal({
     try {
       await record.mutateAsync({
         animalId,
-        body: { parameterCode: code, value: parsedValue, unit: unit.trim(), timepointLabel: timepoint },
+        body: {
+          parameterCode: code,
+          value: parsedValue,
+          unit: unit.trim(),
+          timepointLabel: timepoint,
+        },
       });
       toast('success', 'Leitura registrada com sucesso.');
       onClose();
     } catch (err) {
-      toast('error', (err as ApiError)?.message ?? 'Não foi possível registrar a leitura.');
+      toast(
+        'error',
+        (err as ApiError)?.message ?? 'Não foi possível registrar a leitura.',
+      );
     }
   }
 
@@ -276,7 +288,12 @@ function RecordReadingModal({
         </>
       }
     >
-      <form id="record-reading-form" className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
+      <form
+        id="record-reading-form"
+        className="flex flex-col gap-4"
+        onSubmit={handleSubmit}
+        noValidate
+      >
         <div className="flex flex-col gap-2">
           <Label>Animal</Label>
           <SingleSelect

@@ -87,7 +87,9 @@ function PanelBody({
     return (
       <PanelState>
         <PackageX className="size-8 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">Nenhuma movimentação registrada ainda.</p>
+        <p className="text-sm text-muted-foreground">
+          Nenhuma movimentação registrada ainda.
+        </p>
       </PanelState>
     );
   }
@@ -143,7 +145,9 @@ function RecentMovementRow({
         </div>
         <span className="flex shrink-0 flex-col items-end gap-0.5 text-xs text-muted-foreground">
           <span>
-            {movement.occurredOn ? formatRelativeTime(`${movement.occurredOn}T00:00:00`) : '—'}
+            {movement.occurredOn
+              ? formatRelativeTime(`${movement.occurredOn}T00:00:00`)
+              : '—'}
           </span>
           {showCostForRow ? (
             <span className="font-medium text-foreground">

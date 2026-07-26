@@ -171,7 +171,9 @@ export function ExperimentsPage() {
                     <td className="px-4 py-3 text-muted-foreground">
                       {formatDate(experiment.createdAtUtc)}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">{experiment.createdBy}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {experiment.createdBy}
+                    </td>
                   </tr>
                 );
               })}

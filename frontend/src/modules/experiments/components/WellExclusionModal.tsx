@@ -29,7 +29,11 @@ interface WellExclusionModalProps {
  * the dialog shows the recorded reason/author and offers to re-include it. Both actions invalidate the
  * plate design/grid via the mutation hooks, so the cell re-renders immediately.
  */
-export function WellExclusionModal({ experimentId, well, onClose }: WellExclusionModalProps) {
+export function WellExclusionModal({
+  experimentId,
+  well,
+  onClose,
+}: WellExclusionModalProps) {
   const toast = useToast();
   const coordinate = `${well.row}${well.column}`;
   const canExclude = useHasPermission(Permissions.experiments.excludeWell);
@@ -131,7 +135,12 @@ export function WellExclusionModal({ experimentId, well, onClose }: WellExclusio
           Você não tem permissão para excluir poços da placa.
         </p>
       ) : (
-        <form id="exclude-well-form" className="space-y-1.5" onSubmit={handleExclude} noValidate>
+        <form
+          id="exclude-well-form"
+          className="space-y-1.5"
+          onSubmit={handleExclude}
+          noValidate
+        >
           <Label htmlFor="exclusion-reason">Motivo da exclusão</Label>
           <textarea
             id="exclusion-reason"

@@ -18,7 +18,8 @@ import type { ExperimentListItem } from '@/modules/experiments/types';
  */
 export const entryKeys = {
   all: ['agenda', 'entries'] as const,
-  calendar: (params: CalendarQueryParams) => ['agenda', 'entries', 'calendar', params] as const,
+  calendar: (params: CalendarQueryParams) =>
+    ['agenda', 'entries', 'calendar', params] as const,
   occupancy: (date: string) => ['agenda', 'entries', 'occupancy', date] as const,
 };
 
@@ -108,10 +109,13 @@ export function useExperimentOptions(search: string) {
   return useQuery({
     queryKey: ['agenda', 'experiment-options', search] as const,
     queryFn: async () => {
-      const page = await api.get<PagedResult<ExperimentListItem>>(Endpoints.experiments.root, {
-        page: 1,
-        pageSize: 20,
-      });
+      const page = await api.get<PagedResult<ExperimentListItem>>(
+        Endpoints.experiments.root,
+        {
+          page: 1,
+          pageSize: 20,
+        },
+      );
       const term = search.trim().toLowerCase();
       const items = term
         ? page.items.filter((e) => e.title.toLowerCase().includes(term))

@@ -1,5 +1,9 @@
 import type { BadgeProps } from '@/shared/components/ui/badge';
-import type { ExperimentStatus, ExperimentType, WellRole } from '@/modules/experiments/types';
+import type {
+  ExperimentStatus,
+  ExperimentType,
+  WellRole,
+} from '@/modules/experiments/types';
 
 /** Human label + badge variant for each experiment status. */
 export const experimentStatusPresentation: Record<
@@ -18,11 +22,20 @@ export const wellRolePresentation: Record<
   WellRole,
   { label: string; cellClass: string }
 > = {
-  Control: { label: 'Controle', cellClass: 'bg-emerald-100 text-emerald-900 border-emerald-300' },
+  Control: {
+    label: 'Controle',
+    cellClass: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+  },
   Blank: { label: 'Branco', cellClass: 'bg-slate-100 text-slate-700 border-slate-300' },
   CurvePoint: { label: 'Curva', cellClass: 'bg-sky-100 text-sky-900 border-sky-300' },
-  Sample: { label: 'Amostra', cellClass: 'bg-violet-100 text-violet-900 border-violet-300' },
-  Standard: { label: 'Padrão', cellClass: 'bg-amber-100 text-amber-900 border-amber-300' },
+  Sample: {
+    label: 'Amostra',
+    cellClass: 'bg-violet-100 text-violet-900 border-violet-300',
+  },
+  Standard: {
+    label: 'Padrão',
+    cellClass: 'bg-amber-100 text-amber-900 border-amber-300',
+  },
 };
 
 /**

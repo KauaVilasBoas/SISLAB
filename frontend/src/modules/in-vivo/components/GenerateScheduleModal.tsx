@@ -40,7 +40,11 @@ interface GenerateScheduleModalProps {
  * On success it reports how many Agenda entries were created and links straight to the calendar filtered to this
  * run (`/agenda/schedule?experimentId=<batchId>`), since the created entries carry the batch id by value.
  */
-export function GenerateScheduleModal({ experimentId, batch, onClose }: GenerateScheduleModalProps) {
+export function GenerateScheduleModal({
+  experimentId,
+  batch,
+  onClose,
+}: GenerateScheduleModalProps) {
   const toast = useToast();
   const model = useExperimentalModel(batch.experimentalModelId);
   const members = useMembers();
@@ -53,10 +57,15 @@ export function GenerateScheduleModal({ experimentId, batch, onClose }: Generate
   const [responsibles, setResponsibles] = useState<string[]>([]);
   const [daysPerShift, setDaysPerShift] = useState('1');
   const [reminderEnabled, setReminderEnabled] = useState(true);
-  const [reminderMinutes, setReminderMinutes] = useState(String(DEFAULT_REMINDER_MINUTES));
+  const [reminderMinutes, setReminderMinutes] = useState(
+    String(DEFAULT_REMINDER_MINUTES),
+  );
 
   // Stable reference for the model's timepoints so the derived arrays below don't recompute every render.
-  const timepoints = useMemo(() => model.data?.timepoints ?? [], [model.data?.timepoints]);
+  const timepoints = useMemo(
+    () => model.data?.timepoints ?? [],
+    [model.data?.timepoints],
+  );
 
   // Keep the per-timepoint offsets array in lockstep with the model's timepoint count without an effect: derive
   // the rendered value, padding with blanks, so the inputs always match the model even while it (re)loads.
@@ -103,7 +112,10 @@ export function GenerateScheduleModal({ experimentId, batch, onClose }: Generate
     event.preventDefault();
 
     if (!batch.experimentalModelId) {
-      toast('error', 'Vincule um modelo experimental à leva antes de gerar o cronograma.');
+      toast(
+        'error',
+        'Vincule um modelo experimental à leva antes de gerar o cronograma.',
+      );
       return;
     }
     if (responsibles.length === 0) {
@@ -112,7 +124,9 @@ export function GenerateScheduleModal({ experimentId, batch, onClose }: Generate
     }
 
     // Mirror the backend rule: exactly one offset per model timepoint (avoids a 422 round-trip).
-    const filledTimepointOffsets = renderedTimepointOffsets.filter((v) => v.trim() !== '');
+    const filledTimepointOffsets = renderedTimepointOffsets.filter(
+      (v) => v.trim() !== '',
+    );
     if (filledTimepointOffsets.length !== timepoints.length) {
       toast(
         'error',
@@ -138,7 +152,10 @@ export function GenerateScheduleModal({ experimentId, batch, onClose }: Generate
       });
       // Success stays on the modal so the operator sees the count + the calendar shortcut.
     } catch (err) {
-      toast('error', (err as ApiError)?.message ?? 'Não foi possível gerar o cronograma.');
+      toast(
+        'error',
+        (err as ApiError)?.message ?? 'Não foi possível gerar o cronograma.',
+      );
     }
   }
 
@@ -150,9 +167,7 @@ export function GenerateScheduleModal({ experimentId, batch, onClose }: Generate
         onClose={onClose}
         title="Cronograma gerado"
         description={`${batch.name} · ${model.data?.name ?? 'modelo experimental'}`}
-        footer={
-          <Button onClick={onClose}>Fechar</Button>
-        }
+        footer={<Button onClick={onClose}>Fechar</Button>}
       >
         <div className="space-y-4">
           <div className="flex items-start gap-3 rounded-lg border bg-muted/30 p-4">
@@ -207,17 +222,24 @@ export function GenerateScheduleModal({ experimentId, batch, onClose }: Generate
         </div>
       ) : !batch.experimentalModelId || !model.data ? (
         <p className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
-          A leva não tem um modelo experimental vinculado. Vincule um modelo para gerar o cronograma.
+          A leva não tem um modelo experimental vinculado. Vincule um modelo para gerar o
+          cronograma.
         </p>
       ) : (
-        <form id="generate-schedule-form" className="space-y-6" onSubmit={handleSubmit} noValidate>
+        <form
+          id="generate-schedule-form"
+          className="space-y-6"
+          onSubmit={handleSubmit}
+          noValidate
+        >
           {/* Induction cadence (read-only) — comes from the model, shown so the operator understands the base. */}
           <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
             Indução do modelo: {model.data.induction.administrations} administração(ões)
             {model.data.induction.administrations > 1
               ? `, a cada ${model.data.induction.intervalDays} dia(s)`
               : ''}
-            . Dia de referência: {model.data.induction.referenceDayAfterInduction} após a indução.
+            . Dia de referência: {model.data.induction.referenceDayAfterInduction} após a
+            indução.
           </div>
 
           {/* Start date (day 0 = first induction). */}
@@ -263,12 +285,18 @@ export function GenerateScheduleModal({ experimentId, batch, onClose }: Generate
                 </div>
               ))}
             </div>
-            <Button type="button" variant="outline" size="sm" onClick={addTreatmentOffset}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addTreatmentOffset}
+            >
               <Plus className="size-4" />
               Adicionar dia
             </Button>
             <p className="text-xs text-muted-foreground">
-              Deixe vazio se não houver dias de tratamento. Valores em branco são ignorados.
+              Deixe vazio se não houver dias de tratamento. Valores em branco são
+              ignorados.
             </p>
           </div>
 

@@ -18,7 +18,11 @@ const OPTIONS: { scope: EditScope; label: string }[] = [
   { scope: 'AllOccurrences', label: 'Todas as ocorrências' },
 ];
 
-export function EditRecurringDialog({ open, onClose, onChoose }: EditRecurringDialogProps) {
+export function EditRecurringDialog({
+  open,
+  onClose,
+  onChoose,
+}: EditRecurringDialogProps) {
   return (
     <Modal
       open={open}

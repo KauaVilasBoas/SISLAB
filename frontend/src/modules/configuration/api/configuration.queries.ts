@@ -67,7 +67,8 @@ export function useRooms() {
 export function useItemCategories() {
   return useQuery({
     queryKey: configurationKeys.itemCategories(),
-    queryFn: () => api.get<ItemCategoryListItem[]>(Endpoints.configuration.itemCategories),
+    queryFn: () =>
+      api.get<ItemCategoryListItem[]>(Endpoints.configuration.itemCategories),
     staleTime: CATALOGUE_STALE_TIME,
   });
 }
@@ -76,7 +77,8 @@ export function useItemCategories() {
 export function useReferenceRanges() {
   return useQuery({
     queryKey: configurationKeys.referenceRanges(),
-    queryFn: () => api.get<ReferenceRangeListItem[]>(Endpoints.configuration.referenceRanges),
+    queryFn: () =>
+      api.get<ReferenceRangeListItem[]>(Endpoints.configuration.referenceRanges),
     staleTime: CATALOGUE_STALE_TIME,
   });
 }
@@ -89,7 +91,9 @@ export function useExperimentalModels() {
   return useQuery({
     queryKey: configurationKeys.experimentalModels(),
     queryFn: () =>
-      api.get<ExperimentalModelListItem[]>(Endpoints.configuration.experimentalModels.root),
+      api.get<ExperimentalModelListItem[]>(
+        Endpoints.configuration.experimentalModels.root,
+      ),
     staleTime: CATALOGUE_STALE_TIME,
   });
 }
@@ -99,7 +103,9 @@ export function useExperimentalModel(id: string | null) {
   return useQuery({
     queryKey: configurationKeys.experimentalModel(id ?? ''),
     queryFn: () =>
-      api.get<ExperimentalModelView>(Endpoints.configuration.experimentalModels.byId(id!)),
+      api.get<ExperimentalModelView>(
+        Endpoints.configuration.experimentalModels.byId(id!),
+      ),
     enabled: Boolean(id),
     staleTime: CATALOGUE_STALE_TIME,
   });
@@ -151,7 +157,8 @@ export function useCreateUnit() {
   return useMutation({
     mutationFn: (body: CreateUnitRequest) =>
       api.post<string>(Endpoints.configuration.units, body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: configurationKeys.units() }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: configurationKeys.units() }),
   });
 }
 
@@ -161,7 +168,8 @@ export function useCreateRoom() {
   return useMutation({
     mutationFn: (body: CreateRoomRequest) =>
       api.post<string>(Endpoints.configuration.rooms, body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: configurationKeys.rooms() }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: configurationKeys.rooms() }),
   });
 }
 
@@ -226,6 +234,7 @@ export function useSetExpiryPolicy() {
   return useMutation({
     mutationFn: (body: SetExpiryWarningWindowRequest) =>
       api.put<void>(Endpoints.configuration.expiryPolicy, body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: configurationKeys.expiryPolicy() }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: configurationKeys.expiryPolicy() }),
   });
 }

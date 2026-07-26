@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type MouseEvent,
+} from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, Loader2, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/shared/components/ui/toast';
@@ -117,7 +124,9 @@ function PermissionAccordionGroup({
                 key={permission.id}
                 className={cn(
                   'flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors',
-                  disabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer hover:bg-muted/40',
+                  disabled
+                    ? 'cursor-not-allowed opacity-70'
+                    : 'cursor-pointer hover:bg-muted/40',
                 )}
               >
                 <input
@@ -150,7 +159,8 @@ export function ProfileEditPage() {
   // (fields disabled, save buttons hidden) — the user can still inspect the profile via Profiles.ListProfiles.
   const { hasPermission } = usePermissions();
   const canEditIdentity = !isSystem && hasPermission(Permissions.profiles.updateProfile);
-  const canEditPermissions = !isSystem && hasPermission(Permissions.profiles.setProfilePermissions);
+  const canEditPermissions =
+    !isSystem && hasPermission(Permissions.profiles.setProfilePermissions);
   const canEdit = canEditIdentity || canEditPermissions;
 
   // The permission catalogue endpoint is itself gated by Profiles.ListAvailablePermissions; only fetch it when
@@ -389,7 +399,8 @@ export function ProfileEditPage() {
                   </div>
                 ) : (
                   <p className="border-t pt-4 text-xs text-muted-foreground">
-                    Você pode visualizar as permissões deste perfil, mas não tem permissão para alterá-las.
+                    Você pode visualizar as permissões deste perfil, mas não tem permissão
+                    para alterá-las.
                   </p>
                 )}
               </>

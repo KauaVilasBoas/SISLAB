@@ -53,8 +53,16 @@ export function BaselinePanel({
           aria-label="Visão do basal"
           className="inline-flex rounded-lg border p-0.5"
         >
-          <ViewTab label="Por caixa" active={view === 'cage'} onClick={() => setView('cage')} />
-          <ViewTab label="Por grupo" active={view === 'group'} onClick={() => setView('group')} />
+          <ViewTab
+            label="Por caixa"
+            active={view === 'cage'}
+            onClick={() => setView('cage')}
+          />
+          <ViewTab
+            label="Por grupo"
+            active={view === 'group'}
+            onClick={() => setView('group')}
+          />
         </div>
       </div>
 
@@ -145,7 +153,9 @@ function CageBaselineTable({ rows }: { rows: CageBaselineItem[] }) {
           {rows.map((row) => (
             <tr key={row.cageId}>
               <td className="py-2 pr-3 font-medium">{row.cageName}</td>
-              <td className="py-2 pr-3 text-right tabular-nums">{row.animalsWithReading}</td>
+              <td className="py-2 pr-3 text-right tabular-nums">
+                {row.animalsWithReading}
+              </td>
               <td className="py-2 pr-3 text-right tabular-nums">
                 {formatMeasurement(row.meanValue, row.unit)}
               </td>
@@ -182,7 +192,9 @@ function GroupBaselineTable({ rows }: { rows: GroupBaselineItem[] }) {
                   {formatAmount(row.doseAmount, row.doseUnit)}
                 </span>
               </td>
-              <td className="py-2 pr-3 text-right tabular-nums">{row.animalsWithReading}</td>
+              <td className="py-2 pr-3 text-right tabular-nums">
+                {row.animalsWithReading}
+              </td>
               <td className="py-2 pr-3 text-right tabular-nums">
                 {formatMeasurement(row.meanValue, row.unit)}
               </td>

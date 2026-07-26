@@ -22,7 +22,14 @@ interface AuditTrailProps {
   itemNameById: (id: string) => string;
 }
 
-const COLUMNS = ['Data/hora', 'Ação', 'Item', 'Quantidade', 'Divergência', 'Responsável'] as const;
+const COLUMNS = [
+  'Data/hora',
+  'Ação',
+  'Item',
+  'Quantidade',
+  'Divergência',
+  'Responsável',
+] as const;
 
 /**
  * Append-only audit trail of the Controlados screen (cards [E7] #62 / #57). Renders the company's
@@ -36,7 +43,9 @@ export function AuditTrail({ query, itemNameById }: AuditTrailProps) {
     return (
       <StateCard>
         <Loader2 className="size-4 animate-spin" />
-        <span className="text-sm text-muted-foreground">Carregando trilha de auditoria…</span>
+        <span className="text-sm text-muted-foreground">
+          Carregando trilha de auditoria…
+        </span>
       </StateCard>
     );
   }
@@ -59,8 +68,8 @@ export function AuditTrail({ query, itemNameById }: AuditTrailProps) {
       <StateCard>
         <FileClock className="size-8 text-muted-foreground" />
         <p className="text-sm text-muted-foreground">
-          Nenhum registro na trilha ainda. Consumos, descartes e conferências de controlados aparecem
-          aqui.
+          Nenhum registro na trilha ainda. Consumos, descartes e conferências de
+          controlados aparecem aqui.
         </p>
       </StateCard>
     );
@@ -92,13 +101,18 @@ export function AuditTrail({ query, itemNameById }: AuditTrailProps) {
                   <td className="px-4 py-3">
                     <Badge variant={action.variant}>{action.label}</Badge>
                   </td>
-                  <td className="px-4 py-3 font-medium">{itemNameById(entry.entityId)}</td>
+                  <td className="px-4 py-3 font-medium">
+                    {itemNameById(entry.entityId)}
+                  </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {formatAmount(payload.quantity, payload.unit)}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {isConference ? (
-                      <DivergenceCell divergence={payload.divergence} unit={payload.unit} />
+                      <DivergenceCell
+                        divergence={payload.divergence}
+                        unit={payload.unit}
+                      />
                     ) : (
                       '—'
                     )}
@@ -115,11 +129,19 @@ export function AuditTrail({ query, itemNameById }: AuditTrailProps) {
 }
 
 /** Renders a conference divergence, highlighting any non-zero mismatch as a compliance signal. */
-function DivergenceCell({ divergence, unit }: { divergence: number | null; unit: string | null }) {
+function DivergenceCell({
+  divergence,
+  unit,
+}: {
+  divergence: number | null;
+  unit: string | null;
+}) {
   const label = formatDivergence(divergence, unit);
   const mismatched = divergence !== null && divergence !== 0;
   return (
-    <span className={mismatched ? 'font-medium text-destructive' : 'text-muted-foreground'}>
+    <span
+      className={mismatched ? 'font-medium text-destructive' : 'text-muted-foreground'}
+    >
       {label}
     </span>
   );

@@ -184,7 +184,9 @@ function BindBatchModelModal({
             Carregando modelos…
           </div>
         ) : models.isError ? (
-          <p className="text-sm text-destructive">Não foi possível carregar os modelos.</p>
+          <p className="text-sm text-destructive">
+            Não foi possível carregar os modelos.
+          </p>
         ) : options.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Nenhum modelo cadastrado. Crie um em Configurações → Modelos experimentais.

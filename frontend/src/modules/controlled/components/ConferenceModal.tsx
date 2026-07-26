@@ -112,7 +112,13 @@ export function ConferenceModal({ item, onClose }: ConferenceModalProps) {
           >
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Divergência</span>
-              <span className={mismatched ? 'text-sm font-semibold text-destructive' : 'text-sm font-semibold'}>
+              <span
+                className={
+                  mismatched
+                    ? 'text-sm font-semibold text-destructive'
+                    : 'text-sm font-semibold'
+                }
+              >
                 {formatDivergence(previewDivergence, item.unit)}
               </span>
             </div>

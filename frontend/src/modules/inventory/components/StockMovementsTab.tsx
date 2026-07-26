@@ -88,7 +88,9 @@ export function StockMovementsTab({ item }: StockMovementsTabProps) {
             id="movement-type"
             value={filters.type ?? ''}
             onChange={(e) =>
-              patchFilters({ type: (e.target.value || undefined) as StockMovementType | undefined })
+              patchFilters({
+                type: (e.target.value || undefined) as StockMovementType | undefined,
+              })
             }
           >
             <option value="">Todos os tipos</option>
@@ -208,7 +210,10 @@ function MovementsTable({
             {movements.map((movement) => {
               const presentation = movementTypePresentation(movement.type);
               return (
-                <tr key={movement.id} className="border-b transition-colors last:border-0">
+                <tr
+                  key={movement.id}
+                  className="border-b transition-colors last:border-0"
+                >
                   <td className="px-4 py-3 whitespace-nowrap">
                     {formatDate(`${movement.occurredAt}T00:00:00`)}
                   </td>

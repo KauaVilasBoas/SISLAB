@@ -9,8 +9,16 @@
 
 export type RoomType = 'Lab' | 'OperatingRoom' | 'Vivarium' | 'Office' | 'Meeting';
 export type AgendaActivity =
-  | 'VonFrey' | 'Hargreaves' | 'TailFlick' | 'RotaRod' | 'Hemogram'
-  | 'Dissection' | 'Surgery' | 'AnimalCare' | 'Meeting' | 'Other';
+  | 'VonFrey'
+  | 'Hargreaves'
+  | 'TailFlick'
+  | 'RotaRod'
+  | 'Hemogram'
+  | 'Dissection'
+  | 'Surgery'
+  | 'AnimalCare'
+  | 'Meeting'
+  | 'Other';
 
 export interface RoomListItem {
   id: string;
@@ -25,8 +33,8 @@ export interface BookingListItem {
   roomName: string;
   bookedByName: string;
   activity: AgendaActivity;
-  date: string;          // DateOnly: 'YYYY-MM-DD'
-  startTime: string;     // TimeOnly: 'HH:mm:ss'
+  date: string; // DateOnly: 'YYYY-MM-DD'
+  startTime: string; // TimeOnly: 'HH:mm:ss'
   endTime: string;
   notes: string | null;
   hasConflictWarning: boolean;
@@ -45,7 +53,7 @@ export type AssignmentStatus = 'Pending' | 'Done' | 'Swapped';
 
 export interface BioteriumAssignmentItem {
   id: string;
-  assignmentDate: string;  // 'YYYY-MM-DD'
+  assignmentDate: string; // 'YYYY-MM-DD'
   responsibleName: string;
   status: AssignmentStatus;
   swappedFromName: string | null;
@@ -57,7 +65,8 @@ export interface BioteriumAssignmentItem {
 // Presentations (#71)
 // ---------------------------------------------------------------------------
 
-export type PresentationType = 'Article' | 'Lecture' | 'Preview' | 'Editorial' | 'DolAlert';
+export type PresentationType =
+  'Article' | 'Lecture' | 'Preview' | 'Editorial' | 'DolAlert';
 export type PresentationStatus = 'Scheduled' | 'Done' | 'Cancelled';
 
 export interface PresentationListItem {
@@ -66,7 +75,7 @@ export interface PresentationListItem {
   title: string;
   doi: string | null;
   presenterName: string;
-  scheduledDate: string;  // 'YYYY-MM-DD'
+  scheduledDate: string; // 'YYYY-MM-DD'
   status: PresentationStatus;
   reminderSent: boolean;
   notes: string | null;
@@ -78,11 +87,7 @@ export interface PresentationListItem {
 
 /** Kind of activity an agenda entry represents — drives its colour and the type filter. */
 export type AgendaActivityType =
-  | 'RoomBooking'
-  | 'Experiment'
-  | 'Bioterium'
-  | 'Presentation'
-  | 'Other';
+  'RoomBooking' | 'Experiment' | 'Bioterium' | 'Presentation' | 'Other';
 
 /** How editing a recurring entry should scope (Google-Calendar semantics). */
 export type EditScope = 'OnlyThis' | 'ThisAndFollowing' | 'AllOccurrences';
@@ -95,8 +100,8 @@ export interface CalendarItem {
   experimentId: string | null;
   experimentName: string | null;
   roomId: string | null;
-  startDateUtc: string;   // ISO 8601 UTC
-  endDateUtc: string;     // ISO 8601 UTC
+  startDateUtc: string; // ISO 8601 UTC
+  endDateUtc: string; // ISO 8601 UTC
   isAllDay: boolean;
   isRecurring: boolean;
   recurrenceRule: string | null; // raw RFC 5545 RRULE, null for a one-off — pre-populates the edit form

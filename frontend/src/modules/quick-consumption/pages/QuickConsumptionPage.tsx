@@ -81,7 +81,11 @@ export function QuickConsumptionPage() {
           <LoadingCard label="Carregando local…" />
         ) : location.isError || !location.data?.found ? (
           <NotFoundCard
-            message={location.data ? 'Local não encontrado para este QR.' : messageOf(location.error)}
+            message={
+              location.data
+                ? 'Local não encontrado para este QR.'
+                : messageOf(location.error)
+            }
             onBack={resetFlow}
           />
         ) : (
@@ -100,7 +104,9 @@ export function QuickConsumptionPage() {
 
   // --- Item flow (scanned item, or item picked from a location) -------------------------------------
   const fromLocation = scan.kind === 'location';
-  const bannerName = fromLocation ? (location.data?.name ?? null) : (detail.data?.storageLocationName ?? null);
+  const bannerName = fromLocation
+    ? (location.data?.name ?? null)
+    : (detail.data?.storageLocationName ?? null);
 
   return (
     <Screen>
@@ -114,11 +120,22 @@ export function QuickConsumptionPage() {
         />
       ) : (
         <div className="space-y-4">
-          <ScanBanner storageLocationName={bannerName} kind={fromLocation ? 'location' : 'item'} />
+          <ScanBanner
+            storageLocationName={bannerName}
+            kind={fromLocation ? 'location' : 'item'}
+          />
           <ItemCard item={detail.data} />
-          <ConsumptionForm item={detail.data} onConfirmed={fromLocation ? backToLocation : resetFlow} />
+          <ConsumptionForm
+            item={detail.data}
+            onConfirmed={fromLocation ? backToLocation : resetFlow}
+          />
           {fromLocation ? (
-            <Button type="button" variant="ghost" className="w-full" onClick={backToLocation}>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full"
+              onClick={backToLocation}
+            >
               <ArrowLeft />
               Escolher outro item do local
             </Button>
@@ -185,7 +202,9 @@ function NotFoundCard({
   return (
     <div className="flex flex-col items-center gap-3 rounded-xl border bg-card p-8 text-center">
       <AlertCircle className="size-8 text-destructive" />
-      <p className="text-sm text-muted-foreground">{message ?? 'Nada encontrado para este QR.'}</p>
+      <p className="text-sm text-muted-foreground">
+        {message ?? 'Nada encontrado para este QR.'}
+      </p>
       <Button type="button" variant="outline" onClick={onBack}>
         <ArrowLeft />
         {backLabel}
