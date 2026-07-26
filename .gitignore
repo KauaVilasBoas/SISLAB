@@ -3,6 +3,14 @@
 # Documentação-base com dados sensíveis (NÃO versionar)
 doc.md
 
+# Refinos de backlog e detalhamentos derivados das transcrições de áudio da
+# pesquisadora e das planilhas do cliente. Contêm o protocolo NÃO PUBLICADO
+# (composto, densidade, doses), nomes da equipe e ids de planilhas — mesmo
+# motivo do doc.md acima. O backlog público mora no Trello.
+SISLAB-Detalhamento-Projeto.md
+TASKS_TRELLO.md
+docs/backlog/
+
 # Arquivos-fonte sensíveis (planilhas, áudios, exports do laboratório)
 *.xlsx
 *.xls
