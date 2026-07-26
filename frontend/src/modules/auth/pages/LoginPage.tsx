@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useLocation, useNavigate, type Location } from 'react-router-dom';
-import { FlaskConical, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import sislabLogo from '@/assets/sislab-logo-principal.svg';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
@@ -80,11 +81,8 @@ export function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-[380px]">
         <CardHeader className="items-center gap-2 text-center">
-          <div className="flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <FlaskConical className="size-6" aria-hidden />
-          </div>
+          <img src={sislabLogo} alt="SISLAB" className="w-56 rounded-lg" />
           <div>
-            <h1 className="text-lg font-semibold tracking-tight">SISLAB</h1>
             <p className="text-sm text-muted-foreground">Gestão de laboratório</p>
           </div>
         </CardHeader>
