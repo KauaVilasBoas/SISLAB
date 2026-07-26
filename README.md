@@ -1,68 +1,139 @@
-<h1 align="center">SISLAB</h1>
-
 <p align="center">
-  <i>Multi-tenant laboratory management platform — .NET 8 modular monolith (DDD · CQRS · Outbox) consuming IAM as a NuGet library (Lumen), with a React + ECharts SPA and production infrastructure on AWS managed by Terraform.</i>
+  <img src="docs/brand/sislab-logotipo-horizontal.svg" alt="SISLAB" width="460"/>
 </p>
 
 <p align="center">
-  <a href="https://github.com/KauaVilasBoas/SISLAB/actions/workflows/ci.yml">
-    <img src="https://github.com/KauaVilasBoas/SISLAB/actions/workflows/ci.yml/badge.svg" alt="CI"/>
-  </a>
-  <img src="https://img.shields.io/badge/.NET-8-512BD4?logo=dotnet&logoColor=white" alt=".NET 8"/>
-  <img src="https://img.shields.io/badge/PostgreSQL-15-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL"/>
-  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React"/>
+  <i>Multi-tenant <b>laboratory information management system</b> for a real pharmacology research lab<br/>
+  — .NET 8 modular monolith (DDD · CQRS · Outbox) across 7 bounded contexts, IAM consumed as a<br/>
+  NuGet library, a React SPA, and the lab's own bench calculations encoded as domain logic.</i>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/.NET-8-512BD4?logo=dotnet&logoColor=white&labelColor=0B1220" alt=".NET 8"/>
+  <img src="https://img.shields.io/badge/PostgreSQL-15-4169E1?logo=postgresql&logoColor=white&labelColor=0B1220" alt="PostgreSQL 15"/>
+  <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=61DAFB&labelColor=0B1220" alt="React 18"/>
+  <img src="https://img.shields.io/badge/Terraform-AWS-7B42BC?logo=terraform&logoColor=white&labelColor=0B1220" alt="Terraform"/>
   <a href="https://www.conventionalcommits.org/">
-    <img src="https://img.shields.io/badge/Conventional%20Commits-1.0.0-FE5196?logo=conventionalcommits&logoColor=white" alt="Conventional Commits"/>
+    <img src="https://img.shields.io/badge/Conventional_Commits-1.0.0-FE5196?logo=conventionalcommits&logoColor=white&labelColor=0B1220" alt="Conventional Commits"/>
   </a>
   <a href="LICENSE">
-    <img src="https://img.shields.io/badge/License-MIT-blue" alt="MIT"/>
+    <img src="https://img.shields.io/badge/License-MIT-3FB950?labelColor=0B1220" alt="MIT"/>
   </a>
+</p>
+
+<p align="center">
+  <b>7</b> bounded contexts &nbsp;·&nbsp; <b>~1.1k</b> tests &nbsp;·&nbsp; <b>69</b> architecture rules &nbsp;·&nbsp; <b>9</b> schemas &nbsp;·&nbsp; <b>24</b> SPA screens
+</p>
+
+<p align="center">
+  <a href="#what-is-this">Why</a> &nbsp;·&nbsp;
+  <a href="#the-domain-encoded">Domain</a> &nbsp;·&nbsp;
+  <a href="#architecture-at-a-glance">Architecture</a> &nbsp;·&nbsp;
+  <a href="#engineering-decisions">Decisions</a> &nbsp;·&nbsp;
+  <a href="#getting-started">Run it</a> &nbsp;·&nbsp;
+  <a href="#roadmap">Roadmap</a>
 </p>
 
 ---
 
 ## What is this?
 
-Most laboratories run their inventory, equipment, and partners on spreadsheets — and every
-limitation that comes with that: no real-time stock level, no low-quantity alerts, no audit trail,
-no concurrent access, no permission management. **SISLAB** replaces that with a production-grade
-web platform built from day one for **multi-tenancy**: a single installation serves multiple
-companies (laboratories), each operating in complete data isolation.
+A pharmacology research lab ran its entire operation on Google Sheets: inventory, animal study
+designs, plate layouts, dose calculations, collection sheets, room bookings. The spreadsheets worked
+— they also meant no stock level anyone could trust, no expiry alerts, no audit trail, no concurrent
+editing, and **every dose and dilution recalculated by hand, per experiment, with a calculator.**
 
-The pilot client is **LAFTE** (a real laboratory). The MVP delivers full inventory control —
-stock entries, consumption, transfers between storage locations (storeroom, freezer, controlled
-substances cabinet), equipment management, partner (supplier/client) records, expiry and low-stock
-alerts, and an analytics dashboard — with an audit trail for future regulatory compliance.
+**SISLAB replaces that.** Not as a CRUD over the same columns — the interesting part was reading the
+spreadsheets closely enough to find where the actual work was, and moving *that* into the domain
+model:
 
-Identity and access management are delegated to **[Lumen](https://github.com/KauaVilasBoas/Lumen)**,
-a purpose-built IAM service consumed here as NuGet packages (`Lumen.Identity 1.0.0` + `Lumen.Authorization 3.0.0`).
-Multi-tenancy is a SISLAB responsibility: a user can belong to multiple companies, switching
-active company without re-authenticating; their permissions are scoped per company.
+> A 2 g/kg group averaging 200 g needs 0.400 g of compound; at density 0.95 g/mL that's 421.1 µL of
+> compound; at a 1 g : 5 µL ratio the final solution must reach 1000 µL; so **578.9 µL of diluent**.
+>
+> <sub>Illustrative figures — the real dose, density and diluent belong to the client's unpublished
+> protocol and live in their database, not in this repository.</sub>
+
+That calculation was done by hand for every group of every study. It's now
+`InVivoPreparationCalculator` — with the density, the g:µL ratio and the diluent as **per-lab
+configuration**, never as constants in C#. Same for serial dilutions, plate controls, Von Frey
+up-down thresholds and the Griess curve.
+
+The pilot client is **LAFTE**, a real laboratory. Multi-tenancy was designed in from the first
+commit: one installation serves many labs in complete data isolation, and nothing specific to LAFTE
+is hardcoded anywhere.
+
+Identity and access management are delegated to **[Lumen](https://github.com/KauaVilasBoas/Lumen)**
+— a permission-based IAM library I built and publish to NuGet, consumed here as
+`Lumen.Identity 1.0.x` + `Lumen.Authorization 3.0.1`. SISLAB drove two of its features to release:
+tenant-scoped permissions and the PostgreSQL provider.
 
 ### Highlights
 
-- **Multi-tenancy in depth** — active company lives in an httpOnly cookie (not the JWT), validated
-  per-request against `company_memberships` in the DB. `companyId` flows: cookie → middleware →
-  `ITenantContext` → EF Core global query filter → `WHERE company_id` in every Dapper query.
-  Defense in depth: the cookie alone is never trusted.
-- **IAM as a NuGet** — Lumen provides JWT authentication (BCrypt, HIBP k-anonymity, lockout,
-  refresh-token rotation) and permission-based authorization (`[RequirePermission]`, profiles
-  with tenant-scoped assignments). SISLAB wires both granularly against PostgreSQL — the Lumen
-  umbrella DI method registers SQL Server migrations; SISLAB composes individually.
-- **Dual persistence — right tool per use case** — write-side uses EF Core (aggregates, invariants,
-  transactions); read-side uses Dapper with raw SQL in the Branef.SGF pattern (query + handler +
-  result sealed in one file). Zero ORM overhead on reads.
-- **Hybrid event strategy** — transactional handlers dispatch in-transaction (failure = rollback)
-  for genuine business invariants; side effects (cross-module integration events) go through the
-  Outbox in the same transaction and are dispatched eventually by the Jobs worker.
-- **Boundary enforcement by tests** — ArchUnitNET rules fail the build the moment a module
-  references another module's internals; only `*.Contracts` assemblies may cross a boundary.
-- **One schema per bounded context** — `tenancy.*`, `identity.*` (Lumen), `Lumen.*` (Lumen.Authorization),
-  `inventory.*`, `outbox.*`. Each context owns its migrations, applied at startup by hosted services.
-  No cross-schema foreign keys — cross-references are by `Guid` value.
-- **Permission-based authorization with tenant scope** — the same user can be an `Administrator`
-  in company A and have no profile in company B. Authorization is verified per-request against the
-  active company, cached by `(userId, companyId)`, and effective immediately on profile changes.
+- **The lab's math is domain logic, not a spreadsheet** — in vivo dose preparation (weight ·
+  density · g:µL ratio · diluent), in vitro serial dilution (`V = m·M/MM`, `C₁V₁ = C₂V₂`, configurable
+  dilution factor, DMSO), Von Frey up-down (Dixon/Chaplan), cell viability %, nitric oxide via Griess
+  curve — all unit-tested, all parameterised per laboratory.
+- **Multi-tenancy in depth** — the active company lives in an httpOnly cookie, *not* in the JWT, and
+  is re-validated against `company_memberships` on every request. `companyId` flows cookie →
+  middleware → `ITenantContext` → EF Core global query filter → `WHERE company_id` in every Dapper
+  query. The cookie alone is never trusted.
+- **7 modules, boundaries enforced by the build** — 69 ArchUnitNET facts fail `dotnet test` the moment
+  a module reaches into another module's internals. Only `*.Contracts` assemblies may cross a
+  boundary, and Domain may not reference EF Core, Dapper or ASP.NET.
+- **Dual persistence, right tool per side** — EF Core owns writes (aggregates, invariants,
+  transactions, soft delete, tenant stamping); Dapper owns reads with raw PostgreSQL SQL, query +
+  handler + result sealed in a single file. No ORM overhead on dashboards and reports.
+- **Hybrid event strategy** — events that *are* business invariants dispatch in-transaction (failure
+  rolls back); cross-module side effects are written to the module's own `outbox_messages` table in
+  the same transaction and delivered eventually by the dispatcher. No distributed transactions,
+  at-least-once delivery.
+- **Schema per bounded context** — `tenancy.*`, `configuration.*`, `inventory.*`, `notifications.*`,
+  `experiments.*`, `agenda.*`, `audit.*` are SISLAB's; `identity.*` and `Lumen.*` belong to the IAM
+  library. Each context owns its migrations, applied at boot. No cross-schema foreign keys —
+  cross-references are `Guid` values, so extracting a module later stays cheap.
+- **Production hardening, not a demo** — httpOnly cookie auth + CSRF, per-IP rate limiting, security
+  headers, RFC 7807 ProblemDetails, correlation ids, Serilog structured logging to Coralogix, and an
+  append-only audit trail with CSV export.
+
+---
+
+## Screenshots
+
+> [!NOTE]
+> Screenshots pending capture — the shot list is in
+> [`docs/screenshots/README.md`](docs/screenshots/README.md). Once the five PNGs are in place,
+> delete this note and uncomment the block below.
+
+<!-- SCREENSHOTS — uncomment when docs/screenshots/*.png exist
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+| In vivo study design | Dilution calculator |
+|---|---|
+| ![Project detail](docs/screenshots/in-vivo-project.png) | ![Dilution calculator](docs/screenshots/dilution-calculator.png) |
+
+| Inventory | Agenda |
+|---|---|
+| ![Inventory](docs/screenshots/inventory.png) | ![Agenda](docs/screenshots/agenda.png) |
+
+-->
+
+---
+
+## Modules
+
+Seven bounded contexts, each a self-contained vertical (`Domain` · `Application` ·
+`Infrastructure` · `Contracts`) loaded by `ModuleLoader` in a deterministic order.
+
+| # | Module | Owns |
+|---|---|---|
+| 10 | **Identity** | `Company`, `CompanyMembership`, `CompanyInvitation`; tenant resolution middleware; the httpOnly session + active-company cookies; the bridge into Lumen |
+| 15 | **Configuration** | Per-laboratory parameterisation — units, rooms, item categories, reference ranges, collection roles, inclusion criteria, expiry policies, experimental models. This is what keeps LAFTE's reality out of the code |
+| 20 | **Inventory** | `StockItem` (batches, allocations, container state), `StorageLocation`, `Equipment` (calibration schedules, maintenance records), `Partner`; consumption, transfers, stock counts, disposal, cost & consumption reports |
+| 30 | **Notifications** | `Notification` aggregate + publisher — in-app delivery for every alert the jobs raise |
+| 40 | **Audit** | Append-only `audit.audit_entries` (Dapper-only, write-once, no EF context), tenant-scoped listing and CSV export |
+| 60 | **Experiments** | `Project → Batch → Group → Animal` in vivo designs; `Plate`/`Well` in vitro layouts; preparation calculators; protocols (Von Frey, Tail Flick, Rota Rod, hemogram, cell viability, nitric oxide); `CollectionPlan`; `Sample` biobank + analyses; evidence attachments; GraphPad Prism export; schedule generation with responsible-roster rotation |
+| 70 | **Agenda** | Room bookings, agenda entries, seminar presentations, bioterium assignments, and iCal subscription feeds |
 
 ---
 
@@ -70,67 +141,67 @@ active company without re-authenticating; their permissions are scoped per compa
 
 ```mermaid
 flowchart TB
-    SPA(["React SPA\nVite · TypeScript · Tailwind · shadcn/ui · ECharts"])
+    SPA(["React SPA<br/><sub>Vite · TypeScript · Tailwind · shadcn/ui · ECharts · TanStack Query</sub>"])
 
-    subgraph HOSTS["Hosts"]
-        API["SISLAB.Api\nMinimal API + MVC Controllers\nModuleLoader · Serilog · Swagger · Health"]
-        JOBS["SISLAB.Jobs\nBackgroundService\nOutbox dispatcher · Alert workers"]
+    subgraph HOST["SISLAB.Api — Composition Root"]
+        PIPE["HTTP pipeline<br/><sub>Exception → CorrelationId → SecurityHeaders → RateLimiter<br/>→ CORS → AuthN → TenantResolution → CSRF → AuthZ</sub>"]
+        JOBS["SISLAB.Jobs (in-process)<br/><sub>8 workers — outbox dispatcher + 7 tenant-scanning<br/>alert/reminder jobs driven by injected policies</sub>"]
     end
 
-    subgraph MODS["Modules — each a self-contained vertical"]
-        subgraph IDM["Identity · E1"]
-            IDC["Contracts (public boundary)\nILumenAuthorizationGateway · Profile DTOs"]
-            IDI["Domain · Application · Infrastructure\nCompany aggregate · CompanyMembership\nTenantResolutionMiddleware · ActiveCompanyCookie\nIdentityDbContext (tenancy.*)"]
-        end
-        subgraph INV["Inventory · E3–E4"]
-            INVC["Contracts (public boundary)\nInventory DTOs"]
-            INVI["Domain · Application · Infrastructure\nAggregates: StockItem · Location · Equipment · Partner\nCommand handlers (EF Core) · Query handlers (Dapper)"]
-        end
+    subgraph MODS["Modules — self-contained verticals"]
+        IDN["Identity · 10<br/><sub>Company · Membership · Invitation<br/>tenant resolution · session cookies</sub>"]
+        CFG["Configuration · 15<br/><sub>units · rooms · categories · reference ranges<br/>expiry policies · experimental models</sub>"]
+        INV["Inventory · 20<br/><sub>StockItem · Location · Equipment · Partner</sub>"]
+        NTF["Notifications · 30"]
+        AUD["Audit · 40<br/><sub>append-only trail</sub>"]
+        EXP["Experiments · 60<br/><sub>Project→Batch→Group→Animal · Plate/Well<br/>preparations · protocols · biobank · Prism export</sub>"]
+        AGD["Agenda · 70<br/><sub>bookings · entries · presentations · iCal</sub>"]
     end
 
     subgraph SHARED["Shared"]
-        SK["SharedKernel\nEntity · AggregateRoot · ValueObject\nICommand/IQuery/IMediator · IEventBus · ITenantContext"]
-        INFRA["Infrastructure\nModuleLoader · SislabDbContextBase · EfUnitOfWork\nOutboxWriter · OutboxDispatcher · InMemoryEventBus\nPipeline: Validation → Transaction → Logging"]
+        SK["SharedKernel<br/><sub>Entity · AggregateRoot · ValueObject<br/>ICommand/IQuery/IMediator · ITenantContext · IFileStorage</sub>"]
+        INFRA["Infrastructure<br/><sub>ModuleLoader · DbContextBase · UnitOfWork · Outbox<br/>TenantStampingInterceptor · behaviors: Validation→Transaction→Logging</sub>"]
     end
 
-    LUM["Lumen NuGet packages\nLumen.Identity 1.0.0 — JWT HS256 · BCrypt · HIBP · lockout · refresh-rotation\nLumen.Authorization 3.0.0 — permission-based · tenant-scoped profiles · Redis-cached"]
+    LUM["📦 Lumen (NuGet)<br/><sub>Identity 1.0.x — JWT · BCrypt · HIBP · lockout · refresh rotation<br/>Authorization 3.0.1 — permissions · tenant-scoped profiles</sub>"]
 
-    DB[("PostgreSQL\ntenancy.* — companies · company_memberships\nidentity.* — users · tokens  (Lumen Identity)\nLumen.* — permissions · profiles · user_profiles  (Lumen Authorization)\ninventory.* — items · locations · movements · equipment · partners\noutbox.* — outbox_messages")]
+    DB[("PostgreSQL 15<br/><sub>tenancy · configuration · inventory · notifications · experiments<br/>agenda · audit — plus identity · Lumen (owned by the library)<br/>each module schema carries its own outbox_messages</sub>")]
 
-    AWS[/"AWS\nElastic Beanstalk (EC2 t3.micro)\nRDS PostgreSQL · S3 · CloudFront\nCloudWatch · SSM Parameter Store\nTerraform · GitHub Actions"/]
+    AWS[/"AWS · Terraform<br/><sub>Elastic Beanstalk · RDS · S3 · CloudFront · CloudWatch · SSM</sub>"/]
 
-    SPA -- "HTTPS · REST" --> API
-    API -- "ModuleLoader.RegisterModules\nModuleLoader.MapModuleEndpoints" --> IDI
-    API -- "ModuleLoader" --> INVI
+    SPA -- "HTTPS · REST<br/>httpOnly cookies + CSRF" --> PIPE
 
-    IDI -- "AddLumenIdentity\nAddLumenAuthorization\n(granular Postgres wiring)" --> LUM
+    PIPE --> IDN & CFG & INV & NTF & AUD & EXP & AGD
 
-    LUM ==> |"EF Core · identity.* + Lumen.*"| DB
-    IDI ==> |"EF Core · tenancy.*"| DB
-    INVI ==> |"EF Core write-side"| DB
-    INVI == "Dapper read-side (raw SQL)" ==> DB
+    IDN -- "AddLumenIdentity · AddLumenAuthorization<br/><sub>explicit PostgreSQL wiring</sub>" --> LUM
 
-    JOBS -. "reads + marks outbox_messages" .-> DB
-    JOBS -. "threshold checks + alert dispatch" .-> DB
+    LUM ==> |"identity.* + Lumen.*"| DB
+    INV == "EF write · Dapper read" ==> DB
+    EXP == "EF write · Dapper read" ==> DB
+    IDN ==> DB
+    CFG ==> DB
+    AGD ==> DB
+    NTF ==> DB
+    AUD == "Dapper only" ==> DB
 
-    IDC -. "cross-module contracts (by Guid value)" .-> INVI
+    JOBS -. "outbox drain + threshold scans" .-> DB
+    EXP -. "Contracts only (Guid refs)" .-> INV
+    AGD -. "Contracts only" .-> CFG
 
-    SHARED --> IDI
-    SHARED --> INVI
+    SHARED --> MODS
 
-    API -.-> AWS
-    JOBS -.-> AWS
+    HOST -.-> AWS
 
     classDef host     fill:#0b1220,stroke:#3b82f6,color:#dbeafe
     classDef module   fill:#0b1220,stroke:#10b981,color:#d1fae5
     classDef shared   fill:#0b1220,stroke:#a78bfa,color:#ede9fe
     classDef lumen    fill:#0b1220,stroke:#f59e0b,color:#fde68a
     classDef external fill:#020617,stroke:#64748b,color:#cbd5e1
-    classDef db       fill:#CC2927,stroke:#ff6b6b,color:#ffffff,stroke-width:3px
+    classDef db       fill:#4169E1,stroke:#93c5fd,color:#ffffff,stroke-width:3px
     classDef aws      fill:#232F3E,stroke:#FF9900,color:#ffffff
 
-    class API,JOBS host
-    class IDC,IDI,INVC,INVI module
+    class PIPE,JOBS host
+    class IDN,CFG,INV,NTF,AUD,EXP,AGD module
     class SK,INFRA shared
     class LUM lumen
     class SPA external
@@ -138,29 +209,88 @@ flowchart TB
     class AWS aws
 ```
 
-<sub><b>Reading the diagram</b> — both hosts compose modules through <code>ModuleLoader</code> (assembly-scan auto-discovery); thick arrows are EF Core / Dapper I/O paths; dashed arrows are module wiring, contract dependencies and background-worker access. Each module is a self-contained vertical (green) — the only thing they share is the other module's <b>Contracts</b> assembly, never its internals. Lumen packages (amber) own the IAM schemas entirely; SISLAB never reaches into them. <code>tenancy.*</code> is SISLAB's own schema for multi-tenancy — separate from Lumen's <code>identity.*</code> to avoid DbContext collisions.</sub>
+<sub><b>Reading the diagram</b> — the host composes modules by assembly scan (<code>ModuleLoader</code>, ordered by <code>IModule.Order</code>); thick arrows are EF Core / Dapper I/O; dashed arrows are contract dependencies and background access. Modules (green) never see each other's internals — only <code>*.Contracts</code>, and only by <code>Guid</code> value. Lumen (amber) owns the IAM schemas entirely; SISLAB never reads them directly. <code>tenancy.*</code> is SISLAB's own multi-tenancy schema, kept separate from Lumen's <code>identity.*</code> to avoid DbContext collisions.</sub>
+
+---
+
+## The domain, encoded
+
+The part of this project I'd point at first. Every number below came out of a spreadsheet cell and
+is now tested code with the lab-specific values held in `Configuration`.
+
+<details open>
+<summary><b>In vivo — dose preparation by body weight</b></summary>
+
+`Domain/Preparations/InVivoPreparationCalculator.cs`. Given a group's mean weight, a target dose in
+g/kg, the compound's density and state, and the lab's g:µL ratio, it derives compound mass →
+compound volume → final solution volume → **diluent volume**. The control group receives vehicle
+only, with no subtraction. Density, ratio and diluent are configuration; the *shape* of the
+calculation is the domain.
+
+</details>
+
+<details>
+<summary><b>In vitro — stock solutions and serial dilution schemes</b></summary>
+
+`Domain/Preparations/SerialDilutionCalculator.cs`, `StockSolution.cs`, `DmsoDilution.cs`.
+`V = m·M/MM` for molar compounds, mg/mL when there is no molar mass, `C₁V₁ = C₂V₂` per step,
+configurable dilution factor and point count, configurable mother-plate volume (with a separate
+volume for oil compounds in Eppendorf), and DMSO handling. The concrete factors, volumes and
+concentration ranges are per-laboratory configuration, not code.
+
+</details>
+
+<details>
+<summary><b>Plates, wells and controls</b></summary>
+
+`Domain/Plates/{Plate,Well,WellRole}.cs`. A plate layout with typed well roles, so per-plate
+controls (DEXA, CTRL+ = LPS+INF, CTRL−, CITO) are modelled instead of remembered.
+
+</details>
+
+<details>
+<summary><b>Protocols as strategies</b></summary>
+
+`Application/Protocols/` — `IExperimentProtocol` resolved by `ExperimentProtocolResolver`, with
+`VonFreyUpDownCalculationStrategy` (full Dixon/Chaplan up-down 50 % threshold),
+`ViabilityCalculationStrategy`, `NitricOxideCalculationStrategy` (Griess curve) and
+`ReplicateStatistics`. Adding a new assay means adding a strategy, not touching a switch.
+
+</details>
+
+<details>
+<summary><b>Schedules and collection sheets</b></summary>
+
+`Domain/Scheduling/ExperimentScheduleGenerator.cs` builds the study timeline from the bound
+experimental model and rotates responsibilities through a `ResponsibleRoster`.
+`Domain/Collection/CollectionPlan.cs` encodes the collection sheet: roles (float, anaesthesia,
+decapitation, blood, marrow, ganglion, nerve) assigned to people, and the sample → analysis →
+storage matrix that ends in the `Sample` biobank with evidence attachments.
+
+</details>
 
 ---
 
 ## Engineering decisions
 
-Each decision below was planned as a card on the
-[Trello board](https://trello.com/b/C8qhOb3j/sislab) and the larger ones have an ADR.
+Every decision started as a card on the [Trello board](https://trello.com/b/C8qhOb3j/sislab).
 
 | Decision | Rationale |
 |---|---|
-| **Active company in cookie, not JWT** | A claim in the JWT is frozen at issue time — switching companies would require a new login. An httpOnly + SameSite cookie holds the active `companyId`; the `TenantResolutionMiddleware` re-validates membership against the DB on every request. Company switch = new cookie, same token. The trade-off: one extra DB read per request, eliminated in E9 with per-request caching. |
-| **IAM as NuGet packages** | SISLAB delegates authentication and authorization to **Lumen**, consumed as `Lumen.Identity 1.0.0` + `Lumen.Authorization 3.0.0`. SISLAB owns tenancy (`Company`, `CompanyMembership`); Lumen owns users, tokens, and profiles; SISLAB owns the permission catalogue (see below). Clean bounded-context boundary — no shared schemas, no shared internals, references by `Guid` value only. |
-| **Lumen Authorization wiring (v3 umbrella)** | Lumen.Authorization 3.0.0 is a provider-aware umbrella: SISLAB calls `AddLumenAuthorization(connString, o => o.Provider = PostgreSQL)`. Its `LumenAuthorizationMigrationsHostedService` applies the PostgreSQL `Lumen`-schema migrations on boot (empty tables) — no separate migrations/enforcement/discovery calls, and no SQL Server crash. v3 dropped all catalogue machinery (no `CatalogMode`, no discovery scanner): the library never seeds permissions. |
-| **SISLAB owns the permission catalogue** | Because Lumen 3.0.0 seeds nothing, SISLAB owns the permission data and applies it out-of-band via the `SISLAB.Migrations` EF project. Its `SeedPermissions` migration calls the idempotent `SeedLumenPermissionGroup` / `SeedLumenPermission` helpers to populate every group and permission (with pt-BR display names) into `Lumen.PermissionGroup` / `Lumen.Permission`. A dedicated seed project — not a boot-time hosted service and not a module `DbContext` migration — keeps reference data out of the app boot path and off the module schemas/histories. |
-| **Schema per bounded context** | `tenancy.*` (SISLAB multi-tenancy), `identity.*` (Lumen Identity), `Lumen.*` (Lumen Authorization), `inventory.*` (Inventory module). Each `DbContext` owns its schema and its EF migrations, applied at startup by per-context hosted services. No cross-schema foreign keys — cross-references are by `Guid` id, making future extraction cheap. |
-| **Dual persistence — EF Core write, Dapper read** | Domain invariants and transactional writes use EF Core (change tracking, global query filter, aggregate roots). Analytical reads (dashboards, reports, paginated lists) use Dapper with raw PostgreSQL SQL in the Branef.SGF pattern: query, handler, and result record sealed in one file. No ORM overhead on the hot read path; no raw SQL risk on the mutation path. |
-| **Hybrid event strategy** | Domain events that enforce business invariants (e.g., "cross-module stock check") are dispatched transactionally — failure rolls back the entire operation. Side effects (integration events to other modules) are written to the `outbox.*` table in the same EF transaction and dispatched eventually by `SISLAB.Jobs`. This avoids distributed transactions while guaranteeing at-least-once delivery. |
-| **Tenant-scoped permission profiles** | The same user can hold the `Administrator` profile in company A and have no profile in company B. `Lumen.Authorization` provides `UserProfile.ScopeId` for this; SISLAB implements `ITenantScopeAccessor` returning the active `companyId`. The permission cache is keyed by `(userId, companyId)` — a company switch flushes to the scoped cache immediately. |
-| **Pipeline ordering: AuthN → TenantResolution → AuthZ** | `TenantResolutionMiddleware` must run **after** `UseAuthentication` (needs the JWT principal to look up membership) and **before** `UseAuthorization` (Lumen's `PermissionAuthorizationHandler` reads the scope via `ITenantScopeAccessor` during authorization). Wrong order = 403 on every tenant-scoped endpoint even with the correct company active. |
-| **Permission codes from convention, rows seeded by SISLAB** | `[RequirePermission]` (no code) on a controller action derives its permission code by convention as `Controller.Action`; Lumen enforces it against the `Lumen.Permission` rows. Those rows are the single source of truth and live only in the DB, seeded by the `SISLAB.Migrations` `SeedPermissions` migration — there are no permission-code constants in C#. `WriteEndpointPermissionTests` guards that every write endpoint stays `[RequirePermission]`-decorated. |
-| **Architecture tests as a build gate** | ArchUnitNET rules live in `tests/SISLAB.ArchitectureTests`. A module's Domain may not reference another module's Domain; modules communicate only through `*.Contracts`; Domain may not import EF, Dapper or ASP.NET. Violations fail the build — not a code review comment. |
-| **AWS + Terraform IaC** | Production runs on Elastic Beanstalk (EC2 t3.micro) against RDS PostgreSQL. S3 + CloudFront serve the React SPA. All infrastructure is described in HCL under `infra/`, applied by GitHub Actions (`terraform plan` on PRs, `terraform apply` on main). Secrets live in SSM Parameter Store — never in source. |
+| **Nothing lab-specific in code** | Densities, g:µL ratios, diluents, dilution factors, plate volumes, glycaemia thresholds, reference ranges, collection roles and the sample→analysis matrix are all rows in `configuration.*`. The pilot lab's numbers live in seed data and tests. This is the difference between a tool for LAFTE and a product. |
+| **Active company in a cookie, not the JWT** | A claim is frozen at issue time, so switching labs would need a re-login. An httpOnly + SameSite cookie carries the active `companyId` and `TenantResolutionMiddleware` re-validates membership per request. Switching company = new cookie, same token. Cost: one extra read per request. |
+| **httpOnly session cookies over Bearer-in-localStorage** | Lumen issues the JWT; SISLAB stores it in `sislab_access_token` (httpOnly, `/`) and the refresh token in `sislab_refresh_token` (httpOnly, pinned to `/api/auth/refresh`). A `JwtBearerEvents.OnMessageReceived` hook reads the cookie so the standard `UseAuthentication` pipeline is untouched. XSS cannot read the credential; CSRF is closed by antiforgery + `CsrfValidationMiddleware`. |
+| **Pipeline order: AuthN → TenantResolution → AuthZ** | Tenant resolution needs the authenticated principal to look up membership, and must populate `ITenantScopeAccessor` *before* `UseAuthorization`, because Lumen's permission handler reads the scope during authorization. Wrong order = 403 on every tenant-scoped endpoint even with correct permissions. |
+| **IAM as a NuGet library** | AuthN/AuthZ are delegated to [Lumen](https://github.com/KauaVilasBoas/Lumen): it owns users, tokens and profiles; SISLAB owns tenancy and the permission catalogue. A genuine bounded-context split — no shared schemas, no shared internals, `Guid` references only. Building both sides is what surfaced Lumen's tenant-scoped permissions and PostgreSQL provider. |
+| **SISLAB owns the permission catalogue** | Lumen 3.0 seeds nothing by contract, so the catalogue is applied out-of-band by the `SISLAB.Migrations` project via the idempotent `SeedLumenPermissionGroup`/`SeedLumenPermission` helpers. A dedicated seed project — not a boot-time hosted service, not a module migration — keeps reference data off the app boot path and off the module schemas. There are **no permission-code constants in C#**: `[RequirePermission]` derives `Controller.Action` by convention and the DB rows are the single source of truth. |
+| **Schema per bounded context** | Seven SISLAB schemas (`tenancy`, `configuration`, `inventory`, `notifications`, `experiments`, `agenda`, `audit`), each owned by exactly one `DbContext` — or, for Audit, a boot-time DDL script — with its own migration history applied at startup. Two more (`identity`, `Lumen`) belong entirely to the IAM library, plus a `seed` history for the catalogue project. No cross-schema foreign keys. Extraction cost stays low by construction. |
+| **Dual persistence — EF write, Dapper read** | Invariants and transactional writes get change tracking, the tenant global query filter and the `TenantStampingInterceptor`. Dashboards, reports and paginated lists get raw PostgreSQL SQL with query, handler and result record sealed in one file. No ORM on the hot read path; no raw SQL on the mutation path. |
+| **Hybrid event strategy** | Domain events that enforce an invariant dispatch inside the transaction — failure rolls the whole operation back. Integration events are written to the outbox in the same transaction and drained by `OutboxDispatcherJob`. At-least-once without distributed transactions. |
+| **One outbox table per module schema** | Every module `DbContext` implements `IOutboxDbContext` and applies the *shared* `OutboxMessageConfiguration` under its own default schema — so `inventory.outbox_messages`, `experiments.outbox_messages`, and so on. A single central `outbox.*` table would have been a shared write point between otherwise isolated contexts: cross-module contention, one migration history owning everyone's table, and a schema no module could own. Per-module tables keep the transactional guarantee (the outbox write is in the *same* transaction as the aggregate) while the dispatcher stays generic. |
+| **Audit has no DbContext** | The trail is write-once and read-only afterwards, so it's Dapper-only with an idempotent `CREATE ... IF NOT EXISTS` bootstrapper — the same "each module owns its schema at boot" convention, minus EF ceremony. Indexed for the only two read patterns that exist: newest-first per company, and narrowing by entity type. |
+| **Jobs in-process with the API** | Eight scheduled workers (outbox drain, expiry, low stock, calibration overdue, controlled-substance compliance, agenda/bioterium/presentation reminders) run inside the API rather than as a separate host. Seven of them share a `CompanyScanAlertJob` base that iterates tenants and applies an injected alert policy, so a new alert is a policy class, not a new worker. One deploy unit at this scale; the extraction seam is `AddSislabJobs`. |
+| **Architecture tests as a build gate** | 69 ArchUnitNET facts in `tests/SISLAB.ArchitectureTests`: module isolation, controller dependency direction, and `WriteEndpointAuthorizationTests`, which fails the build if any write endpoint loses its `[RequirePermission]`. Violations break the build, they don't wait for a review comment. |
+| **AWS + Terraform IaC** | Elastic Beanstalk against RDS PostgreSQL, S3 + CloudFront for the SPA. All infrastructure is HCL under `infra/` (`modules/{network,compute,database,storage}` + `envs/staging`). Secrets in SSM Parameter Store, never in source. |
 
 ---
 
@@ -169,52 +299,47 @@ Each decision below was planned as a card on the
 | Layer | Technology |
 |---|---|
 | Runtime | .NET 8 / ASP.NET Core 8 |
-| Architecture | Modular monolith — DDD + CQRS + Outbox |
-| Write-side | EF Core 8 + PostgreSQL 15 (snake_case, schema-per-module, soft-delete) |
-| Read-side | Dapper — raw SQL, same-file query + handler + result (Branef.SGF pattern) |
-| IAM | `Lumen.Identity 1.0.0` + `Lumen.Authorization 3.0.0` (NuGet) |
-| In-process messaging | Custom `IMediator` + `IEventBus` + pipeline behaviors (Validation · Transaction · Logging) |
-| Background jobs | `BackgroundService` — Outbox dispatcher + expiry/low-stock alert workers |
-| Frontend | React 19 + Vite + TypeScript + Tailwind CSS + shadcn/ui + Apache ECharts |
-| Infrastructure | AWS (Elastic Beanstalk · RDS · S3 · CloudFront · CloudWatch · SSM) |
-| IaC | Terraform (HCL versioned under `infra/`) |
-| CI/CD | GitHub Actions (build · test · `terraform plan/apply`) |
-| Testing | xUnit + ArchUnitNET · Testcontainers (integration, E9) |
-| Local dev | PostgreSQL — `dotnet user-secrets` for secrets, `dotnet run` for everything else |
+| Architecture | Modular monolith — DDD + CQRS + Outbox, 7 bounded contexts |
+| Write-side | EF Core 8 + PostgreSQL 15 (snake_case, schema-per-module, soft delete, tenant stamping) |
+| Read-side | Dapper — raw SQL, query + handler + result in one file |
+| IAM | [`Lumen.Identity`](https://www.nuget.org/packages/Lumen.Identity) 1.0.x + [`Lumen.Authorization`](https://www.nuget.org/packages/Lumen.Authorization) 3.0.1 (NuGet) |
+| In-process messaging | Custom `IMediator` + `IEventBus`, behaviors: Validation → Transaction → Logging |
+| Background jobs | 8 scheduled workers on a shared `TimedBackgroundService` — outbox dispatcher + policy-driven alerts |
+| Frontend | React 18 + Vite 5 + TypeScript 5 + Tailwind + shadcn/ui + ECharts + TanStack Query + ZXing (barcode) + qrcode (labels) |
+| Security | httpOnly cookie auth · antiforgery CSRF · per-IP rate limiting · security headers · HSTS · RFC 7807 |
+| Observability | Serilog (JSON console + Coralogix HTTP sink) · correlation ids · health checks · append-only audit trail |
+| Infrastructure | AWS — Elastic Beanstalk · RDS · S3 · CloudFront · CloudWatch · SSM |
+| IaC | Terraform (HCL under `infra/`) |
+| Testing | xUnit + ArchUnitNET + Testcontainers (real PostgreSQL), hand-written fakes over a mocking framework (`SISLAB.TestSupport`) — ~1,100 tests across 12 projects |
 
 ---
 
-## Module structure
+## Source tree
 
 <details>
-<summary>Source tree</summary>
+<summary>Layout</summary>
 
 ```
 SISLAB/
 ├── src/
-│   ├── Host/
-│   │   └── SISLAB.Api/                        # Composition Root, Swagger, health check
-│   ├── Jobs/
-│   │   └── SISLAB.Jobs/                       # Outbox worker + alert BackgroundServices
+│   ├── Host/SISLAB.Api/              # Composition Root, pipeline, CSRF, rate limiting, Swagger
+│   ├── Jobs/SISLAB.Jobs/             # 8 scheduled workers (outbox dispatcher + alert policies)
 │   ├── Modules/
-│   │   ├── Identity/
-│   │   │   ├── SISLAB.Modules.Identity.Domain/
-│   │   │   ├── SISLAB.Modules.Identity.Application/    ← IModule entry point (host references this)
-│   │   │   ├── SISLAB.Modules.Identity.Infrastructure/ ← EF, Lumen wiring, middleware, seeding
-│   │   │   └── SISLAB.Modules.Identity.Contracts/      ← only public boundary
-│   │   └── Inventory/
-│   │       ├── SISLAB.Modules.Inventory.Domain/
-│   │       ├── SISLAB.Modules.Inventory.Application/   ← IModule entry point
-│   │       ├── SISLAB.Modules.Inventory.Infrastructure/
-│   │       └── SISLAB.Modules.Inventory.Contracts/     ← only public boundary
-│   └── Shared/
-│       ├── SISLAB.SharedKernel/               # Entity, AggregateRoot, ValueObject, CQRS contracts
-│       └── SISLAB.Infrastructure/             # ModuleLoader, DbContextBase, UoW, Outbox, EventBus
-├── tests/
-│   ├── SISLAB.ArchitectureTests/              # ArchUnitNET boundary enforcement
-│   ├── SISLAB.Modules.Identity.Tests/
-│   └── SISLAB.Modules.Inventory.Tests/
-└── infra/                                     # Terraform (HCL)
+│   │   ├── Identity/                 # Domain · Application · Infrastructure · Contracts
+│   │   ├── Configuration/            #   (every module follows the same 4-project shape;
+│   │   ├── Inventory/                #    Audit has no Domain — the trail is Dapper-only)
+│   │   ├── Notifications/
+│   │   ├── Audit/
+│   │   ├── Experiments/
+│   │   └── Agenda/
+│   ├── Shared/
+│   │   ├── SISLAB.SharedKernel/      # Entity, AggregateRoot, ValueObject, CQRS + tenancy contracts
+│   │   └── SISLAB.Infrastructure/    # ModuleLoader, DbContextBase, UoW, Outbox, behaviors, storage
+│   └── SISLAB.Migrations/            # Out-of-band seed project (permission catalogue)
+├── tests/                            # 12 test projects + SISLAB.TestSupport
+│   └── SISLAB.ArchitectureTests/     # 69 ArchUnitNET boundary facts
+├── frontend/                         # React SPA — 13 feature modules, 24 pages
+└── infra/                            # Terraform: modules/{network,compute,database,storage}, envs/staging
 ```
 
 </details>
@@ -222,37 +347,46 @@ SISLAB/
 <details>
 <summary>How modules are registered</summary>
 
-Each module exposes exactly one `IModule` implementation in its Application project:
+Each module exposes exactly one `IModule` in its Application project:
 
 ```csharp
 public sealed class IdentityModule : IModule
 {
-    public int Order => 10; // Identity=10, Inventory=20 — deterministic load order
+    public int Order => 10; // Identity 10 · Configuration 15 · Inventory 20 · Notifications 30
+                            // Audit 40 · Experiments 60 · Agenda 70
 
     public void RegisterServices(IServiceCollection services, IConfiguration configuration)
-        => services.AddIdentityModule(configuration);
+    {
+        services.AddIdentityModule(configuration);
+
+        // The module's MVC controllers live in this assembly, co-located with the CQRS
+        // queries they dispatch. Registering the ApplicationPart makes their
+        // [RequirePermission] actions visible to Lumen's enforcement filter.
+        services.AddControllers().AddApplicationPart(typeof(IdentityModule).Assembly);
+        services.AddHandlersFromAssembly(typeof(IdentityModule).Assembly);
+    }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapLumenIdentityEndpoints(prefix: "/api/auth");
+        endpoints.MapSislabAuthEndpoints();      // replaces MapLumenIdentityEndpoints:
+                                                 // same Lumen commands, cookie-bridged
         endpoints.MapActiveCompanyEndpoints();
     }
 }
 ```
 
-The host discovers and wires all modules with two calls — no per-module manual plumbing:
+Identity is the only module that maps Minimal API endpoints — it has to, because the cookie bridge
+replaces Lumen's own endpoint mapping. The other six expose attribute-routed MVC controllers and
+leave `MapEndpoints` empty; `app.MapControllers()` picks them up once the module has registered its
+`ApplicationPart`.
+
+The host wires all seven with two calls — no per-module plumbing:
 
 ```csharp
-// Program.cs
-ModuleLoader.RegisterModules(builder.Services, builder.Configuration,
-[
-    typeof(IdentityModule).Assembly,
-    typeof(InventoryModule).Assembly
-]);
-
+ModuleLoader.RegisterModules(builder.Services, builder.Configuration, moduleAssemblies);
 // ...
 ModuleLoader.MapModuleEndpoints(app);
-app.MapControllers(); // MVC controllers (needed for Lumen's [RequirePermission] discovery)
+app.MapControllers();   // module MVC controllers, for Lumen's [RequirePermission] discovery
 ```
 
 </details>
@@ -261,39 +395,34 @@ app.MapControllers(); // MVC controllers (needed for Lumen's [RequirePermission]
 
 ## API surface
 
-Endpoints implemented as of E0 + E1 (Identity & Tenancy):
+| Area | Base route |
+|---|---|
+| Auth (Lumen + SISLAB cookie bridge) | `/api/auth/{register,login,refresh,logout,confirm-email,resend-confirmation,forgot-password,reset-password,change-password,permissions,csrf}` |
+| Companies & tenancy | `/api/companies` · `/api/companies/mine` · `/api/companies/{id}/activate` · `/api/companies/active` · `/api/companies/invitations` |
+| Company administration | `/api/admin/companies/active/members` · `.../members/{userId}/profiles` · `/api/admin/profiles` |
+| Inventory | `/api/inventory/stock-items` · `stock-movements` · `storage-locations` · `equipment` · `partners` · `reports/cost-by-{month,experiment}` · `consumption-series` |
+| Configuration | `/api/configuration/{units,rooms,item-categories,reference-ranges,collection-roles,inclusion-criteria,expiry-policy,experimental-models}` |
+| Experiments | `/api/experiments` · `/api/experiments/{id}/schedule` · `/api/experiments/pendencies` · `/api/projects` · `/api/samples` · `/api/collection-plans` · `/api/attachments` |
+| Agenda | `/api/agenda` (bookings, rooms, presentations, bioterium) · `/api/agenda/entries` · `/api/agenda/ical/subscribe` → `/api/agenda/calendar.ics` |
+| Notifications · Audit | `/api/notifications` · `/api/audit` (list + CSV export) |
+| Health | `GET /health` |
 
-| Area | Endpoint | Auth |
-|---|---|---|
-| Auth (Lumen) | `POST /api/auth/register` · `login` · `refresh` · `logout` · `forgot-password` · `reset-password` · `GET /api/auth/confirm-email` | Public |
-| My companies | `GET /api/companies/mine` | Bearer |
-| Activate company | `POST /api/companies/{companyId}/activate` | Bearer |
-| Active company | `GET /api/companies/active` | Bearer + cookie |
-| Company members | `GET /api/admin/companies/active/members` | Bearer + `CompanyMembers.ListMembers` permission |
-| Removal eligibility | `GET /api/admin/companies/active/members/{userId}/removal-eligibility` | Bearer + `CompanyMembers.CheckRemovalEligibility` permission |
-| Health | `GET /health` | Public |
-
-The full Inventory surface (E3–E4) and the analytics endpoints (ECharts dashboard) are tracked on the [Trello board](https://trello.com/b/C8qhOb3j/sislab).
+Write endpoints are `[RequirePermission]`-gated against the active company — enforced by
+`WriteEndpointAuthorizationTests`, not by convention alone. Errors follow RFC 7807 with the request
+correlation id as `traceId`.
 
 ```powershell
-# Register
-curl -X POST http://localhost:5121/api/auth/register `
+# Login — sets the httpOnly session cookies (no token in the response body for browsers)
+curl -i -c cookies.txt -X POST http://localhost:5121/api/auth/login `
   -H "Content-Type: application/json" `
-  -d '{"email":"you@lafte.dev","username":"you","password":"Str0ng!Passw0rd-2026"}'
+  -d '{"identifier":"admin@lafte.dev","password":"<password>"}'
 
-# Login (identifier accepts email or username)
-curl -X POST http://localhost:5121/api/auth/login `
-  -H "Content-Type: application/json" `
-  -d '{"identifier":"you@lafte.dev","password":"Str0ng!Passw0rd-2026"}'
-# → { "accessToken": "<jwt>", "refreshToken": "<opaque>", "expiresIn": 900 }
+# Activate a laboratory — sets sislab_active_company
+curl -i -b cookies.txt -c cookies.txt -X POST `
+  http://localhost:5121/api/companies/<companyId>/activate
 
-# List companies for the authenticated user
-curl http://localhost:5121/api/companies/mine -H "Authorization: Bearer <token>"
-
-# Activate a company (sets httpOnly cookie sislab_active_company)
-curl -i -X POST http://localhost:5121/api/companies/<companyId>/activate `
-  -H "Authorization: Bearer <token>"
-# → 204 No Content + Set-Cookie: sislab_active_company=<companyId>; HttpOnly; SameSite=Lax
+# Tenant-scoped read
+curl -b cookies.txt http://localhost:5121/api/inventory/stock-items?page=1
 ```
 
 ---
@@ -303,87 +432,90 @@ curl -i -X POST http://localhost:5121/api/companies/<companyId>/activate `
 ### Prerequisites
 
 - .NET 8 SDK
-- PostgreSQL (local on `:5432`, database `SISLAB_LOCALHOST`, user `postgres`)
+- PostgreSQL 15 (local on `:5432`)
+- Node 20+ (for the SPA)
+- Docker (only to run the Testcontainers integration tests)
 
 ### Configure secrets
 
 ```powershell
 cd src/Host/SISLAB.Api
 
-# Connection string — used by SISLAB (EF + Dapper) and passed explicitly to both Lumen packages
+# One connection string serves EF Core, Dapper and both Lumen packages
 dotnet user-secrets set "ConnectionStrings:SislabDb" `
   "Host=localhost;Port=5432;Database=SISLAB_LOCALHOST;Username=postgres;Password=<password>"
 
-# Lumen Identity JWT (min. 32 chars)
-dotnet user-secrets set "LumenIdentity:Jwt:Secret"   "<random-32-chars>"
+dotnet user-secrets set "LumenIdentity:Jwt:Secret"   "<random-32-chars-min>"
 dotnet user-secrets set "LumenIdentity:Jwt:Issuer"   "sislab-local"
 dotnet user-secrets set "LumenIdentity:Jwt:Audience" "sislab-local"
 
-# Dev seed — creates LAFTE company + admin user already activated (bypasses email confirmation)
+# Dev seed — creates the LAFTE company + an email-confirmed admin with the Administrator profile
 dotnet user-secrets set "Seed:Enabled"        "true"
 dotnet user-secrets set "Seed:Admin:Email"    "admin@lafte.dev"
 dotnet user-secrets set "Seed:Admin:Username" "lafte-admin"
 dotnet user-secrets set "Seed:Admin:Password" "<strong-password-min-12>"
 ```
 
-> A single `SislabDb` connection string serves EF Core, Dapper, and both Lumen packages —
-> the module wires them explicitly via `AddLumenIdentity(connectionString, ...)`.
-
 ### Run
 
 ```powershell
-dotnet build
-dotnet run --project src/Host/SISLAB.Api
+dotnet run --project src/Host/SISLAB.Api    # API — hosted services apply every schema on boot
+dotnet run --project src/SISLAB.Migrations  # seeds the permission catalogue (once per database)
+
+cd frontend; npm install; npm run dev       # SPA on :5173, proxied to the API
 ```
 
-On startup, hosted services apply migrations for each schema in order:
-`tenancy.*` (SISLAB) → `identity.*` (Lumen Identity) → `Lumen.*` (Lumen Authorization).
-The dev seed then creates the LAFTE company, the admin user (already email-confirmed), and the
-`Administrator` profile assignment scoped to LAFTE — ready to test tenant-scoped authorization.
-
-- Swagger: `https://localhost:<port>/swagger`
+- Swagger: `https://localhost:<port>/swagger` (development only)
 - Health: `GET /health`
+
+Full walkthrough — migration order, the auth + tenant flow, and known Lumen quirks — in
+[DEV_SETUP.md](DEV_SETUP.md).
 
 ### Tests
 
 ```powershell
-dotnet test tests/SISLAB.ArchitectureTests     # boundary enforcement
-dotnet test tests/SISLAB.Modules.Identity.Tests
+dotnet test                                 # ~1,100 tests (needs Docker — Testcontainers)
+dotnet test tests/SISLAB.ArchitectureTests  # boundary enforcement only, no Docker needed
 ```
 
 ---
 
 ## Roadmap
 
-| Epic | Name | Focus | Status |
-|---|---|---|---|
-| **E0** | Modular skeleton | Solution, SharedKernel, IModule/ModuleLoader, architecture tests | Shipped |
-| **E1** | Identity & Tenancy | Lumen IAM integration, Company aggregate, TenantResolution, tenant-scoped authz | In progress |
-| **E2** | CQRS Platform | IMediator, pipeline behaviors, domain events, Outbox, EF + Dapper wiring | Shipped |
-| **E3** | Inventory write | StockItem, Location, Equipment, Partner aggregates + command handlers | Planned |
-| **E4** | Inventory read & reports | Dapper query handlers, paginated read models, dashboard queries | Planned |
-| **E5** | Contracts & integration | Cross-module contracts, integration events between bounded contexts | Planned |
-| **E6** | Jobs | Outbox dispatcher worker, expiry alert worker, low-stock alert worker | Planned |
-| **E7** | React SPA | Full frontend: auth flow, inventory screens, ECharts dashboard | Planned |
-| **E8** | AWS & CI/CD | RDS, Elastic Beanstalk, S3/CloudFront, Terraform, GitHub Actions deploy | In progress |
-| **E9** | Observability & Security | Serilog structured logging, audit trail, OWASP hardening, error handling | Planned |
+| Epic | Focus | Status |
+|---|---|---|
+| **E0** Modular skeleton | Solution, SharedKernel, `IModule`/`ModuleLoader`, architecture tests | ✅ Shipped |
+| **E1** Identity & tenancy | Lumen integration, `Company`, tenant resolution, tenant-scoped authz, invitations | ✅ Shipped |
+| **E2** CQRS platform | `IMediator`, pipeline behaviors, domain events, Outbox, EF + Dapper wiring | ✅ Shipped |
+| **E3** Inventory write | `StockItem`, `StorageLocation`, `Equipment`, `Partner` + command handlers | ✅ Shipped |
+| **E4** Inventory read | Dapper query handlers, paginated read models, cost & consumption reports | ✅ Shipped |
+| **E5** Contracts & integration | Cross-module contracts, integration events between contexts | ✅ Shipped |
+| **E6** Jobs | Outbox dispatcher + expiry, low-stock, calibration, compliance and reminder workers | ✅ Shipped |
+| **E7** React SPA | Auth flow, inventory, experiments, agenda, labels, ECharts dashboard | ✅ Shipped |
+| **E9** Observability & security | Serilog + Coralogix, correlation ids, audit trail, rate limiting, CSRF, ProblemDetails | ✅ Shipped |
+| **E-Prep** Preparation calculations | In vivo dose by weight; in vitro stock + serial dilution (SISLAB-01, 05) | ✅ Shipped |
+| **E-InVivo** In vivo design & readings | Cages, post-induction selection, randomisation, schedule + roster (SISLAB-02, 03, 04, 10) | ✅ Shipped |
+| **E-InVitro** Plates | Plate layout, wells, per-plate controls (SISLAB-06, 07) | ✅ Shipped |
+| **E-Coleta** Collection & biobank | Collection sheet, sample→analysis matrix, evidence attachments (SISLAB-08, 09) | ✅ Shipped |
+| **E8** AWS & CI/CD | Terraform modules + staging env done; **GitHub Actions pipeline and production deploy pending** | 🚧 In progress |
+| Integration tests on real PostgreSQL | Testcontainers already cover Inventory and Notifications; extending to the remaining five modules | 🚧 In progress |
+| S3-backed attachment storage | `IFileStorage` is abstracted; only `LocalFileStorage` exists today | Planned |
+| First tagged release (`v1.0.0`) | Cut once E8 lands and the pilot lab is live | Planned |
 
-The full backlog — including acceptance criteria per card — is on the
-[Trello board](https://trello.com/b/C8qhOb3j/sislab). Critical path: **E0 → E1 → E2 → E3 → E4 → E7** (E8 runs in parallel from the start).
+Full backlog with acceptance criteria per card is on the
+[Trello board](https://trello.com/b/C8qhOb3j/sislab).
 
 ---
 
 ## Engineering workflow
 
-This repository is run like a production codebase. Every decision starts as a card on the
-[public Trello board](https://trello.com/b/C8qhOb3j/sislab), is implemented in a feature branch
-with atomic Conventional Commits, delivered by PR, and recorded in the CHANGELOG:
-
-- **[Conventional Commits](https://www.conventionalcommits.org/)** — `feat:`, `fix:`, `refactor:`, `test:`, `docs:` on atomic branches; `main` only moves by merge.
-- **[Keep a Changelog](https://keepachangelog.com/)** — every card lands with a CHANGELOG entry.
-- **[Semantic Versioning](https://semver.org/)** — releases are tagged (`vMAJOR.MINOR.PATCH`); the first production-ready release ships when the MVP (Inventory E3–E4 + React SPA E7) is done.
-- **Task-first development** — no branch without a Trello card; no card without acceptance criteria.
-- **CI on every push** — GitHub Actions builds the full solution with `TreatWarningsAsErrors` and runs architecture + unit tests. Integration tests (Testcontainers) run against real PostgreSQL on every PR.
+- **Task-first** — no branch without a Trello card; no card without acceptance criteria.
+- **[Conventional Commits](https://www.conventionalcommits.org/)** — atomic commits on feature
+  branches (`feat/…`, `fix/…`, `refactor/…`); `main` only moves by merge.
+- **[SemVer](https://semver.org/)** — the first tagged release ships when the pilot laboratory goes
+  live on AWS.
+- **Boundaries are tested, not documented** — `dotnet test` is the architecture review.
+- **`TreatWarningsAsErrors`** across the solution via `Directory.Build.props`.
 
 ---
 
@@ -391,9 +523,10 @@ with atomic Conventional Commits, delivered by PR, and recorded in the CHANGELOG
 
 | Document | Contents |
 |---|---|
-| [DEV_SETUP.md](DEV_SETUP.md) | Full local dev guide: secrets, migration flow, auth + tenant walkthrough, known Lumen 1.0.0 quirks and workarounds |
-| [infra/README.md](infra/README.md) | AWS infrastructure: Terraform usage, environment variables, deployment |
-| [CHANGELOG.md](CHANGELOG.md) | Release history (Keep a Changelog) |
+| [DEV_SETUP.md](DEV_SETUP.md) | Local dev guide: secrets, migration order, auth + tenant walkthrough, Lumen quirks |
+| [infra/README.md](infra/README.md) | Terraform usage, environments, variables, deployment |
+| [Trello board](https://trello.com/b/C8qhOb3j/sislab) | Live backlog with acceptance criteria per card |
+| [Lumen](https://github.com/KauaVilasBoas/Lumen) | The IAM library SISLAB consumes — built and published alongside it |
 
 ---
 
@@ -407,6 +540,9 @@ with atomic Conventional Commits, delivered by PR, and recorded in the CHANGELOG
   </a>
   <a href="https://github.com/KauaVilasBoas">
     <img src="https://img.shields.io/badge/GitHub-KauaVilasBoas-181717?logo=github&logoColor=white" alt="GitHub"/>
+  </a>
+  <a href="https://www.nuget.org/profiles/kauavilasboas">
+    <img src="https://img.shields.io/badge/NuGet-kauavilasboas-004880?logo=nuget&logoColor=white" alt="NuGet"/>
   </a>
   <a href="mailto:kauavboas@gmail.com">
     <img src="https://img.shields.io/badge/Email-kauavboas%40gmail.com-EA4335?logo=gmail&logoColor=white" alt="Email"/>
