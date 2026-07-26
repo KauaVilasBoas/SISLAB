@@ -9,6 +9,9 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/KauaVilasBoas/SISLAB/actions/workflows/ci.yml">
+    <img src="https://github.com/KauaVilasBoas/SISLAB/actions/workflows/ci.yml/badge.svg" alt="CI"/>
+  </a>
   <img src="https://img.shields.io/badge/.NET-8-512BD4?logo=dotnet&logoColor=white&labelColor=0B1220" alt=".NET 8"/>
   <img src="https://img.shields.io/badge/PostgreSQL-15-4169E1?logo=postgresql&logoColor=white&labelColor=0B1220" alt="PostgreSQL 15"/>
   <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=61DAFB&labelColor=0B1220" alt="React 18"/>
@@ -497,7 +500,7 @@ dotnet test tests/SISLAB.ArchitectureTests  # boundary enforcement only, no Dock
 | **E-InVivo** In vivo design & readings | Cages, post-induction selection, randomisation, schedule + roster (SISLAB-02, 03, 04, 10) | ✅ Shipped |
 | **E-InVitro** Plates | Plate layout, wells, per-plate controls (SISLAB-06, 07) | ✅ Shipped |
 | **E-Coleta** Collection & biobank | Collection sheet, sample→analysis matrix, evidence attachments (SISLAB-08, 09) | ✅ Shipped |
-| **E8** AWS & CI/CD | Terraform modules + staging env done; **GitHub Actions pipeline and production deploy pending** | 🚧 In progress |
+| **E8** AWS & CI/CD | Terraform modules + staging env done; GitHub Actions builds, tests and validates the HCL on every push — **automated deploy still pending** | 🚧 In progress |
 | Integration tests on real PostgreSQL | Testcontainers already cover Inventory and Notifications; extending to the remaining five modules | 🚧 In progress |
 | S3-backed attachment storage | `IFileStorage` is abstracted; only `LocalFileStorage` exists today | Planned |
 | First tagged release (`v1.0.0`) | Cut once E8 lands and the pilot lab is live | Planned |
@@ -516,6 +519,11 @@ Full backlog with acceptance criteria per card is on the
   live on AWS.
 - **Boundaries are tested, not documented** — `dotnet test` is the architecture review.
 - **`TreatWarningsAsErrors`** across the solution via `Directory.Build.props`.
+- **CI on every push and pull request** —
+  [`.github/workflows/ci.yml`](.github/workflows/ci.yml) builds the solution in `Release`, runs the
+  architecture suite first as a fast fail, then the full test suite (Testcontainers spins up a real
+  `postgres:16-alpine` on the runner), lints and builds the SPA, and checks Terraform formatting and
+  validity.
 
 ---
 
