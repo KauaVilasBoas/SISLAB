@@ -101,6 +101,12 @@ jobs:
       - name: Install
         run: npm ci
 
+      # Cheapest gate, so it runs first: a failure here is fixed by running
+      # `npm run format` rather than by reading a stack trace. The source tree
+      # was reformatted wholesale beforehand, so this starts green.
+      - name: Format check
+        run: npm run format:check
+
       # eslint fails the build on errors only. The repo currently carries 7
       # react-refresh/only-export-components warnings from the shadcn/ui
       # variant-export pattern; --max-warnings 0 would gate on those.
