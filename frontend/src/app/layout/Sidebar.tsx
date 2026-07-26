@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FlaskConical, QrCode, LogOut } from 'lucide-react';
+import { QrCode, LogOut } from 'lucide-react';
+import sislabLogo from '@/assets/sislab-logotipo-horizontal.svg';
 import { navGroups, type NavItem } from '@/app/navigation';
 import { useAuth } from '@/modules/auth/AuthProvider';
 import { usePermissions } from '@/modules/auth/PermissionsProvider';
@@ -40,12 +41,8 @@ export function Sidebar() {
   return (
     <aside className="hidden w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
       {/* Brand */}
-      <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-5">
-        <FlaskConical className="size-5 text-status-info" />
-        <div className="leading-tight">
-          <p className="text-sm font-semibold tracking-tight">SISLAB</p>
-          <p className="text-[11px] text-sidebar-muted">LAFTE · UFBA</p>
-        </div>
+      <div className="flex h-16 items-center border-b border-sidebar-border px-4">
+        <img src={sislabLogo} alt="SISLAB" className="h-10 w-auto" />
       </div>
 
       {/* Quick action */}
