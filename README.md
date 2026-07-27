@@ -9,6 +9,9 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/KauaVilasBoas/SISLAB/releases/latest">
+    <img src="https://img.shields.io/github/v/release/KauaVilasBoas/SISLAB?labelColor=0B1220&color=3FB950" alt="Latest release"/>
+  </a>
   <a href="https://github.com/KauaVilasBoas/SISLAB/actions/workflows/ci.yml">
     <img src="https://github.com/KauaVilasBoas/SISLAB/actions/workflows/ci.yml/badge.svg" alt="CI"/>
   </a>
@@ -503,7 +506,13 @@ dotnet test tests/SISLAB.ArchitectureTests  # boundary enforcement only, no Dock
 | **E8** AWS & CI/CD | Terraform modules + staging env done; GitHub Actions builds, tests and validates the HCL on every push — **automated deploy still pending** | 🚧 In progress |
 | Integration tests on real PostgreSQL | Testcontainers already cover Inventory and Notifications; extending to the remaining five modules | 🚧 In progress |
 | S3-backed attachment storage | `IFileStorage` is abstracted; only `LocalFileStorage` exists today | Planned |
-| First tagged release (`v1.0.0`) | Cut once E8 lands and the pilot lab is live | Planned |
+| `v1.0.0` release | Cut once E8 lands and the pilot lab is live in production | Planned |
+
+The current version is [**`v0.9.0`**](https://github.com/KauaVilasBoas/SISLAB/releases/tag/v0.9.0) —
+the seven bounded contexts are implemented and the three core pillars (Inventory, Experiments,
+Agenda) are feature-complete. It stays on `0.x` deliberately: `1.0.0` is reserved for the day the
+system runs in production at the pilot lab, so until then no stability guarantee is made about the
+HTTP surface or the database schema.
 
 Full backlog with acceptance criteria per card is on the
 [Trello board](https://trello.com/b/C8qhOb3j/sislab).
