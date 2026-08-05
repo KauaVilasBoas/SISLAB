@@ -122,24 +122,15 @@ Modules table below.
 
 ## Screenshots
 
-> [!NOTE]
-> Screenshots pending capture — the shot list is in
-> [`docs/screenshots/README.md`](docs/screenshots/README.md). Once the five PNGs are in place,
-> delete this note and uncomment the block below.
-
-<!-- SCREENSHOTS — uncomment when docs/screenshots/*.png exist
-
 ![Dashboard](docs/screenshots/dashboard.png)
-
-| In vivo study design | Dilution calculator |
-|---|---|
-| ![Project detail](docs/screenshots/in-vivo-project.png) | ![Dilution calculator](docs/screenshots/dilution-calculator.png) |
 
 | Inventory | Agenda |
 |---|---|
 | ![Inventory](docs/screenshots/inventory.png) | ![Agenda](docs/screenshots/agenda.png) |
 
--->
+![Serial-dilution calculator](docs/screenshots/dilution-calculator.png)
+
+<sub>Captured from the public read-only demo — fictional data, nothing from the real pilot lab.</sub>
 
 ---
 
