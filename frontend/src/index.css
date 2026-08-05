@@ -34,6 +34,12 @@
     --status-controlled: 262 83% 58%;
     --status-foreground: 0 0% 100%;
 
+    /* Premium accent — amber/gold used by the Premium module showcase (PremiumModuleGate) for the
+       crown badge, lock chip and CTA. A dedicated token keeps that "upgrade" gold distinct from the
+       warning status hue even though they live in the same amber family. */
+    --premium: 41 96% 47%;
+    --premium-foreground: 26 83% 14%;
+
     /* Sidebar surface — intentionally dark in BOTH themes (prototype #0b1220).
        Defined only here so `.dark` does not override it. */
     --sidebar: 220 47% 8%;
@@ -73,6 +79,10 @@
     --status-info: 217 91% 65%;
     --status-controlled: 262 83% 66%;
     --status-foreground: 0 0% 100%;
+
+    /* Brighter gold + light foreground so the premium accent reads on the dark background. */
+    --premium: 43 96% 56%;
+    --premium-foreground: 33 90% 96%;
   }
 }
 

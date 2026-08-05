@@ -11,16 +11,15 @@ import { QuickConsumptionPage } from '@/modules/quick-consumption/pages/QuickCon
 import { MembersPage } from '@/modules/identity/pages/MembersPage';
 import { ProfileEditPage } from '@/modules/identity/pages/ProfileEditPage';
 import { ConfigurationPage } from '@/modules/configuration/pages/ConfigurationPage';
-import { ExperimentsPage } from '@/modules/experiments/pages/ExperimentsPage';
-import { ExperimentDetailPage } from '@/modules/experiments/pages/ExperimentDetailPage';
 import { DilutionCalculatorPage } from '@/modules/experiments/pages/DilutionCalculatorPage';
-import { ProjectsPage } from '@/modules/in-vivo/pages/ProjectsPage';
-import { ProjectDetailPage } from '@/modules/in-vivo/pages/ProjectDetailPage';
-import { BiobankPage } from '@/modules/in-vivo/pages/BiobankPage';
-import { SampleDetailPage } from '@/modules/in-vivo/pages/SampleDetailPage';
-import { PendenciesPage } from '@/modules/in-vivo/pages/PendenciesPage';
+import {
+  InVitroShowcase,
+  InVivoShowcase,
+  BiobankShowcase,
+  PendenciesShowcase,
+} from '@/modules/experiments/components/premium-showcase';
 import { CalendarPage } from '@/modules/agenda/pages/CalendarPage';
-import { AuditPage } from '@/modules/audit/pages/AuditPage';
+import { AuditShowcase } from '@/modules/audit/components/premium-showcase';
 import { NotificationsPage } from '@/modules/notifications/pages/NotificationsPage';
 import { LoginPage } from '@/modules/auth/pages/LoginPage';
 import { InvitationAcceptPage } from '@/modules/identity/pages/InvitationAcceptPage';
@@ -91,22 +90,25 @@ export const router = createBrowserRouter([
         ),
       },
       { path: 'configuration', element: <ConfigurationPage /> },
-      // Experiments (card [E11] #68) — visible to every member for now (list/detail reads are only
-      // [Authorize]-gated; the write actions are permission-gated on the backend).
-      { path: 'experiments', element: <ExperimentsPage /> },
-      // Serial-dilution calculator (SISLAB-05) — stateless compute, visible to every member (the GET is only
-      // [Authorize]-gated). Static path registered before the :id route so it never matches as an experiment id.
+      // Experiments (cards [E11] #68/#73/#89/#90) — reserved for the Premium edition. Every route below,
+      // list AND detail, renders the immersive Premium showcase (PremiumModuleGate) instead of the real
+      // screen, so reaching it by clicking the sidebar OR typing the URL lands on the vitrine (defense-in-depth,
+      // same spirit as RequirePermissionRoute). The serial-dilution calculator is the one exception: it stays
+      // free and fully navigable.
+      { path: 'experiments', element: <InVitroShowcase /> },
+      // Serial-dilution calculator (SISLAB-05) — stateless compute, free and navigable. Static path registered
+      // before the :id route so it never matches as an experiment id, and it is NOT gated.
       { path: 'experiments/dilution', element: <DilutionCalculatorPage /> },
-      { path: 'experiments/:id', element: <ExperimentDetailPage /> },
-      // In vivo (cards [E11] #73/#89/#90) — experimental design, biobank and pendencies. Reads are only
-      // [Authorize]-gated; the write actions are permission-gated on the backend and in the UI.
-      { path: 'experiments/in-vivo/projects', element: <ProjectsPage /> },
-      { path: 'experiments/in-vivo/projects/:projectId', element: <ProjectDetailPage /> },
-      { path: 'experiments/in-vivo/biobank', element: <BiobankPage /> },
-      { path: 'experiments/in-vivo/biobank/:sampleId', element: <SampleDetailPage /> },
-      { path: 'experiments/in-vivo/pendencies', element: <PendenciesPage /> },
+      { path: 'experiments/:id', element: <InVitroShowcase /> },
+      { path: 'experiments/in-vivo/projects', element: <InVivoShowcase /> },
+      { path: 'experiments/in-vivo/projects/:projectId', element: <InVivoShowcase /> },
+      { path: 'experiments/in-vivo/biobank', element: <BiobankShowcase /> },
+      { path: 'experiments/in-vivo/biobank/:sampleId', element: <BiobankShowcase /> },
+      { path: 'experiments/in-vivo/pendencies', element: <PendenciesShowcase /> },
       { path: 'agenda/schedule', element: <CalendarPage /> },
-      { path: 'audit', element: <AuditPage /> },
+      // Audit (append-only trail) — reserved for the Premium edition. Renders the immersive Premium showcase
+      // instead of the real screen, so reaching it by clicking the sidebar OR typing the URL lands on the vitrine.
+      { path: 'audit', element: <AuditShowcase /> },
       { path: 'notifications', element: <NotificationsPage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
