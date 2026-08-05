@@ -22,6 +22,7 @@ import {
   DEMO_UNREAD_COUNT,
   paged,
 } from '@/demo/fixtures';
+import { computeDilutionScheme } from '@/demo/dilution';
 
 /** Wrap a payload in the SISLAB success envelope (module read endpoints use it; auth endpoints don't). */
 function ok<T>(data: T): ApiResult<T> {
@@ -124,6 +125,10 @@ export const demoHandlers = [
   http.get('/api/experiments/pendencies', () => HttpResponse.json(ok(DEMO_PENDENCIES))),
   // Experiments list is Premium-gated in the UI; the Agenda experiment filter still queries it — empty paged.
   http.get('/api/experiments', () => HttpResponse.json(ok(paged([])))),
+  // Serial-dilution calculator (Core, free): compute the REAL scheme from the query string, no backend.
+  http.get('/api/experiments/dilution-scheme', ({ request }) =>
+    HttpResponse.json(ok(computeDilutionScheme(new URL(request.url).searchParams))),
+  ),
 
   // Inventory (Estoque) screen: item table, location sidebar, recent-activity panel.
   http.get('/api/inventory/stock-items', () =>
