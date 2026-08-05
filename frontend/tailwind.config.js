@@ -52,6 +52,11 @@ export default {
           controlled: 'hsl(var(--status-controlled))',
           foreground: 'hsl(var(--status-foreground))',
         },
+        // Premium accent (gold) — PremiumModuleGate showcase.
+        premium: {
+          DEFAULT: 'hsl(var(--premium))',
+          foreground: 'hsl(var(--premium-foreground))',
+        },
         // Fixed-dark sidebar surface.
         sidebar: {
           DEFAULT: 'hsl(var(--sidebar))',

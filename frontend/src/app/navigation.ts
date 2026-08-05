@@ -29,6 +29,12 @@ export interface NavItem {
   /** Future module without a card yet — rendered but non-navigable (card [E7] #43 scope note). */
   disabled?: boolean;
   /**
+   * Reserved for the Premium edition. The item stays clickable but renders in a "locked" style (mini
+   * padlock + "Premium" chip) and its route leads to the immersive PremiumModuleGate showcase rather
+   * than the real screen. The Topbar still resolves the title/subtitle from this entry.
+   */
+  premium?: boolean;
+  /**
    * Read permission codes that gate this entry (card [E7] #110). When present the item only renders if the
    * user holds AT LEAST ONE of them in the active company — used for admin screens whose backend read
    * endpoints are [RequirePermission]-gated. Absent ⇒ visible to any authenticated user (the item's read
@@ -77,36 +83,41 @@ export const navGroups: NavGroup[] = [
     title: 'Experimentos',
     items: [
       {
-        // In vitro cell-viability slice (card [E11] #68). Visible to every member for now — the list/detail
-        // read endpoints are only [Authorize]-gated, so no permissionAny here.
+        // In vitro cell-viability slice (card [E11] #68) — reserved for the Premium edition. Clicking leads
+        // to the immersive showcase (PremiumModuleGate), not the real screen.
         path: '/experiments',
         label: 'In vitro',
         description: 'Viabilidade celular',
         icon: FlaskRound,
+        premium: true,
       },
       {
-        // In vivo experimental design (card [E11] #73). Visible to every member — the list/detail read
-        // endpoints are only [Authorize]-gated; the write actions are permission-gated on the backend.
+        // In vivo experimental design (card [E11] #73) — Premium. Leads to the showcase.
         path: '/experiments/in-vivo/projects',
         label: 'In vivo',
         description: 'Projetos e delineamento',
         icon: FlaskConical,
+        premium: true,
       },
       {
+        // Biobank (card [E11] #89) — Premium. Leads to the showcase.
         path: '/experiments/in-vivo/biobank',
         label: 'Biobanco',
         description: 'Amostras e análises',
         icon: Snowflake,
+        premium: true,
       },
       {
+        // Pendencies panel (card [E11] #90) — Premium. Leads to the showcase.
         path: '/experiments/in-vivo/pendencies',
         label: 'Pendências',
         description: 'Trabalho em aberto',
         icon: ListChecks,
+        premium: true,
       },
       {
-        // Serial-dilution calculator (SISLAB-05). Stateless compute — visible to every member (the GET is only
-        // [Authorize]-gated), so no permissionAny here.
+        // Serial-dilution calculator (SISLAB-05). Stateless compute — free and fully navigable (the GET is only
+        // [Authorize]-gated), so no permissionAny and no premium flag here.
         path: '/experiments/dilution',
         label: 'Diluição seriada',
         description: 'Calculadora de placa-mãe',
@@ -180,10 +191,13 @@ export const navGroups: NavGroup[] = [
         icon: Settings2,
       },
       {
+        // Audit trail (append-only action log) — reserved for the Premium edition. Clicking leads to the
+        // immersive showcase (PremiumModuleGate), not the real screen.
         path: '/audit',
         label: 'Auditoria',
         description: 'Trilha de ações',
         icon: ScrollText,
+        premium: true,
       },
     ],
   },
