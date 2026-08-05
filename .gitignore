@@ -11,6 +11,9 @@ SISLAB-Detalhamento-Projeto.md
 TASKS_TRELLO.md
 docs/backlog/
 
+# Guia de deploy da demo (notas locais/pessoais — NÃO versionar)
+docs/DEPLOY.md
+
 # Arquivos-fonte sensíveis (planilhas, áudios, exports do laboratório)
 *.xlsx
 *.xls
