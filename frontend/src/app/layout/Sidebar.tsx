@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { QrCode, LogOut } from 'lucide-react';
+import { QrCode, LogOut, Lock, Sparkles } from 'lucide-react';
 import sislabLogo from '@/assets/sislab-logotipo-horizontal.svg';
 import { navGroups, type NavItem } from '@/app/navigation';
 import { useAuth } from '@/modules/auth/AuthProvider';
@@ -94,6 +94,41 @@ function SidebarItem({ item }: { item: NavItem }) {
           </span>
         </span>
       </div>
+    );
+  }
+
+  // Premium (locked) item: still a navigable link — it opens the immersive showcase — but styled as
+  // reserved, with a "Premium" chip and a mini padlock on the right. The active state gets a subtle gold
+  // wash instead of the default accent so the showcase route reads as premium in the sidebar too.
+  if (item.premium) {
+    return (
+      <NavLink
+        to={item.path}
+        title="Módulo Premium — clique para conhecer"
+        className={({ isActive }) =>
+          cn(
+            'group flex items-center gap-3 rounded-md px-3 py-2 transition-colors',
+            isActive
+              ? 'bg-premium/15 text-sidebar-foreground ring-1 ring-inset ring-premium/25'
+              : 'text-sidebar-muted hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
+          )
+        }
+      >
+        <Icon className="size-4 shrink-0" />
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-1.5">
+            <span className="truncate text-sm font-medium">{item.label}</span>
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-premium/15 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-premium">
+              <Sparkles className="size-2.5" />
+              Premium
+            </span>
+          </span>
+          <span className="block truncate text-[11px] opacity-80">
+            {item.description}
+          </span>
+        </span>
+        <Lock className="size-3.5 shrink-0 text-premium/80" />
+      </NavLink>
     );
   }
 

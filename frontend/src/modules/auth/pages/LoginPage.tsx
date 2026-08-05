@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useLocation, useNavigate, type Location } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import sislabLogo from '@/assets/sislab-logo-principal.svg';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/shared/components/ui/card';
@@ -11,6 +11,8 @@ import { useAuth, type LoginOutcome } from '@/modules/auth/AuthProvider';
 import { CompanySelector } from '@/modules/auth/components/CompanySelector';
 import { useToast } from '@/shared/components/ui/toast';
 import type { CompanyMembership } from '@/modules/auth/types';
+import { IS_DEMO } from '@/demo/isDemo';
+import { DEMO_CREDENTIALS } from '@/demo/session';
 
 type LocationState = { from?: Location } | null;
 
@@ -68,6 +70,18 @@ export function LoginPage() {
     }
   }
 
+  /** One-click entry for the public demo — logs in with the fictional account (accepted by the mock). */
+  async function handleDemo() {
+    setSubmitting(true);
+    try {
+      finish(await login(DEMO_CREDENTIALS.identifier, DEMO_CREDENTIALS.password));
+    } catch (err) {
+      toast('error', messageFor(err, 'Não foi possível iniciar a demonstração.'));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function handleSelectCompany(companyId: string) {
     try {
       await selectCompany(companyId);
@@ -91,38 +105,63 @@ export function LoginPage() {
           {companies ? (
             <CompanySelector companies={companies} onSelect={handleSelectCompany} />
           ) : (
-            <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="identifier">E-mail</Label>
-                <Input
-                  id="identifier"
-                  type="email"
-                  autoComplete="username"
-                  placeholder="voce@ufba.br"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  required
-                  autoFocus
-                />
-              </div>
+            <div className="flex flex-col gap-5">
+              <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="identifier">E-mail</Label>
+                  <Input
+                    id="identifier"
+                    type="email"
+                    autoComplete="username"
+                    placeholder="voce@ufba.br"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    required
+                    autoFocus
+                  />
+                </div>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="password">Senha</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="password">Senha</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
 
-              <Button type="submit" className="w-full" disabled={submitting}>
-                {submitting && <Loader2 className="size-4 animate-spin" aria-hidden />}
-                Entrar
-              </Button>
-            </form>
+                <Button type="submit" className="w-full" disabled={submitting}>
+                  {submitting && <Loader2 className="size-4 animate-spin" aria-hidden />}
+                  Entrar
+                </Button>
+              </form>
+
+              {IS_DEMO && (
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <span className="h-px flex-1 bg-border" />
+                    ou
+                    <span className="h-px flex-1 bg-border" />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleDemo}
+                    disabled={submitting}
+                    className="w-full gap-2 border-premium/40 text-premium hover:bg-premium/10"
+                  >
+                    <Sparkles className="size-4" />
+                    Entrar na demonstração
+                  </Button>
+                  <p className="text-center text-xs text-muted-foreground">
+                    Sem cadastro · dados fictícios, somente leitura.
+                  </p>
+                </div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>

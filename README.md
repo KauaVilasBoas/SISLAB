@@ -103,6 +103,23 @@ tenant-scoped permissions and the PostgreSQL provider.
 
 ---
 
+## Editions
+
+The product is presented in two tiers, and the public build makes the split visible.
+
+- **Core** — fully open and navigable: the dashboard, **Inventory**, **Agenda**, **Configuration**,
+  labels, and the **serial-dilution calculator**.
+- **Premium** — the advanced research suite: **Experiments** (in vivo design, plates, biobank,
+  collection) and the **Audit trail**, plus **calendar export** (iCal for Google / Outlook / Apple
+  Calendar). In the public build these render an immersive locked showcase — `PremiumModuleGate` for a
+  whole module, `PremiumFeatureButton` for a single action — instead of the working screen.
+
+Every module's backend is implemented and covered by tests (see the [Roadmap](#roadmap)); the gating
+is a deliberate product-tier decision in the SPA, not a stub. Premium modules are marked **†** in the
+Modules table below.
+
+---
+
 ## Screenshots
 
 > [!NOTE]
@@ -137,9 +154,11 @@ Seven bounded contexts, each a self-contained vertical (`Domain` · `Application
 | 15 | **Configuration** | Per-laboratory parameterisation — units, rooms, item categories, reference ranges, collection roles, inclusion criteria, expiry policies, experimental models. This is what keeps LAFTE's reality out of the code |
 | 20 | **Inventory** | `StockItem` (batches, allocations, container state), `StorageLocation`, `Equipment` (calibration schedules, maintenance records), `Partner`; consumption, transfers, stock counts, disposal, cost & consumption reports |
 | 30 | **Notifications** | `Notification` aggregate + publisher — in-app delivery for every alert the jobs raise |
-| 40 | **Audit** | Append-only `audit.audit_entries` (Dapper-only, write-once, no EF context), tenant-scoped listing and CSV export |
-| 60 | **Experiments** | `Project → Batch → Group → Animal` in vivo designs; `Plate`/`Well` in vitro layouts; preparation calculators; protocols (Von Frey, Tail Flick, Rota Rod, hemogram, cell viability, nitric oxide); `CollectionPlan`; `Sample` biobank + analyses; evidence attachments; GraphPad Prism export; schedule generation with responsible-roster rotation |
+| 40 | **Audit** † | Append-only `audit.audit_entries` (Dapper-only, write-once, no EF context), tenant-scoped listing and CSV export |
+| 60 | **Experiments** † | `Project → Batch → Group → Animal` in vivo designs; `Plate`/`Well` in vitro layouts; preparation calculators; protocols (Von Frey, Tail Flick, Rota Rod, hemogram, cell viability, nitric oxide); `CollectionPlan`; `Sample` biobank + analyses; evidence attachments; GraphPad Prism export; schedule generation with responsible-roster rotation |
 | 70 | **Agenda** | Room bookings, agenda entries, seminar presentations, bioterium assignments, and iCal subscription feeds |
+
+<sub>† <b>Premium tier</b> — see [Editions](#editions). The serial-dilution calculator (under Experiments) stays in Core and remains fully navigable.</sub>
 
 ---
 
@@ -561,8 +580,8 @@ Full backlog with acceptance criteria per card is on the
   <a href="https://www.nuget.org/profiles/kauavilasboas">
     <img src="https://img.shields.io/badge/NuGet-kauavilasboas-004880?logo=nuget&logoColor=white" alt="NuGet"/>
   </a>
-  <a href="mailto:kauavboas@gmail.com">
-    <img src="https://img.shields.io/badge/Email-kauavboas%40gmail.com-EA4335?logo=gmail&logoColor=white" alt="Email"/>
+  <a href="mailto:kauacaldeira@hotmail.com">
+    <img src="https://img.shields.io/badge/Email-kauacaldeira%40hotmail.com-0078D4?logo=microsoftoutlook&logoColor=white" alt="Email"/>
   </a>
 </p>
 
