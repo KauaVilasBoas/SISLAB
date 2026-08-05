@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CalendarPlus, ChevronLeft, ChevronRight, Loader2, Rss } from 'lucide-react';
+import { CalendarPlus, ChevronLeft, ChevronRight, Loader2, Share2 } from 'lucide-react';
 import { PageHeader } from '@/shared/components/PageHeader';
 import { Button } from '@/shared/components/ui/button';
+import { PremiumFeatureButton } from '@/shared/components/PremiumFeatureButton';
 import { useToast } from '@/shared/components/ui/toast';
 import { cn } from '@/shared/lib/utils';
 import { ACTIVITY_TYPE_COLOR, ACTIVITY_TYPE_LABEL } from '@/modules/agenda/presentation';
@@ -18,7 +19,6 @@ import {
   useCalendarEntries,
   useCancelOccurrence,
   useDeleteEntry,
-  useSubscribeIcal,
   type CalendarFilters,
 } from '@/modules/agenda/api/entries.queries';
 import { DayView, MonthView, WeekView } from '@/modules/agenda/components/CalendarViews';
@@ -70,7 +70,6 @@ export function CalendarPage() {
 
   const deleteEntry = useDeleteEntry();
   const cancelOccurrence = useCancelOccurrence();
-  const subscribeIcal = useSubscribeIcal();
 
   const [selected, setSelected] = useState<CalendarItem | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -164,17 +163,6 @@ export function CalendarPage() {
     }
   }
 
-  function handleSubscribe() {
-    subscribeIcal.mutate(undefined, {
-      onSuccess: (result) => {
-        const url = `${window.location.origin}/api/agenda/calendar.ics?token=${result.token}`;
-        void navigator.clipboard?.writeText(url);
-        toast('success', 'Link do feed iCal copiado para a área de transferência.');
-      },
-      onError: () => toast('error', 'Não foi possível gerar o feed iCal.'),
-    });
-  }
-
   const ViewComponent = {
     day: DayView,
     week: WeekView,
@@ -189,13 +177,17 @@ export function CalendarPage() {
         description="Eventos, reservas e experimentos em uma agenda unificada."
         actions={
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleSubscribe}
-              disabled={subscribeIcal.isPending}
-            >
-              <Rss className="size-4" /> Feed iCal
-            </Button>
+            <PremiumFeatureButton
+              label="Exportar para o calendário"
+              icon={<Share2 className="size-4" />}
+              feature="Exportar para o calendário"
+              pitch="Assine a agenda do laboratório no seu Google Agenda, Outlook ou Apple Calendar — um feed que se atualiza sozinho a cada novo evento, reserva ou experimento."
+              bullets={[
+                'Assinatura iCal para Google, Outlook e Apple Calendar',
+                'Sincroniza automaticamente a cada mudança',
+                'Sempre com o fuso e os filtros do laboratório',
+              ]}
+            />
             <Button onClick={() => openCreate(anchorDate)}>
               <CalendarPlus className="size-4" /> Novo evento
             </Button>
