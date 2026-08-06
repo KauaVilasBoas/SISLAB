@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/shared/api/http';
 import { Endpoints } from '@/shared/api/endpoints';
+import { IS_DEMO } from '@/demo/isDemo';
 import type { PendenciesResult } from '@/modules/in-vivo/types';
 
 /** Pendencies panel query key. */
@@ -13,7 +14,8 @@ export function usePendencies() {
   return useQuery({
     queryKey: pendencyKeys.all,
     queryFn: () => api.get<PendenciesResult>(Endpoints.experiments.pendencies),
-    // Refresh on focus so the panel reflects work done elsewhere without a manual reload.
-    refetchOnWindowFocus: true,
+    // Refresh on focus so the panel reflects work done elsewhere without a manual reload. Off in the
+    // demo, where the panel is a static fixture and a refetch would only risk missing the worker.
+    refetchOnWindowFocus: !IS_DEMO,
   });
 }
