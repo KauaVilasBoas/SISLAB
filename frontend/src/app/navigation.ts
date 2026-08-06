@@ -51,10 +51,10 @@ export interface NavGroup {
 /**
  * Grouped primary navigation matching the prototype shell (card [E7] #43).
  *
- * Only "Geral" (Dashboard) and "Recursos" are active today. "Agenda" and "Experimentos" are future
- * modules with no cards yet: they appear (so the structure is visible) but are disabled until
- * prioritized. "Administração" groups the already-built admin screens. Notifications live in the
- * Topbar bell, not here.
+ * Ordered by how often a group is opened, not by module number: "Recursos" (stock, equipment, labels)
+ * is daily bench work, so it sits above "Experimentos", whose entries are mostly Premium and lead to
+ * the showcase rather than a working screen. "Administração" groups the admin screens. Notifications
+ * live in the Topbar bell, not here.
  */
 export const navGroups: NavGroup[] = [
   {
@@ -76,6 +76,50 @@ export const navGroups: NavGroup[] = [
         label: 'Calendário',
         description: 'Dia, semana, mês e salas',
         icon: CalendarRange,
+      },
+    ],
+  },
+  {
+    title: 'Recursos',
+    items: [
+      {
+        path: '/inventory',
+        label: 'Estoque',
+        description: 'Itens e movimentações',
+        icon: Boxes,
+      },
+      {
+        path: '/controlled',
+        label: 'Controlados',
+        description: 'Saldo por frasco',
+        icon: ShieldCheck,
+      },
+      {
+        path: '/labels',
+        label: 'Etiquetas QR',
+        description: 'Gerar e imprimir QR',
+        icon: QrCode,
+      },
+      {
+        path: '/equipment',
+        label: 'Equipamentos',
+        description: 'Calibração e manutenção',
+        icon: Monitor,
+      },
+      {
+        path: '/partners',
+        label: 'Parceiros',
+        description: 'Instituições e amostras',
+        icon: Handshake,
+      },
+      {
+        path: '/inventory/cost-report',
+        label: 'Relatório de custos',
+        description: 'Gasto por mês e experimento',
+        icon: Wallet,
+        // Cost is gestão-sensitive: both report endpoints are Inventory.Cost.Read-gated, so hide the entry
+        // for users without the capability (the page itself renders "acesso restrito" as a fallback).
+        permissionAny: [Permissions.inventory.costRead],
       },
     ],
   },
@@ -122,50 +166,6 @@ export const navGroups: NavGroup[] = [
         label: 'Diluição seriada',
         description: 'Calculadora de placa-mãe',
         icon: Beaker,
-      },
-    ],
-  },
-  {
-    title: 'Recursos',
-    items: [
-      {
-        path: '/inventory',
-        label: 'Estoque',
-        description: 'Itens e movimentações',
-        icon: Boxes,
-      },
-      {
-        path: '/controlled',
-        label: 'Controlados',
-        description: 'Saldo por frasco',
-        icon: ShieldCheck,
-      },
-      {
-        path: '/labels',
-        label: 'Etiquetas QR',
-        description: 'Gerar e imprimir QR',
-        icon: QrCode,
-      },
-      {
-        path: '/equipment',
-        label: 'Equipamentos',
-        description: 'Calibração e manutenção',
-        icon: Monitor,
-      },
-      {
-        path: '/partners',
-        label: 'Parceiros',
-        description: 'Instituições e amostras',
-        icon: Handshake,
-      },
-      {
-        path: '/inventory/cost-report',
-        label: 'Relatório de custos',
-        description: 'Gasto por mês e experimento',
-        icon: Wallet,
-        // Cost is gestão-sensitive: both report endpoints are Inventory.Cost.Read-gated, so hide the entry
-        // for users without the capability (the page itself renders "acesso restrito" as a fallback).
-        permissionAny: [Permissions.inventory.costRead],
       },
     ],
   },
