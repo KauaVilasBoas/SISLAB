@@ -120,6 +120,19 @@ httpClient.interceptors.response.use(
 function unwrap<T>(response: AxiosResponse<unknown>): T {
   const body = response.data;
 
+  // A request that never reaches the API can still arrive here as a 200: the SPA host rewrites
+  // every unmatched path to /index.html (see vercel.json), and in the backend-less demo a request
+  // that misses the Mock Service Worker falls through to that rewrite. Without this guard the HTML
+  // document would be cast to T by the `body as T` below, cached by TanStack Query as a *success*,
+  // and only blow up later inside a component (`Cannot read properties of undefined`). Rejecting it
+  // as a 5xx keeps the failure at the network layer, where the retry policy can recover from it.
+  if (typeof body === 'string' && body.trimStart().startsWith('<')) {
+    throw {
+      status: 502,
+      message: 'Resposta inesperada do servidor.',
+    } satisfies ApiError;
+  }
+
   if (isEnvelope<T>(body)) {
     if (body.success === false) {
       throw {

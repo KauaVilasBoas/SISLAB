@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppShell } from '@/app/layout/AppShell';
+import { RouteErrorBoundary } from '@/app/RouteErrorBoundary';
 import { DashboardPage } from '@/modules/dashboard/pages/DashboardPage';
 import { InventoryPage } from '@/modules/inventory/pages/InventoryPage';
 import { EquipmentPage } from '@/modules/inventory/pages/EquipmentPage';
@@ -36,10 +37,12 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/invite/:token',
     element: <InvitationAcceptPage />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/',
@@ -48,6 +51,8 @@ export const router = createBrowserRouter([
         <AppShell />
       </RequireAuth>
     ),
+    // Errors thrown by any child route bubble up to here, so a single boundary covers the whole shell.
+    errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <DashboardPage /> },
       {

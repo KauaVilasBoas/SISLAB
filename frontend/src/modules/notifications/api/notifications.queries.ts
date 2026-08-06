@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/shared/api/http';
 import { Endpoints } from '@/shared/api/endpoints';
+import { IS_DEMO } from '@/demo/isDemo';
 import type { PagedResult } from '@/shared/types/api';
 import type {
   NotificationListItem,
@@ -51,13 +52,17 @@ export function useNotifications(unreadOnly: boolean, page: number) {
 /**
  * Unread notification count for the topbar bell badge. Polls on an interval and refetches when the tab
  * regains focus, so the badge stays fresh without websockets (the card explicitly scopes realtime out).
+ *
+ * Both refreshes are off in the demo: the badge is served from a static fixture that can never change,
+ * so polling only creates chances for a request to miss the Mock Service Worker after the browser has
+ * suspended it in a background tab.
  */
 export function useUnreadCount() {
   return useQuery({
     queryKey: notificationKeys.unreadCount(),
     queryFn: () => api.get<UnreadNotificationsCount>(Endpoints.notifications.unreadCount),
-    refetchInterval: UNREAD_COUNT_POLL_MS,
-    refetchOnWindowFocus: true,
+    refetchInterval: IS_DEMO ? false : UNREAD_COUNT_POLL_MS,
+    refetchOnWindowFocus: !IS_DEMO,
     staleTime: UNREAD_COUNT_POLL_MS,
   });
 }
