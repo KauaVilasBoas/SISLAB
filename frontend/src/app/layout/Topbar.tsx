@@ -1,8 +1,8 @@
 import { useLocation } from 'react-router-dom';
-import { Search } from 'lucide-react';
 import { CompanySwitcher } from '@/modules/auth/components/CompanySwitcher';
 import { ThemeToggle } from '@/app/theme/ThemeToggle';
 import { navItems } from '@/app/navigation';
+import { NavSearch } from '@/app/layout/NavSearch';
 import { NotificationsBell } from '@/modules/notifications/components/NotificationsBell';
 
 /** Resolves the current screen's title/subtitle from the nav config (longest matching path). */
@@ -23,8 +23,8 @@ function useScreenHeading(): { title: string; subtitle: string } {
 
 /**
  * Top bar for the authenticated shell (card [E7] #43). Left: the current screen title + subtitle.
- * Center: a global search placeholder (⌘K). Right: the active-company switcher, the notification center
- * (bell + dropdown, card #65), and the light/dark theme toggle. The signed-in user lives in the sidebar footer.
+ * Right: the navigation search (⌘K), the active-company switcher, the notification center (bell +
+ * dropdown, card #65), and the light/dark theme toggle. The signed-in user lives in the sidebar footer.
  */
 export function Topbar() {
   const { title, subtitle } = useScreenHeading();
@@ -36,20 +36,8 @@ export function Topbar() {
         <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
       </div>
 
-      {/* Global search (placeholder — command palette is a later card). */}
-      <button
-        type="button"
-        className="ml-auto hidden h-9 w-64 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-muted-foreground transition-colors hover:bg-accent lg:flex"
-        aria-label="Buscar"
-      >
-        <Search className="size-4" />
-        <span className="flex-1 text-left">Buscar…</span>
-        <kbd className="pointer-events-none rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">
-          ⌘K
-        </kbd>
-      </button>
-
-      <div className="flex items-center gap-1 lg:ml-0 ml-auto">
+      <div className="ml-auto flex items-center gap-1">
+        <NavSearch />
         <CompanySwitcher />
         <NotificationsBell />
         <ThemeToggle />
