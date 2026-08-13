@@ -23,6 +23,8 @@ import {
   logout as logoutRequest,
 } from '@/modules/auth/api/auth.queries';
 import type { CompanyMembership, CurrentUser } from '@/modules/auth/types';
+import { IS_DEMO } from '@/demo/isDemo';
+import { signInAsDemoVisitor } from '@/demo/autoSignIn';
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -128,6 +130,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await armCsrf();
       } catch {
         // A failed CSRF arm must not block bootstrap; unsafe requests will simply be re-armed later.
+      }
+
+      // Public demo: sign in with the fictional account before resolving the session, so the visitor never
+      // meets a login form asking for credentials that were never issued. `IS_DEMO` is a build-time constant,
+      // so this whole branch is dropped from the real (backend-connected) bundle.
+      if (IS_DEMO) {
+        try {
+          await signInAsDemoVisitor();
+        } catch {
+          // Leaves the flow below to report "signed out" — /login then stays as the manual escape hatch.
+        }
       }
 
       try {
