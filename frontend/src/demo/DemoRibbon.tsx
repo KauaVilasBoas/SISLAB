@@ -4,10 +4,6 @@ import { Info, Sparkles } from 'lucide-react';
  * A small, non-intrusive fixed pill marking the app as the public demo — so nobody mistakes the fictional
  * data for a live system (the pilot lab, LAFTE, is a real client). Rendered once at the App root in demo
  * mode, above every route. Bottom-right so it never collides with the sidebar or topbar.
- *
- * It doubles as the way back into the welcome dialog: the intro only shows itself on the first visit, and a
- * visitor who dismissed it would otherwise have no way to read what this build is again. Kept below the
- * overlay layer (z-50) so it slips under any open dialog instead of floating over its backdrop.
  */
 export function DemoRibbon({ onOpenIntro }: { onOpenIntro: () => void }) {
   return (

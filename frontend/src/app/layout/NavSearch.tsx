@@ -20,21 +20,10 @@ interface ResultGroup {
   items: NavItem[];
 }
 
-/** Ctrl+K on Windows/Linux, Cmd+K on macOS — the shortcut every command palette trained users to press. */
 function isPaletteShortcut(event: KeyboardEvent): boolean {
   return (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
 }
 
-/**
- * Global navigation search (Topbar, ⌘K/Ctrl+K).
- *
- * Searches the SAME source the sidebar renders — `navGroups` — so a screen can never exist in one and be
- * missing from the other: entries the user may not see (permissionAny) are filtered out here exactly as the
- * sidebar filters them, and Premium entries keep their locked styling so the result set reads identically.
- *
- * Matching is accent/case-insensitive over label + description, because operators type "diluicao" and
- * "etiquetas" and expect "Diluição seriada" / "Etiquetas QR" to come up.
- */
 export function NavSearch() {
   const [open, setOpen] = useState(false);
   const openerRef = useRef<HTMLButtonElement | null>(null);
@@ -46,14 +35,12 @@ export function NavSearch() {
 
   const closePalette = useCallback(() => {
     setOpen(false);
-    // Return focus where the user left it, so keyboard navigation does not restart from the document.
     openerRef.current?.focus();
   }, []);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (!isPaletteShortcut(event)) return;
-      // The browser binds ⌘K/Ctrl+K to its own search bar; the app owns the shortcut while it is focused.
       event.preventDefault();
       setOpen((current) => !current);
     }
@@ -76,7 +63,6 @@ export function NavSearch() {
         </kbd>
       </button>
 
-      {/* Below lg the wide trigger is hidden, but the search must stay reachable by touch. */}
       <button
         type="button"
         onClick={(event) => openPalette(event.currentTarget)}
@@ -103,8 +89,6 @@ function NavSearchDialog({ onClose }: { onClose: () => void }) {
   const groups = useMemo<ResultGroup[]>(() => {
     const terms = toSearchTerms(query);
 
-    // Same rule as the sidebar: an entry gated by permissionAny stays hidden until the permission set
-    // resolves, so the palette never offers a screen the server would refuse.
     const canSee = (item: NavItem) =>
       !item.permissionAny || (isReady && hasAnyPermission(item.permissionAny));
 
@@ -121,7 +105,6 @@ function NavSearchDialog({ onClose }: { onClose: () => void }) {
       .filter((group) => group.items.length > 0);
   }, [query, hasAnyPermission, isReady]);
 
-  // Flattened in render order — the arrow keys walk this list, so the highlight crosses group headings.
   const flatItems = useMemo(() => groups.flatMap((group) => group.items), [groups]);
 
   useEffect(() => {
@@ -136,7 +119,6 @@ function NavSearchDialog({ onClose }: { onClose: () => void }) {
     };
   }, []);
 
-  // Keeps the highlighted row inside the scrollport when the arrows walk past its edge.
   useEffect(() => {
     listRef.current
       ?.querySelector('[data-active="true"]')
@@ -166,7 +148,6 @@ function NavSearchDialog({ onClose }: { onClose: () => void }) {
       event.preventDefault();
       if (flatItems.length === 0) return;
       const step = event.key === 'ArrowDown' ? 1 : -1;
-      // Wrap around so holding a single arrow key can reach every entry.
       setActiveIndex((current) => (current + step + flatItems.length) % flatItems.length);
       return;
     }
@@ -191,7 +172,6 @@ function NavSearchDialog({ onClose }: { onClose: () => void }) {
         <div className="flex items-center gap-3 border-b px-4">
           <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
           <input
-            // The palette only exists to be typed into, so it takes focus the moment it opens.
             autoFocus
             type="text"
             role="combobox"
@@ -236,7 +216,6 @@ function NavSearchDialog({ onClose }: { onClose: () => void }) {
                     {group.title}
                   </p>
                   {group.items.map((item) => {
-                    // Position in the flattened list = the index the arrow keys address (paths are unique).
                     const index = flatItems.indexOf(item);
                     return (
                       <NavSearchOption

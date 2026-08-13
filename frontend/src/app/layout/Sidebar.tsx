@@ -181,8 +181,6 @@ function SidebarUserFooter() {
         <p className="truncate text-sm font-medium">{displayName}</p>
         <p className="truncate text-[11px] text-sidebar-muted">{role}</p>
       </div>
-      {/* The demo signs the visitor in automatically, so signing out would only strand them on a login form
-          whose credentials nobody has. */}
       {!IS_DEMO && (
         <button
           type="button"

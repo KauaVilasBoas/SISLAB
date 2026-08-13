@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
-/** The seven bounded contexts, in the same order the backend loads its modules. */
 const BOUNDED_CONTEXTS = [
   'Identity',
   'Configuration',
@@ -22,7 +21,6 @@ const BOUNDED_CONTEXTS = [
 
 type Tone = 'neutral' | 'host' | 'module' | 'shared' | 'data';
 
-/** Mirrors the classDefs of the canonical Mermaid diagram, mapped onto the app's semantic tokens. */
 const TONE_STYLES: Record<Tone, string> = {
   neutral: 'border-border bg-muted/50',
   host: 'border-status-info/40 bg-status-info/10',
@@ -39,13 +37,6 @@ const TONE_ICON: Record<Tone, string> = {
   data: 'text-status-info',
 };
 
-/**
- * A hand-drawn, theme-aware rendition of the architecture diagram kept in the repository README.
- *
- * Deliberately NOT the rendered Mermaid export: the PNG weighs ~600 kB (more than the whole CSS bundle)
- * and its baked-in dark palette would clash with the light theme. Built from layout primitives instead, it
- * costs no extra bytes beyond markup, stays crisp at any zoom and follows the design tokens on both themes.
- */
 export function ArchitectureDiagram() {
   return (
     <figure className="space-y-2">
@@ -120,9 +111,7 @@ interface DiagramNodeProps {
   icon: LucideIcon;
   title: string;
   subtitle: string;
-  /** Secondary chip pinned to the right of the title row (a satellite of this layer). */
   aside?: string;
-  /** Emphasised chip marking where the visitor currently stands in the stack. */
   badge?: string;
   children?: ReactNode;
 }
@@ -158,7 +147,6 @@ function DiagramNode({
   );
 }
 
-/** The vertical link between two layers, optionally annotated with what travels through it. */
 function Connector({ label }: { label?: string }) {
   return (
     <div className="flex items-center gap-2 py-1 pl-5" aria-hidden>

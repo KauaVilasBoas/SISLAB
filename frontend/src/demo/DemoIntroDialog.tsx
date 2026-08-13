@@ -21,7 +21,6 @@ interface Highlight {
   detail: string;
 }
 
-/** What actually carries the project — the screens behind this dialog are the thin part. */
 const BACKEND_HIGHLIGHTS: Highlight[] = [
   {
     icon: Server,
@@ -55,14 +54,6 @@ const BACKEND_HIGHLIGHTS: Highlight[] = [
   },
 ];
 
-/**
- * First-run introduction to the public demo.
- *
- * A recruiter opening the deploy sees screens and assumes the project IS the screens — so the dialog says
- * plainly what this build is (fictional data, read-only, no backend) and what carries the work, with the
- * architecture in a single glance and links to the source. Reopenable from the demo pill, so closing it
- * never loses the context.
- */
 export function DemoIntroDialog({ onClose }: { onClose: () => void }) {
   return (
     <Modal

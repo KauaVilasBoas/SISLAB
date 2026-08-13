@@ -132,14 +132,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // A failed CSRF arm must not block bootstrap; unsafe requests will simply be re-armed later.
       }
 
-      // Public demo: sign in with the fictional account before resolving the session, so the visitor never
-      // meets a login form asking for credentials that were never issued. `IS_DEMO` is a build-time constant,
-      // so this whole branch is dropped from the real (backend-connected) bundle.
       if (IS_DEMO) {
         try {
           await signInAsDemoVisitor();
         } catch {
-          // Leaves the flow below to report "signed out" — /login then stays as the manual escape hatch.
+          /* empty */
         }
       }
 
