@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
@@ -13,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
+import { router } from '@/app/router';
 
 interface TourStop {
   path: string;
@@ -60,7 +60,6 @@ const TOUR_STOPS: TourStop[] = [
 ];
 
 export function DemoTour({ onFinish }: { onFinish: () => void }) {
-  const navigate = useNavigate();
   const [index, setIndex] = useState(0);
 
   const stop = TOUR_STOPS[index];
@@ -68,9 +67,11 @@ export function DemoTour({ onFinish }: { onFinish: () => void }) {
   const isLast = index === TOUR_STOPS.length - 1;
 
   // Cada parada roteia para a tela real; a legenda flutuante acompanha a navegação.
+  // Usamos a API imperativa do router (singleton): o tour vive fora do RouterProvider,
+  // então o hook useNavigate() não está disponível aqui.
   useEffect(() => {
-    navigate(stop.path);
-  }, [navigate, stop.path]);
+    void router.navigate(stop.path);
+  }, [stop.path]);
 
   const Icon = stop.icon;
 
