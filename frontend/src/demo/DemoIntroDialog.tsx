@@ -61,7 +61,7 @@ export function DemoIntroDialog({ onClose }: { onClose: () => void }) {
       onClose={onClose}
       size="xl"
       title="Bem-vindo à demonstração do SISLAB"
-      description="Sistema de gestão para laboratórios de pesquisa — estoque, controlados, equipamentos, agenda e experimentos."
+      description="Sistema de gestão para laboratórios de pesquisa: estoque, controlados, equipamentos, agenda e experimentos."
       footer={
         <>
           <Button variant="outline" asChild>
@@ -81,7 +81,7 @@ export function DemoIntroDialog({ onClose }: { onClose: () => void }) {
           <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs text-foreground">
             /api/*
           </code>{' '}
-          são interceptadas no navegador e respondidas com dados fictícios — nada é
+          são interceptadas no navegador e respondidas com dados fictícios: nada é
           gravado e nenhum dado real de laboratório é exposto. Explore à vontade, todas as
           telas estão abertas.
         </p>
@@ -115,7 +115,7 @@ export function DemoIntroDialog({ onClose }: { onClose: () => void }) {
 
         <section className="flex flex-col gap-2 rounded-lg border border-dashed p-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted-foreground">
-            Código aberto — backend, frontend e infraestrutura como código.
+            Código aberto: backend, frontend e infraestrutura como código.
           </p>
           <div className="flex flex-wrap gap-3 text-xs font-medium">
             <RepoLink href={SISLAB_REPO} label="SISLAB" />
