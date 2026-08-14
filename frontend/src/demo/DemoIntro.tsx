@@ -32,6 +32,7 @@ export function DemoIntro() {
       <DemoRibbon
         onOpenIntro={() => setSurface('intro')}
         onOpenHowItsBuilt={() => setSurface('how-its-built')}
+        hidden={surface === 'tour'}
       />
 
       {surface === 'intro' && introReady && (

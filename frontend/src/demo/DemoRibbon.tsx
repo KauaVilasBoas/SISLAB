@@ -10,10 +10,15 @@ import { Code2, Info, Sparkles } from 'lucide-react';
 export function DemoRibbon({
   onOpenIntro,
   onOpenHowItsBuilt,
+  hidden = false,
 }: {
   onOpenIntro: () => void;
   onOpenHowItsBuilt: () => void;
+  /** Recolhe a ribbon enquanto o tour guiado está ativo, para não brigar com o card do tour no canto. */
+  hidden?: boolean;
 }) {
+  if (hidden) return null;
+
   return (
     <div className="fixed bottom-3 right-3 z-40 flex items-center gap-2">
       <button
