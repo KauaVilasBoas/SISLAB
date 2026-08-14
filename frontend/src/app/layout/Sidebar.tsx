@@ -137,6 +137,7 @@ function SidebarItem({ item }: { item: NavItem }) {
     <NavLink
       to={item.path}
       end={item.path === '/'}
+      data-tour={`nav:${item.path}`}
       className={({ isActive }) =>
         cn(
           'flex items-center gap-3 rounded-md px-3 py-2 transition-colors',
