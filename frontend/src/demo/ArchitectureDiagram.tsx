@@ -54,7 +54,7 @@ export function ArchitectureDiagram() {
         <DiagramNode
           tone="host"
           icon={Server}
-          title="SISLAB.Api — Composition Root"
+          title="SISLAB.Api: Composition Root"
           subtitle="Exception → CorrelationId → Rate limit → AuthN → Tenant → CSRF → AuthZ"
           aside="Jobs · outbox + alertas"
         />
@@ -65,7 +65,7 @@ export function ArchitectureDiagram() {
           tone="module"
           icon={Layers}
           title="7 bounded contexts"
-          subtitle="cada um com Domain · Application · Infrastructure · Contracts — conversam só por Contracts"
+          subtitle="cada um com Domain · Application · Infrastructure · Contracts, conversam só por Contracts"
           aside="IAM: Lumen (NuGet)"
         >
           <ul className="flex flex-wrap gap-1.5">
@@ -100,7 +100,7 @@ export function ArchitectureDiagram() {
       </div>
 
       <figcaption className="text-center text-[11px] text-muted-foreground">
-        Visão simplificada — o diagrama completo está no README do repositório.
+        Visão simplificada. O diagrama completo está no README do repositório.
       </figcaption>
     </figure>
   );
