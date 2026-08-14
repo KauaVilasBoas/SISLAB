@@ -23,6 +23,8 @@ import {
   logout as logoutRequest,
 } from '@/modules/auth/api/auth.queries';
 import type { CompanyMembership, CurrentUser } from '@/modules/auth/types';
+import { IS_DEMO } from '@/demo/isDemo';
+import { signInAsDemoVisitor } from '@/demo/autoSignIn';
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -128,6 +130,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await armCsrf();
       } catch {
         // A failed CSRF arm must not block bootstrap; unsafe requests will simply be re-armed later.
+      }
+
+      if (IS_DEMO) {
+        try {
+          await signInAsDemoVisitor();
+        } catch {
+          /* empty */
+        }
       }
 
       try {

@@ -22,21 +22,22 @@ import {
 import { CalendarPage } from '@/modules/agenda/pages/CalendarPage';
 import { AuditShowcase } from '@/modules/audit/components/premium-showcase';
 import { NotificationsPage } from '@/modules/notifications/pages/NotificationsPage';
-import { LoginPage } from '@/modules/auth/pages/LoginPage';
+import { LoginRoute } from '@/modules/auth/components/LoginRoute';
 import { InvitationAcceptPage } from '@/modules/identity/pages/InvitationAcceptPage';
 import { RequireAuth } from '@/modules/auth/components/RequireAuth';
 import { RequirePermissionRoute } from '@/modules/auth/components/RequirePermissionRoute';
 import { Permissions } from '@/modules/auth/permissions';
 
 /**
- * Central route table (card [E7] #44). /login is public and lives OUTSIDE the AppShell;
+ * Central route table (card [E7] #44). /login is public (served by LoginRoute, which bounces to the
+ * dashboard in the auto-signed-in demo build) and lives OUTSIDE the AppShell;
  * every AppShell route is wrapped in <RequireAuth>, which redirects to /login (preserving the
  * attempted location) when there is no session. Paths align with app/navigation.ts.
  */
 export const router = createBrowserRouter([
   {
     path: '/login',
-    element: <LoginPage />,
+    element: <LoginRoute />,
     errorElement: <RouteErrorBoundary />,
   },
   {

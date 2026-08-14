@@ -11,8 +11,8 @@ interface ModalProps {
   children: ReactNode;
   /** Optional footer (actions). Rendered right-aligned below the body. */
   footer?: ReactNode;
-  /** Widen the panel for the permission editor. */
-  size?: 'default' | 'lg';
+  /** Widen the panel: 'lg' for the permission editor, 'xl' for content-heavy panels (demo intro). */
+  size?: 'default' | 'lg' | 'xl';
 }
 
 /**
@@ -56,7 +56,7 @@ export function Modal({
         aria-label={title}
         className={cn(
           'flex max-h-[85vh] w-full flex-col rounded-xl border bg-card text-card-foreground shadow-lg',
-          size === 'lg' ? 'max-w-2xl' : 'max-w-md',
+          { default: 'max-w-md', lg: 'max-w-2xl', xl: 'max-w-3xl' }[size],
         )}
         onMouseDown={(e) => e.stopPropagation()}
       >

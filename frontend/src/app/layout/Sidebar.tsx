@@ -4,6 +4,7 @@ import sislabLogo from '@/assets/sislab-logotipo-horizontal.svg';
 import { navGroups, type NavItem } from '@/app/navigation';
 import { useAuth } from '@/modules/auth/AuthProvider';
 import { usePermissions } from '@/modules/auth/PermissionsProvider';
+import { IS_DEMO } from '@/demo/isDemo';
 import { cn } from '@/shared/lib/utils';
 
 /** Two-letter initials from a display name or e-mail, for the avatar chip. */
@@ -180,15 +181,17 @@ function SidebarUserFooter() {
         <p className="truncate text-sm font-medium">{displayName}</p>
         <p className="truncate text-[11px] text-sidebar-muted">{role}</p>
       </div>
-      <button
-        type="button"
-        onClick={() => void handleLogout()}
-        aria-label="Sair"
-        title="Sair"
-        className="rounded-md p-2 text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-      >
-        <LogOut className="size-4" />
-      </button>
+      {!IS_DEMO && (
+        <button
+          type="button"
+          onClick={() => void handleLogout()}
+          aria-label="Sair"
+          title="Sair"
+          className="rounded-md p-2 text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+        >
+          <LogOut className="size-4" />
+        </button>
+      )}
     </div>
   );
 }
