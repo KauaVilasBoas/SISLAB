@@ -81,9 +81,9 @@ export function DemoIntroDialog({ onClose }: { onClose: () => void }) {
           <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs text-foreground">
             /api/*
           </code>{' '}
-          são interceptadas no navegador e respondidas com dados fictícios: nada é
-          gravado e nenhum dado real de laboratório é exposto. Explore à vontade, todas as
-          telas estão abertas.
+          são interceptadas no navegador e respondidas com dados fictícios: nada é gravado
+          e nenhum dado real de laboratório é exposto. Explore à vontade, todas as telas
+          estão abertas.
         </p>
 
         <section className="space-y-3">
